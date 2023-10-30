@@ -12,3 +12,9 @@ docs/
 
 # Dotenv file
 .env
+
+# Similar existing projects
+src/VotingEscrowCurve.sol
+src/VotingEscrowSolidly.sol
+src/VotingEscrowStargate.sol
+src/VotingEscrowThena.sol
