@@ -14,7 +14,8 @@ docs/
 .env
 
 # Similar existing projects
+src/OldVeCTM.sol
+src/VotingEscrow.sol
 src/VotingEscrowCurve.sol
-src/VotingEscrowSolidly.sol
 src/VotingEscrowStargate.sol
 src/VotingEscrowThena.sol
