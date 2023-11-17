@@ -1,52 +1,51 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.23;
 
-import {IERC721} from "openzeppelin/token/ERC721/IERC721.sol";
-import {IERC721Metadata} from "openzeppelin/token/ERC721/extensions/IERC721Metadata.sol";
-import {IERC721Receiver} from "openzeppelin/token/ERC721/IERC721Receiver.sol";
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {Strings} from "openzeppelin/utils/Strings.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {IERC721Metadata} from "@openzeppelin/token/ERC721/extensions/IERC721Metadata.sol";
+import {IVotes} from "@openzeppelin/governance/utils/IVotes.sol";
+import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {Strings} from "@openzeppelin/utils/Strings.sol";
 
 /**
-@title Voting Escrow
-@author Curve Finance
-@license MIT
-@notice Votes have a weight depending on time, so that users are
-committed to the future of (whatever they are voting for)
-@dev Vote weight decays linearly over time. Lock time cannot be
-more than `MAXTIME` (4 years).
-# Voting escrow to have time-weighted votes
-# Votes have a weight depending on time, so that users are committed
-# to the future of (whatever they are voting for).
-# The weight in this implementation is linear, and lock cannot be more than maxtime:
-# w ^
-# 1 +        /
-#   |      /
-#   |    /
-#   |  /
-#   |/
-# 0 +--------+------> time
-#       maxtime (4 years?)
-*/
-
+ * @title Voting Escrow
+ * @author Curve Finance
+ * @license MIT
+ * @notice Votes have a weight depending on time, so that users are
+ * committed to the future of (whatever they are voting for)
+ * @dev Vote weight decays linearly over time. Lock time cannot be
+ * more than `MAXTIME` (4 years).
+ * # Voting escrow to have time-weighted votes
+ * # Votes have a weight depending on time, so that users are committed
+ * # to the future of (whatever they are voting for).
+ * # The weight in this implementation is linear, and lock cannot be more than maxtime:
+ * # w ^
+ * # 1 +        /
+ * #   |      /
+ * #   |    /
+ * #   |  /
+ * #   |/
+ * # 0 +--------+------> time
+ * #       maxtime (4 years?)
+ */
 
 struct Point {
     int128 bias;
     int128 slope; // # -dweight / dt
-    uint ts;
-    uint blk; // block
+    uint256 ts;
+    uint256 blk; // block
 }
 /* We cannot really do block numbers per se b/c slope is per time, not per block
 * and per block could be fairly bad b/c Ethereum changes blocktimes.
 * What we can do is to extrapolate ***At functions */
 
-
 struct LockedBalance {
     int128 amount;
-    uint end;
+    uint256 end;
 }
 
-
+// contract VotingEscrowContinuum is IERC721, IERC721Metadata, IVotes {
 contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     using Strings for uint256;
 
@@ -60,60 +59,56 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
     event Deposit(
         address indexed provider,
-        uint tokenId,
-        uint value,
-        uint indexed locktime,
+        uint256 tokenId,
+        uint256 value,
+        uint256 indexed locktime,
         DepositType deposit_type,
-        uint ts
+        uint256 ts
     );
-    event Withdraw(address indexed provider, uint tokenId, uint value, uint ts);
-    event Supply(uint prevSupply, uint supply);
+    event Withdraw(address indexed provider, uint256 tokenId, uint256 value, uint256 ts);
+    event Supply(uint256 prevSupply, uint256 supply);
 
-    uint internal constant WEEK = 1 weeks;
-    uint internal constant MAXTIME = 4 * 365 * 86400;
+    uint256 internal constant WEEK = 1 weeks;
+    uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
-    uint internal constant MULTIPLIER = 1 ether;
+    uint256 internal constant MULTIPLIER = 1 ether;
 
-    address immutable public token;
-    uint public supply;
-    mapping(uint => LockedBalance) public locked;
+    address public immutable token;
+    uint256 public supply;
+    mapping(uint256 => LockedBalance) public locked;
 
-    mapping(uint => uint) public ownership_change;
+    mapping(uint256 => uint256) public ownership_change;
 
-    uint public epoch;
-    mapping(uint => Point) public point_history; // epoch -> unsigned point
-    mapping(uint => Point[1000000000]) public user_point_history; // user -> Point[user_epoch]
+    uint256 public epoch;
+    mapping(uint256 => Point) public point_history; // epoch -> unsigned point
+    mapping(uint256 => Point[1000000000]) public user_point_history; // user -> Point[user_epoch]
 
-    mapping(uint => uint) public user_point_epoch;
-    mapping(uint => int128) public slope_changes; // time -> signed slope change
+    mapping(uint256 => uint256) public user_point_epoch;
+    mapping(uint256 => int128) public slope_changes; // time -> signed slope change
 
-    mapping(uint => uint) public attachments;
-    mapping(uint => bool) public voted;
-    address public voter;
-
-    string constant public name = "veNFT";
-    string constant public symbol = "veNFT";
-    string constant public version = "1.0.0";
-    uint8 constant public decimals = 18;
+    string public constant name = "Voting Escrow Continuum";
+    string public constant symbol = "veCTM";
+    string public constant version = "1.0.0";
+    uint8 public constant decimals = 18;
     string public baseURI;
 
     /// @dev Current count of token
-    uint internal tokenId;
+    uint256 internal tokenId;
 
     /// @dev Mapping from NFT ID to the address that owns it.
-    mapping(uint => address) internal idToOwner;
+    mapping(uint256 => address) internal idToOwner;
 
     /// @dev Mapping from NFT ID to approved address.
-    mapping(uint => address) internal idToApprovals;
+    mapping(uint256 => address) internal idToApprovals;
 
     /// @dev Mapping from owner address to count of his tokens.
-    mapping(address => uint) internal ownerToNFTokenCount;
+    mapping(address => uint256) internal ownerToNFTokenCount;
 
     /// @dev Mapping from owner address to mapping of index to tokenIds
-    mapping(address => mapping(uint => uint)) internal ownerToNFTokenIdList;
+    mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList;
 
     /// @dev Mapping from NFT ID to index of owner
-    mapping(uint => uint) internal tokenToOwnerIndex;
+    mapping(uint256 => uint256) internal tokenToOwnerIndex;
 
     /// @dev Mapping from owner address to mapping of operator addresses.
     mapping(address => mapping(address => bool)) internal ownerToOperators;
@@ -134,6 +129,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     uint8 internal constant _not_entered = 1;
     uint8 internal constant _entered = 2;
     uint8 internal _entered_state = 1;
+
     modifier nonreentrant() {
         require(_entered_state == _not_entered);
         _entered_state = _entered;
@@ -143,13 +139,9 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
     /// @notice Contract constructor
     /// @param token_addr `ERC20CRV` token address
-    constructor(
-        address token_addr,
-        string memory base_uri
-    ) {
+    constructor(address token_addr, string memory base_uri) {
         token = token_addr;
         baseURI = base_uri;
-        voter = msg.sender;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
 
@@ -172,8 +164,8 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @notice Get the most recently recorded rate of voting power decrease for `_tokenId`
     /// @param _tokenId token of the NFT
     /// @return Value of the slope
-    function get_last_user_slope(uint _tokenId) external view returns (int128) {
-        uint uepoch = user_point_epoch[_tokenId];
+    function get_last_user_slope(uint256 _tokenId) external view returns (int128) {
+        uint256 uepoch = user_point_epoch[_tokenId];
         return user_point_history[_tokenId][uepoch].slope;
     }
 
@@ -181,40 +173,40 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _tokenId token of the NFT
     /// @param _idx User epoch number
     /// @return Epoch time of the checkpoint
-    function user_point_history__ts(uint _tokenId, uint _idx) external view returns (uint) {
+    function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256) {
         return user_point_history[_tokenId][_idx].ts;
     }
 
     /// @notice Get timestamp when `_tokenId`'s lock finishes
     /// @param _tokenId User NFT
     /// @return Epoch time of the lock end
-    function locked__end(uint _tokenId) external view returns (uint) {
+    function locked__end(uint256 _tokenId) external view returns (uint256) {
         return locked[_tokenId].end;
     }
 
     /// @dev Returns the number of NFTs owned by `_owner`.
     ///      Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
     /// @param _owner Address for whom to query the balance.
-    function _balance(address _owner) internal view returns (uint) {
+    function _balance(address _owner) internal view returns (uint256) {
         return ownerToNFTokenCount[_owner];
     }
 
     /// @dev Returns the number of NFTs owned by `_owner`.
     ///      Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
     /// @param _owner Address for whom to query the balance.
-    function balanceOf(address _owner) external view returns (uint) {
+    function balanceOf(address _owner) external view returns (uint256) {
         return _balance(_owner);
     }
 
     /// @dev Returns the address of the owner of the NFT.
     /// @param _tokenId The identifier for an NFT.
-    function ownerOf(uint _tokenId) public view returns (address) {
+    function ownerOf(uint256 _tokenId) public view returns (address) {
         return idToOwner[_tokenId];
     }
 
     /// @dev Get the approved address for a single NFT.
     /// @param _tokenId ID of the NFT to query the approval of.
-    function getApproved(uint _tokenId) external view returns (address) {
+    function getApproved(uint256 _tokenId) external view returns (address) {
         return idToApprovals[_tokenId];
     }
 
@@ -226,7 +218,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     }
 
     /// @dev  Get token by index
-    function tokenOfOwnerByIndex(address _owner, uint _tokenIndex) external view returns (uint) {
+    function tokenOfOwnerByIndex(address _owner, uint256 _tokenIndex) external view returns (uint256) {
         return ownerToNFTokenIdList[_owner][_tokenIndex];
     }
 
@@ -234,7 +226,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _spender address of the spender to query
     /// @param _tokenId uint ID of the token to be transferred
     /// @return bool whether the msg.sender is approved for the given token ID, is an operator of the owner, or is the owner of the token
-    function _isApprovedOrOwner(address _spender, uint _tokenId) internal view returns (bool) {
+    function _isApprovedOrOwner(address _spender, uint256 _tokenId) internal view returns (bool) {
         address owner = idToOwner[_tokenId];
         bool spenderIsOwner = owner == _spender;
         bool spenderIsApproved = _spender == idToApprovals[_tokenId];
@@ -242,15 +234,15 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         return spenderIsOwner || spenderIsApproved || spenderIsApprovedForAll;
     }
 
-    function isApprovedOrOwner(address _spender, uint _tokenId) external view returns (bool) {
+    function isApprovedOrOwner(address _spender, uint256 _tokenId) external view returns (bool) {
         return _isApprovedOrOwner(_spender, _tokenId);
     }
 
     /// @dev Add a NFT to an index mapping to a given address
     /// @param _to address of the receiver
     /// @param _tokenId uint ID Of the token to be added
-    function _addTokenToOwnerList(address _to, uint _tokenId) internal {
-        uint current_count = _balance(_to);
+    function _addTokenToOwnerList(address _to, uint256 _tokenId) internal {
+        uint256 current_count = _balance(_to);
 
         ownerToNFTokenIdList[_to][current_count] = _tokenId;
         tokenToOwnerIndex[_tokenId] = current_count;
@@ -259,10 +251,10 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @dev Remove a NFT from an index mapping to a given address
     /// @param _from address of the sender
     /// @param _tokenId uint ID Of the token to be removed
-    function _removeTokenFromOwnerList(address _from, uint _tokenId) internal {
+    function _removeTokenFromOwnerList(address _from, uint256 _tokenId) internal {
         // Delete
-        uint current_count = _balance(_from)-1;
-        uint current_index = tokenToOwnerIndex[_tokenId];
+        uint256 current_count = _balance(_from) - 1;
+        uint256 current_index = tokenToOwnerIndex[_tokenId];
 
         if (current_count == current_index) {
             // update ownerToNFTokenIdList
@@ -270,7 +262,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
             // update tokenToOwnerIndex
             tokenToOwnerIndex[_tokenId] = 0;
         } else {
-            uint lastTokenId = ownerToNFTokenIdList[_from][current_count];
+            uint256 lastTokenId = ownerToNFTokenIdList[_from][current_count];
 
             // Add
             // update ownerToNFTokenIdList
@@ -288,7 +280,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
     /// @dev Add a NFT to a given address
     ///      Throws if `_tokenId` is owned by someone.
-    function _addTokenTo(address _to, uint _tokenId) internal {
+    function _addTokenTo(address _to, uint256 _tokenId) internal {
         // Throws if `_tokenId` is owned by someone
         assert(idToOwner[_tokenId] == address(0));
         // Change the owner
@@ -301,7 +293,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
     /// @dev Remove a NFT from a given address
     ///      Throws if `_from` is not the current owner.
-    function _removeTokenFrom(address _from, uint _tokenId) internal {
+    function _removeTokenFrom(address _from, uint256 _tokenId) internal {
         // Throws if `_from` is not the current owner
         assert(idToOwner[_tokenId] == _from);
         // Change the owner
@@ -314,7 +306,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
     /// @dev Clear an approval of a given address
     ///      Throws if `_owner` is not the current owner.
-    function _clearApproval(address _owner, uint _tokenId) internal {
+    function _clearApproval(address _owner, uint256 _tokenId) internal {
         // Throws if `_owner` is not the current owner
         assert(idToOwner[_tokenId] == _owner);
         if (idToApprovals[_tokenId] != address(0)) {
@@ -329,13 +321,8 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     ///      Throws if `_to` is the zero address.
     ///      Throws if `_from` is not the current owner.
     ///      Throws if `_tokenId` is not a valid NFT.
-    function _transferFrom(
-        address _from,
-        address _to,
-        uint _tokenId,
-        address _sender
-    ) internal {
-        require(attachments[_tokenId] == 0 && !voted[_tokenId], "attached");
+    function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender) internal {
+        // CHECK ATTACHMENT AND VOTING RESTRICTIONS
         // Check requirements
         require(_isApprovedOrOwner(_sender, _tokenId));
         // Clear approval. Throws if `_from` is not the current owner
@@ -360,11 +347,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _from The current owner of the NFT.
     /// @param _to The new owner.
     /// @param _tokenId The NFT to transfer.
-    function transferFrom(
-        address _from,
-        address _to,
-        uint _tokenId
-    ) external {
+    function transferFrom(address _from, address _to, uint256 _tokenId) external {
         _transferFrom(_from, _to, _tokenId, msg.sender);
     }
 
@@ -372,7 +355,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         // This method relies on extcodesize, which returns 0 for contracts in
         // construction, since the code is only stored at the end of the
         // constructor execution.
-        uint size;
+        uint256 size;
         assembly {
             size := extcodesize(account)
         }
@@ -391,21 +374,15 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _to The new owner.
     /// @param _tokenId The NFT to transfer.
     /// @param _data Additional data with no specified format, sent in call to `_to`.
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint _tokenId,
-        bytes memory _data
-    ) public {
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) public {
         _transferFrom(_from, _to, _tokenId, msg.sender);
 
         if (_isContract(_to)) {
             // Throws if transfer destination is a contract which does not implement 'onERC721Received'
-            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) {} catch (
-                bytes memory reason
-            ) {
+            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) {}
+            catch (bytes memory reason) {
                 if (reason.length == 0) {
-                    revert('ERC721: transfer to non ERC721Receiver implementer');
+                    revert("ERC721: transfer to non ERC721Receiver implementer");
                 } else {
                     assembly {
                         revert(add(32, reason), mload(reason))
@@ -426,12 +403,8 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _from The current owner of the NFT.
     /// @param _to The new owner.
     /// @param _tokenId The NFT to transfer.
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint _tokenId
-    ) external {
-        safeTransferFrom(_from, _to, _tokenId, '');
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId) external {
+        safeTransferFrom(_from, _to, _tokenId, "");
     }
 
     /// @dev Set or reaffirm the approved address for an NFT. The zero address indicates there is no approved address.
@@ -440,7 +413,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     ///      Throws if `_approved` is the current owner. (NOTE: This is not written the EIP)
     /// @param _approved Address to be approved for the given NFT ID.
     /// @param _tokenId ID of the token to be approved.
-    function approve(address _approved, uint _tokenId) public {
+    function approve(address _approved, uint256 _tokenId) public {
         address owner = idToOwner[_tokenId];
         // Throws if `_tokenId` is not a valid NFT
         require(owner != address(0));
@@ -474,7 +447,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _to The address that will receive the minted tokens.
     /// @param _tokenId The token id to mint.
     /// @return A boolean that indicates if the operation was successful.
-    function _mint(address _to, uint _tokenId) internal returns (bool) {
+    function _mint(address _to, uint256 _tokenId) internal returns (bool) {
         // Throws if `_to` is zero address
         assert(_to != address(0));
         // Add NFT. Throws if `_tokenId` is owned by someone
@@ -487,16 +460,12 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _tokenId NFT token ID. No user checkpoint if 0
     /// @param old_locked Pevious locked amount / end lock time for the user
     /// @param new_locked New locked amount / end lock time for the user
-    function _checkpoint(
-        uint _tokenId,
-        LockedBalance memory old_locked,
-        LockedBalance memory new_locked
-    ) internal {
+    function _checkpoint(uint256 _tokenId, LockedBalance memory old_locked, LockedBalance memory new_locked) internal {
         Point memory u_old;
         Point memory u_new;
         int128 old_dslope = 0;
         int128 new_dslope = 0;
-        uint _epoch = epoch;
+        uint256 _epoch = epoch;
 
         if (_tokenId != 0) {
             // Calculate slopes and biases
@@ -527,12 +496,12 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         if (_epoch > 0) {
             last_point = point_history[_epoch];
         }
-        uint last_checkpoint = last_point.ts;
+        uint256 last_checkpoint = last_point.ts;
         // initial_last_point is used for extrapolation to calculate block number
         // (approximately, for *At methods) and save them
         // as we cannot figure that out exactly from inside the contract
         Point memory initial_last_point = last_point;
-        uint block_slope = 0; // dblock/dt
+        uint256 block_slope = 0; // dblock/dt
         if (block.timestamp > last_point.ts) {
             block_slope = (MULTIPLIER * (block.number - last_point.blk)) / (block.timestamp - last_point.ts);
         }
@@ -541,8 +510,8 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
         // Go over weeks to fill history and calculate what the current point is
         {
-            uint t_i = (last_checkpoint / WEEK) * WEEK;
-            for (uint i = 0; i < 255; ++i) {
+            uint256 t_i = (last_checkpoint / WEEK) * WEEK;
+            for (uint256 i = 0; i < 255; ++i) {
                 // Hopefully it won't happen that this won't get used in 5 years!
                 // If it does, users will be able to withdraw but vote weight will be broken
                 t_i += WEEK;
@@ -615,7 +584,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
                 // else: we recorded it already in old_dslope
             }
             // Now handle user history
-            uint user_epoch = user_point_epoch[_tokenId] + 1;
+            uint256 user_epoch = user_point_epoch[_tokenId] + 1;
 
             user_point_epoch[_tokenId] = user_epoch;
             u_new.ts = block.timestamp;
@@ -631,14 +600,14 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param locked_balance Previous locked amount / timestamp
     /// @param deposit_type The type of deposit
     function _deposit_for(
-        uint _tokenId,
-        uint _value,
-        uint unlock_time,
+        uint256 _tokenId,
+        uint256 _value,
+        uint256 unlock_time,
         LockedBalance memory locked_balance,
         DepositType deposit_type
     ) internal {
         LockedBalance memory _locked = locked_balance;
-        uint supply_before = supply;
+        uint256 supply_before = supply;
 
         supply = supply_before + _value;
         LockedBalance memory old_locked;
@@ -665,41 +634,44 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         emit Supply(supply_before, supply_before + _value);
     }
 
-    function setVoter(address _voter) external {
-        require(msg.sender == voter);
-        voter = _voter;
-    }
+    // function _getVotes(address _account, uint256 _t) internal view returns (uint256) {
+    //     uint256 cumulativeVotingPower = 0;
+    //     uint256 ownerNFTCount = ownerToNFTokenCount[_account];
+    //     for (uint8 i = 0; i < ownerNFTCount; i++) {
+    //         uint256 _tokenId = ownerToNFTokenIdList[_account][i];
+    //         if (ownership_change[_tokenId] == block.number) return 0;
+    //         cumulativeVotingPower += _balanceOfNFT(_tokenId, _t);
+    //     }
 
-    function voting(uint _tokenId) external {
-        require(msg.sender == voter);
-        voted[_tokenId] = true;
-    }
+    //     return cumulativeVotingPower;
+    // }
 
-    function abstain(uint _tokenId) external {
-        require(msg.sender == voter);
-        voted[_tokenId] = false;
-    }
+    // function getVotes(address account) external view returns (uint256) {
+    //     return _getVotes(account, block.timestamp);
+    // }
 
-    function attach(uint _tokenId) external {
-        require(msg.sender == voter);
-        attachments[_tokenId] = attachments[_tokenId]+1;
-    }
+    // function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
+    //     return _getVotes(account, timepoint);
+    // }
 
-    function detach(uint _tokenId) external {
-        require(msg.sender == voter);
-        attachments[_tokenId] = attachments[_tokenId]-1;
-    }
+    // function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {}
 
-    function merge(uint _from, uint _to) external {
-        require(attachments[_from] == 0 && !voted[_from], "attached");
+    // function delegates(address account) external view returns (address) {}
+
+    // function delegate(address delegatee) external {}
+
+    // function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {}
+
+    function merge(uint256 _from, uint256 _to) external {
+        // CHECK ATTACHMENT AND VOTING RESTRICTIONS
         require(_from != _to);
         require(_isApprovedOrOwner(msg.sender, _from));
         require(_isApprovedOrOwner(msg.sender, _to));
 
         LockedBalance memory _locked0 = locked[_from];
         LockedBalance memory _locked1 = locked[_to];
-        uint value0 = uint(int256(_locked0.amount));
-        uint end = _locked0.end >= _locked1.end ? _locked0.end : _locked1.end;
+        uint256 value0 = uint256(int256(_locked0.amount));
+        uint256 end = _locked0.end >= _locked1.end ? _locked0.end : _locked1.end;
 
         locked[_from] = LockedBalance(0, 0);
         _checkpoint(_from, _locked0, LockedBalance(0, 0));
@@ -707,7 +679,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         _deposit_for(_to, value0, end, _locked1, DepositType.MERGE_TYPE);
     }
 
-    function block_number() external view returns (uint) {
+    function block_number() external view returns (uint256) {
         return block.number;
     }
 
@@ -721,12 +693,12 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     ///      cannot extend their locktime and deposit for a brand new user
     /// @param _tokenId lock NFT
     /// @param _value Amount to add to user's lock
-    function deposit_for(uint _tokenId, uint _value) external nonreentrant {
+    function deposit_for(uint256 _tokenId, uint256 _value) external nonreentrant {
         LockedBalance memory _locked = locked[_tokenId];
 
         require(_value > 0); // dev: need non-zero value
-        require(_locked.amount > 0, 'No existing lock found');
-        require(_locked.end > block.timestamp, 'Cannot add to expired lock. Withdraw');
+        require(_locked.amount > 0, "No existing lock found");
+        require(_locked.end > block.timestamp, "Cannot add to expired lock. Withdraw");
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.DEPOSIT_FOR_TYPE);
     }
 
@@ -734,15 +706,15 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)
     /// @param _to Address to deposit
-    function _create_lock(uint _value, uint _lock_duration, address _to) internal returns (uint) {
-        uint unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
+    function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
+        uint256 unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
 
         require(_value > 0); // dev: need non-zero value
-        require(unlock_time > block.timestamp, 'Can only lock until time in the future');
-        require(unlock_time <= block.timestamp + MAXTIME, 'Voting lock can be 4 years max');
+        require(unlock_time > block.timestamp, "Can only lock until time in the future");
+        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
 
         ++tokenId;
-        uint _tokenId = tokenId;
+        uint256 _tokenId = tokenId;
         _mint(_to, _tokenId);
 
         _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
@@ -753,65 +725,69 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)
     /// @param _to Address to deposit
-    function create_lock_for(uint _value, uint _lock_duration, address _to) external nonreentrant returns (uint) {
+    function create_lock_for(uint256 _value, uint256 _lock_duration, address _to)
+        external
+        nonreentrant
+        returns (uint256)
+    {
         return _create_lock(_value, _lock_duration, _to);
     }
 
     /// @notice Deposit `_value` tokens for `msg.sender` and lock for `_lock_duration`
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)
-    function create_lock(uint _value, uint _lock_duration) external nonreentrant returns (uint) {
+    function create_lock(uint256 _value, uint256 _lock_duration) external nonreentrant returns (uint256) {
         return _create_lock(_value, _lock_duration, msg.sender);
     }
 
     /// @notice Deposit `_value` additional tokens for `_tokenId` without modifying the unlock time
     /// @param _value Amount of tokens to deposit and add to the lock
-    function increase_amount(uint _tokenId, uint _value) external nonreentrant {
+    function increase_amount(uint256 _tokenId, uint256 _value) external nonreentrant {
         assert(_isApprovedOrOwner(msg.sender, _tokenId));
 
         LockedBalance memory _locked = locked[_tokenId];
 
         assert(_value > 0); // dev: need non-zero value
-        require(_locked.amount > 0, 'No existing lock found');
-        require(_locked.end > block.timestamp, 'Cannot add to expired lock. Withdraw');
+        require(_locked.amount > 0, "No existing lock found");
+        require(_locked.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.INCREASE_LOCK_AMOUNT);
     }
 
     /// @notice Extend the unlock time for `_tokenId`
     /// @param _lock_duration New number of seconds until tokens unlock
-    function increase_unlock_time(uint _tokenId, uint _lock_duration) external nonreentrant {
+    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external nonreentrant {
         assert(_isApprovedOrOwner(msg.sender, _tokenId));
 
         LockedBalance memory _locked = locked[_tokenId];
-        uint unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
+        uint256 unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
 
-        require(_locked.end > block.timestamp, 'Lock expired');
-        require(_locked.amount > 0, 'Nothing is locked');
-        require(unlock_time > _locked.end, 'Can only increase lock duration');
-        require(unlock_time <= block.timestamp + MAXTIME, 'Voting lock can be 4 years max');
+        require(_locked.end > block.timestamp, "Lock expired");
+        require(_locked.amount > 0, "Nothing is locked");
+        require(unlock_time > _locked.end, "Can only increase lock duration");
+        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
 
         _deposit_for(_tokenId, 0, unlock_time, _locked, DepositType.INCREASE_UNLOCK_TIME);
     }
 
     /// @notice Withdraw all tokens for `_tokenId`
     /// @dev Only possible if the lock has expired
-    function withdraw(uint _tokenId) external nonreentrant {
+    function withdraw(uint256 _tokenId) external nonreentrant {
         assert(_isApprovedOrOwner(msg.sender, _tokenId));
-        require(attachments[_tokenId] == 0 && !voted[_tokenId], "attached");
+        // CHECK ATTACHMENT AND VOTING RESTRICTIONS
 
         LockedBalance memory _locked = locked[_tokenId];
         require(block.timestamp >= _locked.end, "The lock didn't expire");
-        uint value = uint(int256(_locked.amount));
+        uint256 value = uint256(int256(_locked.amount));
 
-        locked[_tokenId] = LockedBalance(0,0);
-        uint supply_before = supply;
+        locked[_tokenId] = LockedBalance(0, 0);
+        uint256 supply_before = supply;
         supply = supply_before - value;
 
         // old_locked can have either expired <= timestamp or zero end
         // _locked has only 0 end
         // Both can have >= 0 amount
-        _checkpoint(_tokenId, _locked, LockedBalance(0,0));
+        _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
         assert(IERC20(token).transfer(msg.sender, value));
 
@@ -830,16 +806,16 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _block Block to find
     /// @param max_epoch Don't go beyond this epoch
     /// @return Approximate timestamp for block
-    function _find_block_epoch(uint _block, uint max_epoch) internal view returns (uint) {
+    function _find_block_epoch(uint256 _block, uint256 max_epoch) internal view returns (uint256) {
         // Binary search
-        uint _min = 0;
-        uint _max = max_epoch;
-        for (uint i = 0; i < 128; ++i) {
+        uint256 _min = 0;
+        uint256 _max = max_epoch;
+        for (uint256 i = 0; i < 128; ++i) {
             // Will be always enough for 128-bit numbers
             if (_min >= _max) {
                 break;
             }
-            uint _mid = (_min + _max + 1) / 2;
+            uint256 _mid = (_min + _max + 1) / 2;
             if (point_history[_mid].blk <= _block) {
                 _min = _mid;
             } else {
@@ -854,8 +830,8 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _tokenId NFT for lock
     /// @param _t Epoch time to return voting power at
     /// @return User voting power
-    function _balanceOfNFT(uint _tokenId, uint _t) internal view returns (uint) {
-        uint _epoch = user_point_epoch[_tokenId];
+    function _balanceOfNFT(uint256 _tokenId, uint256 _t) internal view returns (uint256) {
+        uint256 _epoch = user_point_epoch[_tokenId];
         if (_epoch == 0) {
             return 0;
         } else {
@@ -864,24 +840,26 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
             if (last_point.bias < 0) {
                 last_point.bias = 0;
             }
-            return uint(int256(last_point.bias));
+            return uint256(int256(last_point.bias));
         }
     }
 
     /// @dev Returns current token URI metadata
     /// @param _tokenId Token ID to fetch URI for.
-    function tokenURI(uint _tokenId) external view returns (string memory) {
+    function tokenURI(uint256 _tokenId) external view returns (string memory) {
         require(idToOwner[_tokenId] != address(0), "Query for nonexistent token");
         string memory _baseURI = baseURI;
         return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, tokenId.toString())) : "";
     }
 
-    function balanceOfNFT(uint _tokenId) external view returns (uint) {
+    function balanceOfNFT(uint256 _tokenId) external view returns (uint256) {
+        // OBSOLETE
         if (ownership_change[_tokenId] == block.number) return 0;
         return _balanceOfNFT(_tokenId, block.timestamp);
     }
 
-    function balanceOfNFTAt(uint _tokenId, uint _t) external view returns (uint) {
+    function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256) {
+        // OBSOLETE
         return _balanceOfNFT(_tokenId, _t);
     }
 
@@ -890,20 +868,20 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _tokenId User's wallet NFT
     /// @param _block Block to calculate the voting power at
     /// @return Voting power
-    function _balanceOfAtNFT(uint _tokenId, uint _block) internal view returns (uint) {
+    function _balanceOfAtNFT(uint256 _tokenId, uint256 _block) internal view returns (uint256) {
         // Copying and pasting totalSupply code because Vyper cannot pass by
         // reference yet
         assert(_block <= block.number);
 
         // Binary search
-        uint _min = 0;
-        uint _max = user_point_epoch[_tokenId];
-        for (uint i = 0; i < 128; ++i) {
+        uint256 _min = 0;
+        uint256 _max = user_point_epoch[_tokenId];
+        for (uint256 i = 0; i < 128; ++i) {
             // Will be always enough for 128-bit numbers
             if (_min >= _max) {
                 break;
             }
-            uint _mid = (_min + _max + 1) / 2;
+            uint256 _mid = (_min + _max + 1) / 2;
             if (user_point_history[_tokenId][_mid].blk <= _block) {
                 _min = _mid;
             } else {
@@ -913,11 +891,11 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
 
         Point memory upoint = user_point_history[_tokenId][_min];
 
-        uint max_epoch = epoch;
-        uint _epoch = _find_block_epoch(_block, max_epoch);
+        uint256 max_epoch = epoch;
+        uint256 _epoch = _find_block_epoch(_block, max_epoch);
         Point memory point_0 = point_history[_epoch];
-        uint d_block = 0;
-        uint d_t = 0;
+        uint256 d_block = 0;
+        uint256 d_t = 0;
         if (_epoch < max_epoch) {
             Point memory point_1 = point_history[_epoch + 1];
             d_block = point_1.blk - point_0.blk;
@@ -926,20 +904,20 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
             d_block = block.number - point_0.blk;
             d_t = block.timestamp - point_0.ts;
         }
-        uint block_time = point_0.ts;
+        uint256 block_time = point_0.ts;
         if (d_block != 0) {
             block_time += (d_t * (_block - point_0.blk)) / d_block;
         }
 
         upoint.bias -= upoint.slope * int128(int256(block_time - upoint.ts));
         if (upoint.bias >= 0) {
-            return uint(uint128(upoint.bias));
+            return uint256(uint128(upoint.bias));
         } else {
             return 0;
         }
     }
 
-    function balanceOfAtNFT(uint _tokenId, uint _block) external view returns (uint) {
+    function balanceOfAtNFT(uint256 _tokenId, uint256 _block) external view returns (uint256) {
         return _balanceOfAtNFT(_tokenId, _block);
     }
 
@@ -947,10 +925,10 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param point The point (bias/slope) to start search from
     /// @param t Time to calculate the total voting power at
     /// @return Total voting power at that time
-    function _supply_at(Point memory point, uint t) internal view returns (uint) {
+    function _supply_at(Point memory point, uint256 t) internal view returns (uint256) {
         Point memory last_point = point;
-        uint t_i = (last_point.ts / WEEK) * WEEK;
-        for (uint i = 0; i < 255; ++i) {
+        uint256 t_i = (last_point.ts / WEEK) * WEEK;
+        for (uint256 i = 0; i < 255; ++i) {
             t_i += WEEK;
             int128 d_slope = 0;
             if (t_i > t) {
@@ -969,32 +947,32 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         if (last_point.bias < 0) {
             last_point.bias = 0;
         }
-        return uint(uint128(last_point.bias));
+        return uint256(uint128(last_point.bias));
     }
 
     /// @notice Calculate total voting power
     /// @dev Adheres to the ERC20 `totalSupply` interface for Aragon compatibility
     /// @return Total voting power
-    function totalSupplyAtT(uint t) public view returns (uint) {
-        uint _epoch = epoch;
+    function totalSupplyAtT(uint256 t) public view returns (uint256) {
+        uint256 _epoch = epoch;
         Point memory last_point = point_history[_epoch];
         return _supply_at(last_point, t);
     }
 
-    function totalSupply() external view returns (uint) {
+    function totalSupply() external view returns (uint256) {
         return totalSupplyAtT(block.timestamp);
     }
 
     /// @notice Calculate total voting power at some point in the past
     /// @param _block Block to calculate the total voting power at
     /// @return Total voting power at `_block`
-    function totalSupplyAt(uint _block) external view returns (uint) {
+    function totalSupplyAt(uint256 _block) external view returns (uint256) {
         assert(_block <= block.number);
-        uint _epoch = epoch;
-        uint target_epoch = _find_block_epoch(_block, _epoch);
+        uint256 _epoch = epoch;
+        uint256 target_epoch = _find_block_epoch(_block, _epoch);
 
         Point memory point = point_history[target_epoch];
-        uint dt = 0;
+        uint256 dt = 0;
         if (target_epoch < _epoch) {
             Point memory point_next = point_history[target_epoch + 1];
             if (point.blk != point_next.blk) {
@@ -1009,7 +987,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         return _supply_at(point, point.ts + dt);
     }
 
-    function _burn(uint _tokenId) internal {
+    function _burn(uint256 _tokenId) internal {
         require(_isApprovedOrOwner(msg.sender, _tokenId), "caller is not owner nor approved");
 
         address owner = ownerOf(_tokenId);
