@@ -37,8 +37,8 @@ struct Point {
     uint256 blk; // block
 }
 /* We cannot really do block numbers per se b/c slope is per time, not per block
-* and per block could be fairly bad b/c Ethereum changes blocktimes.
-* What we can do is to extrapolate ***At functions */
+ * and per block could be fairly bad b/c Ethereum changes blocktimes.
+ * What we can do is to extrapolate ***At functions */
 
 struct LockedBalance {
     int128 amount;
@@ -707,7 +707,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)
     /// @param _to Address to deposit
     function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
-        uint256 unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
+        uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
         require(_value > 0); // dev: need non-zero value
         require(unlock_time > block.timestamp, "Can only lock until time in the future");
@@ -760,7 +760,7 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         assert(_isApprovedOrOwner(msg.sender, _tokenId));
 
         LockedBalance memory _locked = locked[_tokenId];
-        uint256 unlock_time = (block.timestamp + _lock_duration) / WEEK * WEEK; // Locktime is rounded down to weeks
+        uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
         require(_locked.end > block.timestamp, "Lock expired");
         require(_locked.amount > 0, "Nothing is locked");
