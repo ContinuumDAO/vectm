@@ -14,4 +14,4 @@ docs/
 .env
 
 # Similar existing projects
-src/refs/
+refs/
