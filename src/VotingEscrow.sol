@@ -46,7 +46,7 @@ struct LockedBalance {
 }
 
 // contract VotingEscrowContinuum is IERC721, IERC721Metadata, IVotes {
-contract VotingEscrowContinuum is IERC721, IERC721Metadata {
+contract VotingEscrow is IERC721, IERC721Metadata {
     using Strings for uint256;
 
     enum DepositType {
@@ -634,33 +634,33 @@ contract VotingEscrowContinuum is IERC721, IERC721Metadata {
         emit Supply(supply_before, supply_before + _value);
     }
 
-    // function _getVotes(address _account, uint256 _t) internal view returns (uint256) {
-    //     uint256 cumulativeVotingPower = 0;
-    //     uint256 ownerNFTCount = ownerToNFTokenCount[_account];
-    //     for (uint8 i = 0; i < ownerNFTCount; i++) {
-    //         uint256 _tokenId = ownerToNFTokenIdList[_account][i];
-    //         if (ownership_change[_tokenId] == block.number) return 0;
-    //         cumulativeVotingPower += _balanceOfNFT(_tokenId, _t);
-    //     }
+    function _getVotes(address _account, uint256 _t) internal view returns (uint256) {
+        uint256 cumulativeVotingPower = 0;
+        uint256 ownerNFTCount = ownerToNFTokenCount[_account];
+        for (uint8 i = 0; i < ownerNFTCount; i++) {
+            uint256 _tokenId = ownerToNFTokenIdList[_account][i];
+            if (ownership_change[_tokenId] == block.number) return 0;
+            cumulativeVotingPower += _balanceOfNFT(_tokenId, _t);
+        }
 
-    //     return cumulativeVotingPower;
-    // }
+        return cumulativeVotingPower;
+    }
 
-    // function getVotes(address account) external view returns (uint256) {
-    //     return _getVotes(account, block.timestamp);
-    // }
+    function getVotes(address account) external view returns (uint256) {
+        return _getVotes(account, block.timestamp);
+    }
 
-    // function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
-    //     return _getVotes(account, timepoint);
-    // }
+    function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
+        return _getVotes(account, timepoint);
+    }
 
-    // function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {}
+    function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {}
 
-    // function delegates(address account) external view returns (address) {}
+    function delegates(address account) external view returns (address) {}
 
-    // function delegate(address delegatee) external {}
+    function delegate(address delegatee) external {}
 
-    // function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {}
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {}
 
     function merge(uint256 _from, uint256 _to) external {
         // CHECK ATTACHMENT AND VOTING RESTRICTIONS
