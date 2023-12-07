@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
-import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from "./lib/openzeppelin-contracts-upgradeable/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 
 contract VotingEscrowProxy is TransparentUpgradeableProxy {

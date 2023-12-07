@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
-import {IERC721Metadata} from "@openzeppelin/token/ERC721/extensions/IERC721Metadata.sol";
-import {IVotes} from "@openzeppelin/governance/utils/IVotes.sol";
-import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
-import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
-import {Strings} from "@openzeppelin/utils/Strings.sol";
+import {IERC721} from "./lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/IERC721.sol";
+import {IERC721Metadata} from "./lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {IVotes} from "./lib/openzeppelin-contracts-upgradeable/contracts/governance/utils/IVotes.sol";
+import {IERC721Receiver} from "./lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC20} from "./lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20.sol";
+import {Strings} from "./lib/openzeppelin-contracts-upgradeable/contracts/utils/Strings.sol";
 
 /**
  * @title Voting Escrow
