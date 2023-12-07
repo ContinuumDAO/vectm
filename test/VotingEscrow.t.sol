@@ -12,7 +12,7 @@ contract SetUp is Test {
     address user1;
     address user2;
 
-    function setUp() public {
+    function setUp() public virtual {
         ctm = new CTM();
         ve = new VotingEscrow(address(ctm), "<BASE_URI>");
         ctm.print(msg.sender, 10 ether);
@@ -29,15 +29,26 @@ contract SetUp is Test {
 
 
 contract CreateLock is SetUp {
-    function test_CreateLockBasic() public {
-        uint256 MAXTIME = 4 * 365 * 86400;
-        uint256 tokenId = ve.create_lock(1 ether, MAXTIME);
-        uint256 votingPower = ve.balanceOfAtNFT(tokenId, block.number);
-        console.log("Token ID of lock: %s", tokenId);
-        console.log("Voting Power of lock: %s", votingPower);
+    uint256 constant MAXTIME = 4 * 365 * 86400;
+    uint256 tokenId;
+
+    function setUp() public override {
+        super.setUp();
+        tokenId = ve.create_lock(1 ether, MAXTIME);
     }
 
-    function test_IncreaseLockAmount() public {}
-    function test_IncreaseLockTime() public {}
-    function test_RemoveExpiredTokens() public {}
+    function test_CreateLockBasic() public {
+        uint256 votingPowerBlk = ve.balanceOfAtNFT(tokenId, block.number);
+        uint256 votingPowerTs = ve.balanceOfNFTAt(tokenId, block.timestamp);
+        int256 last_slope = ve.get_last_user_slope(tokenId);
+        // assertEq(votingPower, 1 ether);
+        // console.log("Token ID of lock: %s", tokenId);
+        // console.log("Voting Power of lock blk: %s", votingPowerBlk);
+        // console.log("Voting Power of lock ts: %s", votingPowerTs);
+        console.logInt(last_slope);
+    }
+
+    // function test_IncreaseLockAmount() public {}
+    // function test_IncreaseLockTime() public {}
+    // function test_RemoveExpiredTokens() public {}
 }
