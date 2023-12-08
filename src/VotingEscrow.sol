@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -45,8 +44,7 @@ struct LockedBalance {
     uint256 end;
 }
 
-// contract VotingEscrowContinuum is IERC721, IERC721Metadata, IVotes {
-contract VotingEscrow is IERC721, IERC721Metadata {
+contract VotingEscrow is IERC721Metadata, IVotes {
     using Strings for uint256;
 
     enum DepositType {
