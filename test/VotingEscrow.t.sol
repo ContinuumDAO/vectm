@@ -32,62 +32,61 @@ contract SetUp is Test {
 
 contract CreateLock is SetUp {
     uint256 constant MAXTIME = 4 * 365 * 86400;
-    uint256 constant WEEK = 7 * 86400;
     uint256 tokenId;
 
-    modifier assumeLockWithinBoundaries(uint256 lockAmount, uint256 lockEndpoint) {
+    // UTILS
+
+    modifier prankUser0() {
+        vm.startPrank(user0);
         _;
+        vm.stopPrank();
     }
 
     function setUp() public override {
         super.setUp();
     }
 
-    function testFuzz_CreateLockBasic(uint256 lockAmount, uint256 lockEndpoint) public {
-        bool boundaryAssumptions = (
-            lockEndpoint > block.timestamp + WEEK
-            && lockEndpoint <= block.timestamp + MAXTIME
-            && lockAmount > 0
-            && lockAmount <= ctmBal0
-        );
-        vm.assume(boundaryAssumptions);
-        vm.prank(user0);
-        tokenId = ve.create_lock(lockAmount, lockEndpoint);
+
+    // TESTS
+
+    function testFuzz_CreateLockBasic(uint256 amount, uint256 endpoint) public prankUser0 {
+        amount = bound(amount, 1, ctmBal0);
+        endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
+        tokenId = ve.create_lock(amount, endpoint);
     }
 
-    function testFuzz_IncreaseLockAmount(uint256 amountIncrease) public {
-        uint256 lockAmount = 1 ether;
-        uint256 lockEndpoint = block.timestamp + WEEK;
-        bool boundaryAssumptions = (
-            amountIncrease > 0
-            && amountIncrease <= (ctmBal0 - lockAmount)
-        );
-        vm.assume(boundaryAssumptions);
-        vm.startPrank(user0);
-        tokenId = ve.create_lock(lockAmount, lockEndpoint);
+    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prankUser0 {
+        amount = bound(amount, 1, ctmBal0 - 1);
+        endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
+        amountIncrease = bound(amountIncrease, 1, ctmBal0 - amount);
+        tokenId = ve.create_lock(amount, endpoint);
         ve.increase_amount(tokenId, amountIncrease);
-        vm.stopPrank();
     }
 
-    function testFuzz_IncreaseLockTime(uint256 increasedTime) public {
-        uint256 lockAmount = ctmBal0;
-        uint256 lockEndpoint = block.timestamp + WEEK;
-        bool boundaryAssumptions = (
-            increasedTime > lockEndpoint + WEEK
-            && increasedTime <= block.timestamp + MAXTIME
-        );
-        vm.assume(boundaryAssumptions);
-        vm.startPrank(user0);
-        tokenId = ve.create_lock(lockAmount, lockEndpoint);
+    function testFuzz_IncreaseLockTime(uint256 amount, uint256 endpoint, uint256 increasedTime) public prankUser0 {
+        amount = bound(amount, 1, ctmBal0);
+        endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
+        increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
+        tokenId = ve.create_lock(amount, endpoint);
         ve.increase_unlock_time(tokenId, increasedTime);
-        vm.stopPrank();
     }
 
-    // function test_IncreaseLockAmountAndIncreaseLockTime() public {}
-    // function test_RemoveExpiredTokens() public {}
+    function testFuzz_IncreaseLockAmountAndIncreaseLockTime(uint256 amount, uint256 endpoint, uint256 amountIncrease, uint256 increasedTime) public prankUser0 {
+        amount = bound(amount, 1, ctmBal0 - 1);
+        endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
+        amountIncrease = bound(amountIncrease, 1, ctmBal0 - amount);
+        increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
+        tokenId = ve.create_lock(amount, endpoint);
+        ve.increase_amount(tokenId, amountIncrease);
+        ve.increase_unlock_time(tokenId, increasedTime);
+    }
 
-    function logLockDetailsAtTs(uint256 _tokenId, uint256 ts) public view {
-        uint256 votingPowerTs = ve.balanceOfNFTAt(_tokenId, ts);
-        console.log("Voting Power of lock at current ts: %s", votingPowerTs);
+    function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prankUser0 {
+        amount = bound(amount, 1, ctmBal0);
+        endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
+        vm.assume(removalTime >= endpoint);
+        tokenId = ve.create_lock(amount, endpoint);
+        vm.warp(removalTime);
+        ve.withdraw(tokenId);
     }
 }
