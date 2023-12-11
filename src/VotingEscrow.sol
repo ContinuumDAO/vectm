@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -44,7 +45,7 @@ struct LockedBalance {
     uint256 end;
 }
 
-contract VotingEscrow is IERC721Metadata, IVotes {
+contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     using Strings for uint256;
 
     enum DepositType {
@@ -996,4 +997,6 @@ contract VotingEscrow is IERC721Metadata, IVotes {
         _removeTokenFrom(msg.sender, _tokenId);
         emit Transfer(owner, address(0), _tokenId);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override {}
 }

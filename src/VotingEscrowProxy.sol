@@ -1,17 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 
-contract VotingEscrowProxy is TransparentUpgradeableProxy {
-    constructor(address _logic, address initialOwner) TransparentUpgradeableProxy(_logic, initialOwner, "") {}
-
-    function admin() public returns (address) {
-        return _proxyAdmin();
-    }
-
-    receive() payable external {
-        _fallback();
-    }
+contract VotingEscrowProxy is ERC1967Proxy {
+    constructor(address implementation, bytes memory _data) ERC1967Proxy(implementation, _data) {}
 }
