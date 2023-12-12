@@ -10,9 +10,9 @@ $$P = a \times {t_l \over t_{max}}$$
 
 Modifying a copy of [Solidly Voting Escrow code](https://web.archive.org/web/20220501080953/https://github.com/solidlyexchange/solidly/blob/master/contracts/ve.sol), using OpenZeppelin [Governor Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.1/contracts/governance/utils/Votes.sol) to support Governance.
 
-OpenZeppelin [Transparent Proxy](https://docs.openzeppelin.com/contracts/4.x/api/proxy) patterns are used, complying to ERC-1967.
+OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) patterns are used, complying to ERC-1967.
 
-![veCTM Topology](veCTM_Topology.png)
+![veCTM Topology](diagrams/veCTM_Topology_UUPS.png)
 
 ### Compile and run tests
 

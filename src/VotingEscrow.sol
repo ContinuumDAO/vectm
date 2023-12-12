@@ -72,7 +72,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
 
-    address public immutable token;
+    address public token;
     uint256 public supply;
     mapping(uint256 => LockedBalance) public locked;
 
@@ -90,6 +90,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     string public constant version = "1.0.0";
     uint8 public constant decimals = 18;
     string public baseURI;
+    address public governor;
 
     /// @dev Current count of token
     uint256 internal tokenId;
@@ -127,7 +128,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     /// @dev reentrancy guard
     uint8 internal constant _not_entered = 1;
     uint8 internal constant _entered = 2;
-    uint8 internal _entered_state = 1;
+    uint8 internal _entered_state;
 
     modifier nonreentrant() {
         require(_entered_state == _not_entered);
@@ -136,10 +137,11 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
         _entered_state = _not_entered;
     }
 
-    /// @notice Contract constructor
+    /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
-    constructor(address token_addr, string memory base_uri) {
+    function initialize(address token_addr, address _governor, string memory base_uri) external initializer {
         token = token_addr;
+        governor = _governor;
         baseURI = base_uri;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
@@ -148,11 +150,36 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
         supportedInterfaces[ERC721_INTERFACE_ID] = true;
         supportedInterfaces[ERC721_METADATA_INTERFACE_ID] = true;
 
+        // other initial values
+        _entered_state = 1;
+
         // mint-ish
         emit Transfer(address(0), address(this), tokenId);
         // burn-ish
         emit Transfer(address(this), address(0), tokenId);
     }
+
+    constructor() {
+        _disableInitializers();
+    }
+
+    // /// @notice Contract constructor
+    // /// @param token_addr `ERC20CRV` token address
+    // constructor(address token_addr, string memory base_uri) {
+    //     token = token_addr;
+    //     baseURI = base_uri;
+    //     point_history[0].blk = block.number;
+    //     point_history[0].ts = block.timestamp;
+
+    //     supportedInterfaces[ERC165_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC721_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC721_METADATA_INTERFACE_ID] = true;
+
+    //     // mint-ish
+    //     emit Transfer(address(0), address(this), tokenId);
+    //     // burn-ish
+    //     emit Transfer(address(this), address(0), tokenId);
+    // }
 
     /// @dev Interface identification is specified in ERC-165.
     /// @param _interfaceID Id of the interface
@@ -998,5 +1025,10 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
         emit Transfer(owner, address(0), _tokenId);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override {}
+    function _authorizeUpgrade(address newImplementation) internal view override {
+        // new logic contract cannot be zero address because that would kill the dApp
+        require(newImplementation != address(0), "New implementation cannot be zero address");
+        // new logic contract is only upgradeable via governance vote
+        require(msg.sender == governor, "Only Governor allowed to make upgrades");
+    }
 }
