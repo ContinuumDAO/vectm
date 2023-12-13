@@ -3,10 +3,14 @@ pragma solidity ^0.8.23;
 
 import "forge-std/Test.sol";
 import {VotingEscrow} from "../src/VotingEscrow.sol";
+import {IVotingEscrow} from "../src/IVotingEscrow.sol";
+import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {CTM} from "../src/CTM.sol";
 
 contract SetUp is Test {
     CTM ctm;
+    VotingEscrow veImpl;
+    VotingEscrowProxy veProxy;
     VotingEscrow ve;
     address user0;
     address user1;
@@ -22,7 +26,10 @@ contract SetUp is Test {
         user1 = vm.addr(privKey1);
         user2 = vm.addr(privKey2);
         ctm = new CTM();
-        ve = new VotingEscrow(address(ctm), "<BASE_URI>");
+        veImpl = new VotingEscrow();
+        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), user0, "<BASE_URI>");
+        veProxy = new VotingEscrowProxy(address(veImpl), initializerData);
+        ve = VotingEscrow(address(veImpl));
         ctm.print(user0, ctmBal0);
         vm.prank(user0);
         ctm.approve(address(ve), ctmBal0);
@@ -88,5 +95,17 @@ contract CreateLock is SetUp {
         tokenId = ve.create_lock(amount, endpoint);
         vm.warp(removalTime);
         ve.withdraw(tokenId);
+    }
+}
+
+
+contract Proxy is SetUp {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    function test_SetUpPass() public view {
+        string memory baseURI = VotingEscrow(address(veProxy)).baseURI();
+        console.log(baseURI);
     }
 }
