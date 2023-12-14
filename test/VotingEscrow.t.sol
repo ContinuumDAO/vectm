@@ -29,7 +29,7 @@ contract SetUp is Test {
         veImpl = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), user0, "<BASE_URI>");
         veProxy = new VotingEscrowProxy(address(veImpl), initializerData);
-        ve = VotingEscrow(address(veImpl));
+        ve = VotingEscrow(address(veProxy));
         ctm.print(user0, ctmBal0);
         vm.prank(user0);
         ctm.approve(address(ve), ctmBal0);
