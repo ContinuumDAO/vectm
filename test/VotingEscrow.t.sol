@@ -9,30 +9,34 @@ import {CTM} from "../src/CTM.sol";
 
 contract SetUp is Test {
     CTM ctm;
-    VotingEscrow veImpl;
+    VotingEscrow veImplV1;
     VotingEscrowProxy veProxy;
-    VotingEscrow ve;
-    address user0;
-    address user1;
-    address user2;
-    uint256 ctmBal0 = 10 ether;
+    IVotingEscrow ve;
+    string mnemonic = "test test test test test test test test test test test junk";
+    address gov;
+    address user;
+    uint256 ctmBalGov = 10 ether;
+    uint256 ctmBalUser = 10 ether;
 
     function setUp() public virtual {
-        string memory mnemonic = "test test test test test test test test test test test junk";
-        uint256 privKey0 = vm.deriveKey(mnemonic, 0);
         uint256 privKey1 = vm.deriveKey(mnemonic, 1);
-        uint256 privKey2 = vm.deriveKey(mnemonic, 2);
-        user0 = vm.addr(privKey0);
-        user1 = vm.addr(privKey1);
-        user2 = vm.addr(privKey2);
+        user = vm.addr(privKey1);
+
         ctm = new CTM();
-        veImpl = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), user0, "<BASE_URI>");
-        veProxy = new VotingEscrowProxy(address(veImpl), initializerData);
-        ve = VotingEscrow(address(veProxy));
-        ctm.print(user0, ctmBal0);
-        vm.prank(user0);
-        ctm.approve(address(ve), ctmBal0);
+        veImplV1 = new VotingEscrow();
+        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, "<BASE_URI>");
+        veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
+
+        ve = IVotingEscrow(address(veProxy));
+        ctm.print(user, ctmBalUser);
+        vm.prank(user);
+        ctm.approve(address(ve), ctmBalUser);
+    }
+
+    modifier prankUser() {
+        vm.startPrank(user);
+        _;
+        vm.stopPrank();
     }
 }
 
@@ -42,54 +46,45 @@ contract CreateLock is SetUp {
     uint256 tokenId;
 
     // UTILS
-
-    modifier prankUser0() {
-        vm.startPrank(user0);
-        _;
-        vm.stopPrank();
-    }
-
     function setUp() public override {
         super.setUp();
     }
 
-
     // TESTS
-
-    function testFuzz_CreateLockBasic(uint256 amount, uint256 endpoint) public prankUser0 {
-        amount = bound(amount, 1, ctmBal0);
+    function testFuzz_CreateLockBasic(uint256 amount, uint256 endpoint) public prankUser {
+        amount = bound(amount, 1, ctmBalUser);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
     }
 
-    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prankUser0 {
-        amount = bound(amount, 1, ctmBal0 - 1);
+    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prankUser {
+        amount = bound(amount, 1, ctmBalUser - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
-        amountIncrease = bound(amountIncrease, 1, ctmBal0 - amount);
+        amountIncrease = bound(amountIncrease, 1, ctmBalUser - amount);
         tokenId = ve.create_lock(amount, endpoint);
         ve.increase_amount(tokenId, amountIncrease);
     }
 
-    function testFuzz_IncreaseLockTime(uint256 amount, uint256 endpoint, uint256 increasedTime) public prankUser0 {
-        amount = bound(amount, 1, ctmBal0);
+    function testFuzz_IncreaseLockTime(uint256 amount, uint256 endpoint, uint256 increasedTime) public prankUser {
+        amount = bound(amount, 1, ctmBalUser);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
         increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
         ve.increase_unlock_time(tokenId, increasedTime);
     }
 
-    function testFuzz_IncreaseLockAmountAndIncreaseLockTime(uint256 amount, uint256 endpoint, uint256 amountIncrease, uint256 increasedTime) public prankUser0 {
-        amount = bound(amount, 1, ctmBal0 - 1);
+    function testFuzz_IncreaseLockAmountAndIncreaseLockTime(uint256 amount, uint256 endpoint, uint256 amountIncrease, uint256 increasedTime) public prankUser {
+        amount = bound(amount, 1, ctmBalUser - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
-        amountIncrease = bound(amountIncrease, 1, ctmBal0 - amount);
+        amountIncrease = bound(amountIncrease, 1, ctmBalUser - amount);
         increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
         ve.increase_amount(tokenId, amountIncrease);
         ve.increase_unlock_time(tokenId, increasedTime);
     }
 
-    function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prankUser0 {
-        amount = bound(amount, 1, ctmBal0);
+    function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prankUser {
+        amount = bound(amount, 1, ctmBalUser);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         vm.assume(removalTime >= endpoint);
         tokenId = ve.create_lock(amount, endpoint);
@@ -100,11 +95,31 @@ contract CreateLock is SetUp {
 
 
 contract Proxy is SetUp {
-    function setUp() public override {
-        super.setUp();
+    VotingEscrow veImplV2;
+    bytes initializerDataV2;
+
+    // UTILS
+    modifier prankGov() {
+        vm.startPrank(gov);
+        _;
+        vm.stopPrank();
     }
 
-    function test_SetUpPass() public view {
+    function setUp() public override {
+        super.setUp();
+        uint256 privKey0 = vm.deriveKey(mnemonic, 0);
+        gov = vm.addr(privKey0);
+
+        veImplV2 = new VotingEscrow();
+        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, "<BASE_URI>");
+
+        ctm.print(gov, ctmBalGov);
+        vm.prank(gov);
+        ctm.approve(address(ve), ctmBalGov);
+    }
+
+    // TESTS
+    function test_DeployProxyPattern() public view {
         string memory baseURI = VotingEscrow(address(veProxy)).baseURI();
         console.log(baseURI);
     }
