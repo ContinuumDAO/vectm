@@ -1,8 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
+struct Point {
+    int128 bias;
+    int128 slope;
+    uint256 ts;
+    uint256 blk;
+}
+
+struct LockedBalance {
+    int128 amount;
+    uint256 end;
+}
 
 interface IVotingEscrow {
+    // public state
+    function token() external view returns (address);
+    function supply() external view returns (uint256);
+    function locked(uint256 tokenId) external view returns (LockedBalance memory);
+    function ownership_change(uint256 tokenId) external view returns (uint256);
+    function epoch() external view returns (uint256);
+    function point_history(uint256 epoch) external view returns (Point memory);
+    function user_point_history(uint256 tokenId) external view returns (Point[] memory);
+    function slope_changes(uint256 time) external view returns (int128);
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function version() external view returns (string memory);
+    function decimals() external view returns (uint8);
+    function baseURI() external view returns (string memory);
+    function governor() external view returns (address);
+
     // ERC165
     function supportsInterface(bytes4 _interfaceID) external view returns (bool);
 
