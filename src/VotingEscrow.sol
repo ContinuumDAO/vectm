@@ -160,7 +160,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     }
 
     constructor() {
-        _disableInitializers();
+        //_disableInitializers();
     }
 
     // /// @notice Contract constructor

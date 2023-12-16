@@ -12,19 +12,20 @@ contract SetUp is Test {
     VotingEscrow veImplV1;
     VotingEscrowProxy veProxy;
     IVotingEscrow ve;
-    string mnemonic = "test test test test test test test test test test test junk";
+    string constant MNEMONIC = "test test test test test test test test test test test junk";
+    string constant BASE_URI = "<BASE_URI>";
     address gov;
     address user;
     uint256 ctmBalGov = 10 ether;
     uint256 ctmBalUser = 10 ether;
 
     function setUp() public virtual {
-        uint256 privKey1 = vm.deriveKey(mnemonic, 1);
+        uint256 privKey1 = vm.deriveKey(MNEMONIC, 1);
         user = vm.addr(privKey1);
 
         ctm = new CTM();
         veImplV1 = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, "<BASE_URI>");
+        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI);
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
         ve = IVotingEscrow(address(veProxy));
@@ -98,6 +99,8 @@ contract Proxy is SetUp {
     VotingEscrow veImplV2;
     bytes initializerDataV2;
 
+    error InvalidInitialization();
+
     // UTILS
     modifier prankGov() {
         vm.startPrank(gov);
@@ -107,11 +110,11 @@ contract Proxy is SetUp {
 
     function setUp() public override {
         super.setUp();
-        uint256 privKey0 = vm.deriveKey(mnemonic, 0);
+        uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
         gov = vm.addr(privKey0);
 
         veImplV2 = new VotingEscrow();
-        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, "<BASE_URI>");
+        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI);
 
         ctm.print(gov, ctmBalGov);
         vm.prank(gov);
@@ -119,8 +122,13 @@ contract Proxy is SetUp {
     }
 
     // TESTS
-    function test_DeployProxyPattern() public view {
-        string memory baseURI = VotingEscrow(address(veProxy)).baseURI();
-        console.log(baseURI);
+    function test_InitializedStateEqualToInput() public {
+        string memory baseURI = ve.baseURI();
+        assertEq(baseURI, BASE_URI);
+    }
+
+    function test_CannotInitializeTwice() public {
+        vm.expectRevert(InvalidInitialization.selector);
+        ve.initialize(address(ctm), gov, BASE_URI);
     }
 }

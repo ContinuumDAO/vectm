@@ -30,6 +30,9 @@ interface IVotingEscrow {
     function baseURI() external view returns (string memory);
     function governor() external view returns (address);
 
+    // PROXY
+    function initialize(address token_addr, address _governor, string memory base_uri) external;
+
     // ERC165
     function supportsInterface(bytes4 _interfaceID) external view returns (bool);
 
