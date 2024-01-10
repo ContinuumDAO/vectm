@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import "forge-std/Test.sol";
 import {VotingEscrow} from "../src/VotingEscrow.sol";
+import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
 import {IVotingEscrow} from "../src/IVotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {CTM} from "../src/CTM.sol";
@@ -13,19 +14,21 @@ contract SetUp is Test {
     VotingEscrowProxy veProxy;
     IVotingEscrow ve;
     string constant MNEMONIC = "test test test test test test test test test test test junk";
-    string constant BASE_URI = "<BASE_URI>";
+    string constant BASE_URI_V1 = "veCTM V1";
     address gov;
     address user;
     uint256 ctmBalGov = 10 ether;
     uint256 ctmBalUser = 10 ether;
 
     function setUp() public virtual {
+        uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
+        gov = vm.addr(privKey0);
         uint256 privKey1 = vm.deriveKey(MNEMONIC, 1);
         user = vm.addr(privKey1);
 
         ctm = new CTM();
         veImplV1 = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI);
+        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI_V1);
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
         ve = IVotingEscrow(address(veProxy));
@@ -96,8 +99,9 @@ contract CreateLock is SetUp {
 
 
 contract Proxy is SetUp {
-    VotingEscrow veImplV2;
+    VotingEscrowV2 veImplV2;
     bytes initializerDataV2;
+    string constant BASE_URI_V2 = "veCTM V2";
 
     error InvalidInitialization();
 
@@ -110,11 +114,9 @@ contract Proxy is SetUp {
 
     function setUp() public override {
         super.setUp();
-        uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
-        gov = vm.addr(privKey0);
 
-        veImplV2 = new VotingEscrow();
-        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI);
+        veImplV2 = new VotingEscrowV2();
+        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI_V2);
 
         ctm.print(gov, ctmBalGov);
         vm.prank(gov);
@@ -124,11 +126,24 @@ contract Proxy is SetUp {
     // TESTS
     function test_InitializedStateEqualToInput() public {
         string memory baseURI = ve.baseURI();
-        assertEq(baseURI, BASE_URI);
+        assertEq(baseURI, BASE_URI_V1);
     }
 
     function test_CannotInitializeTwice() public {
         vm.expectRevert(InvalidInitialization.selector);
-        ve.initialize(address(ctm), gov, BASE_URI);
+        ve.initialize(address(ctm), gov, BASE_URI_V1);
+    }
+
+    function test_ValidUpgrade() public prankGov {
+        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+        string memory baseURI = ve.baseURI();
+        assertEq(baseURI, BASE_URI_V2);
+    }
+
+    function test_UnauthorizedUpgrade() public {
+        vm.expectRevert("Only Governor is allowed to make upgrades");
+        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+        string memory baseURI = ve.baseURI();
+        assertEq(baseURI, BASE_URI_V1);
     }
 }

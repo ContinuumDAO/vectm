@@ -45,7 +45,7 @@ struct LockedBalance {
     uint256 end;
 }
 
-contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
+contract VotingEscrowV2 is UUPSUpgradeable, IERC721Metadata, IVotes {
     using Strings for uint256;
 
     enum DepositType {
@@ -139,7 +139,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
 
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
-    function initialize(address token_addr, address _governor, string memory base_uri) external initializer {
+    function initialize(address token_addr, address _governor, string memory base_uri) external reinitializer(2) {
         token = token_addr;
         governor = _governor;
         baseURI = base_uri;
@@ -1015,6 +1015,6 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
         // new logic contract cannot be zero address because that would kill the dApp
         require(newImplementation != address(0), "New implementation cannot be zero address");
         // new logic contract is only upgradeable via governance vote
-        require(msg.sender == governor, "Only Governor is allowed to make upgrades");
+        require(msg.sender == governor, "Only Governor allowed to make upgrades");
     }
 }

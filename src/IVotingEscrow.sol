@@ -32,6 +32,7 @@ interface IVotingEscrow {
 
     // PROXY
     function initialize(address token_addr, address _governor, string memory base_uri) external;
+    function upgradeToAndCall(address newImplementation, bytes memory data) external payable;
 
     // ERC165
     function supportsInterface(bytes4 _interfaceID) external view returns (bool);
