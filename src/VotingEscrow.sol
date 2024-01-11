@@ -7,6 +7,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
  * @title Voting Escrow
@@ -45,7 +46,7 @@ struct LockedBalance {
     uint256 end;
 }
 
-contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
+contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes {
     using Strings for uint256;
 
     enum DepositType {
@@ -160,7 +161,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     }
 
     constructor() {
-        //_disableInitializers();
+        _disableInitializers();
     }
 
     /// @dev Interface identification is specified in ERC-165.
@@ -865,13 +866,11 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotes {
     }
 
     function balanceOfNFT(uint256 _tokenId) external view returns (uint256) {
-        // OBSOLETE
         if (ownership_change[_tokenId] == block.number) return 0;
         return _balanceOfNFT(_tokenId, block.timestamp);
     }
 
     function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256) {
-        // OBSOLETE
         return _balanceOfNFT(_tokenId, _t);
     }
 

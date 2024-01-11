@@ -8,11 +8,15 @@ import {IVotingEscrow} from "../src/IVotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {CTM} from "../src/CTM.sol";
 
+interface IVotingEscrowUpgradable is IVotingEscrow {
+    function upgradeToAndCall(address newImplementation, bytes memory data) external;
+}
+
 contract SetUp is Test {
     CTM ctm;
     VotingEscrow veImplV1;
     VotingEscrowProxy veProxy;
-    IVotingEscrow ve;
+    IVotingEscrowUpgradable ve;
     string constant MNEMONIC = "test test test test test test test test test test test junk";
     string constant BASE_URI_V1 = "veCTM V1";
     address gov;
@@ -31,7 +35,7 @@ contract SetUp is Test {
         bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI_V1);
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
-        ve = IVotingEscrow(address(veProxy));
+        ve = IVotingEscrowUpgradable(address(veProxy));
         ctm.print(user, ctmBalUser);
         vm.prank(user);
         ctm.approve(address(ve), ctmBalUser);
@@ -145,5 +149,14 @@ contract Proxy is SetUp {
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         string memory baseURI = ve.baseURI();
         assertEq(baseURI, BASE_URI_V1);
+    }
+
+    function test_CannotUpgradeToSameVersion() public prankGov {
+        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+        string memory baseURI = ve.baseURI();
+        assertEq(baseURI, BASE_URI_V2);
+        veImplV2 = new VotingEscrowV2();
+        vm.expectRevert(InvalidInitialization.selector);
+        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
     }
 }

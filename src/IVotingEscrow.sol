@@ -17,45 +17,46 @@ interface IVotingEscrow {
     // public state
     function token() external view returns (address);
     function supply() external view returns (uint256);
-    function locked(uint256 tokenId) external view returns (LockedBalance memory);
     function ownership_change(uint256 tokenId) external view returns (uint256);
     function epoch() external view returns (uint256);
-    function point_history(uint256 epoch) external view returns (Point memory);
-    function user_point_history(uint256 tokenId) external view returns (Point[] memory);
     function slope_changes(uint256 time) external view returns (int128);
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
+    // function name() external view returns (string memory);
+    // function symbol() external view returns (string memory);
     function version() external view returns (string memory);
     function decimals() external view returns (uint8);
     function baseURI() external view returns (string memory);
     function governor() external view returns (address);
+    // function locked(uint256 tokenId) external view returns (LockedBalance memory);
+    // function point_history(uint256 epoch) external view returns (Point memory);
+    // function user_point_history(uint256 tokenId) external view returns (Point[] memory);
 
     // PROXY
     function initialize(address token_addr, address _governor, string memory base_uri) external;
-    function upgradeToAndCall(address newImplementation, bytes memory data) external payable;
 
-    // ERC165
-    function supportsInterface(bytes4 _interfaceID) external view returns (bool);
+    /**
+     * @notice ERC721 standard methods
+     * function balanceOf(address _owner) external view returns (uint256);
+     * function ownerOf(uint256 _tokenId) external view returns (address);
+     * function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) external;
+     * function safeTransferFrom(address _from, address _to, uint256 _tokenId) external;
+     * function transferFrom(address _from, address _to, uint256 _tokenId) external;
+     * function approve(address _approved, uint256 _tokenId) external;
+     * function setApprovalForAll(address _operator, bool _approved) external;
+     * function getApproved(uint256 _tokenId) external view returns (address);
+     * function isApprovedForAll(address _owner, address _operator) external view returns (bool);
+     * function tokenURI(uint256 _tokenId) external view returns (string memory);
+     * function supportsInterface(bytes4 _interfaceID) external view returns (bool);
+     */
 
-    // ERC721
-    function balanceOf(address _owner) external view returns (uint256);
-    function ownerOf(uint256 _tokenId) external view returns (address);
-    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) external;
-    function safeTransferFrom(address _from, address _to, uint256 _tokenId) external;
-    function transferFrom(address _from, address _to, uint256 _tokenId) external;
-    function approve(address _approved, uint256 _tokenId) external;
-    function setApprovalForAll(address _operator, bool _approved) external;
-    function getApproved(uint256 _tokenId) external view returns (address);
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool);
-    function tokenURI(uint256 _tokenId) external view returns (string memory);
-
-    // governor votes logic
-    function getVotes(address account) external view returns (uint256);
-    function getPastVotes(address account, uint256 timepoint) external view returns (uint256);
-    function getPastTotalSupply(uint256 timepoint) external view returns (uint256);
-    function delegates(address account) external view returns (address);
-    function delegate(address delegatee) external;
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
+    /** 
+     * @notice Votes standard methods
+     * function getVotes(address _account) external view returns (uint256);
+     * function getPastVotes(address _account, uint256 _timepoint) external view returns (uint256);
+     * function getPastTotalSupply(uint256 _timepoint) external view returns (uint256);
+     * function delegates(address _account) external view returns (address);
+     * function delegate(address _delegatee) external;
+     * function delegateBySig(address _delegatee, uint256 _nonce, uint256 _expiry, uint8 _v, bytes32 _r, bytes32 _s) external;
+     */
 
     // create lock
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
