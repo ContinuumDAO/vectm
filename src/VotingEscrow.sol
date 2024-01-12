@@ -6,7 +6,7 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+// import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
@@ -47,7 +47,7 @@ struct LockedBalance {
 }
 
 contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes {
-    using Strings for uint256;
+    // using Strings for uint256;
 
     enum DepositType {
         DEPOSIT_FOR_TYPE,
@@ -72,6 +72,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
+    bytes16 private constant HEX_DIGITS = "0123456789abcdef";
 
     address public token;
     uint256 public supply;
@@ -862,7 +863,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         require(idToOwner[_tokenId] != address(0), "Query for nonexistent token");
         string memory _baseURI = baseURI;
-        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, tokenId.toString())) : "";
+        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
     }
 
     function balanceOfNFT(uint256 _tokenId) external view returns (uint256) {
@@ -1015,5 +1016,68 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes
         require(newImplementation != address(0), "New implementation cannot be zero address");
         // new logic contract is only upgradeable via governance vote
         require(msg.sender == governor, "Only Governor is allowed to make upgrades");
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        unchecked {
+            uint256 length = log10(value) + 1;
+            string memory buffer = new string(length);
+            uint256 ptr;
+            /// @solidity memory-safe-assembly
+            assembly {
+                ptr := add(buffer, add(32, length))
+            }
+            while (true) {
+                ptr--;
+                /// @solidity memory-safe-assembly
+                assembly {
+                    mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))
+                }
+                value /= 10;
+                if (value == 0) break;
+            }
+            return buffer;
+        }
+    }
+
+    /**
+     * @dev Return the log in base 10 of a positive value rounded towards zero.
+     * Returns 0 if given 0.
+     */
+    function log10(uint256 value) internal pure returns (uint256) {
+        uint256 result = 0;
+        unchecked {
+            if (value >= 10 ** 64) {
+                value /= 10 ** 64;
+                result += 64;
+            }
+            if (value >= 10 ** 32) {
+                value /= 10 ** 32;
+                result += 32;
+            }
+            if (value >= 10 ** 16) {
+                value /= 10 ** 16;
+                result += 16;
+            }
+            if (value >= 10 ** 8) {
+                value /= 10 ** 8;
+                result += 8;
+            }
+            if (value >= 10 ** 4) {
+                value /= 10 ** 4;
+                result += 4;
+            }
+            if (value >= 10 ** 2) {
+                value /= 10 ** 2;
+                result += 2;
+            }
+            if (value >= 10 ** 1) {
+                result += 1;
+            }
+        }
+        return result;
     }
 }
