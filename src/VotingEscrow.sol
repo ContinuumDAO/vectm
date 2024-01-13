@@ -6,7 +6,6 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
@@ -47,8 +46,6 @@ struct LockedBalance {
 }
 
 contract VotingEscrow is UUPSUpgradeable, IVotingEscrow, IERC721Metadata, IVotes {
-    // using Strings for uint256;
-
     enum DepositType {
         DEPOSIT_FOR_TYPE,
         CREATE_LOCK_TYPE,
