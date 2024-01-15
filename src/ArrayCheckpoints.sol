@@ -9,21 +9,27 @@ library ArrayCheckpoints {
      */
     error CheckpointUnorderedInsertion();
 
+    /**
+     * @dev Trace where checkpoints can be stored.
+     */
     struct TraceArray {
         CheckpointArray[] _checkpoints;
     }
 
+    /**
+     * @dev Checkpoint that tracks a `_key` which is associated with an array of `_values`.
+     */
     struct CheckpointArray {
         uint256 _key;
         uint256[] _values;
     }
 
     /**
-     * @dev Pushes a (`key`, `value`) pair into a Trace so that it is stored as the checkpoint.
+     * @dev Pushes a (`key`, `values`) pair into a Trace so that it is stored as the checkpoint.
      *
-     * Returns previous value and new value.
+     * Returns previous values array length and new values array length.
      *
-     * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint48).max` key set will disable the
+     * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint256).max` key set will disable the
      * library.
      */
     function push(TraceArray storage self, uint256 key, uint256[] memory values) internal returns (uint256, uint256) {
@@ -31,8 +37,8 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the value in the first (oldest) checkpoint with key greater or equal than the search key, or zero if
-     * there is none.
+     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or an
+     * empty array if there is none.
      */
     function lowerLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
         uint256 len = self._checkpoints.length;
@@ -86,7 +92,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and value
+     * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
      * in the most recent checkpoint.
      */
     function latestCheckpoint(TraceArray storage self) internal view returns (bool exists, uint256 _key, uint256[] memory _values) {
@@ -100,7 +106,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the number of checkpoint.
+     * @dev Returns the number of checkpoints.
      */
     function length(TraceArray storage self) internal view returns (uint256) {
         return self._checkpoints.length;
@@ -114,7 +120,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
+     * @dev Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
     function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values) private returns (uint256, uint256) {
