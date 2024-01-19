@@ -6,7 +6,9 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 
 interface IVotingEscrow {
@@ -23,7 +25,6 @@ interface IVotingEscrow {
     function user_point_epoch(uint256 tokenId) external view returns (uint256);
     function slope_changes(uint256 tokenId) external view returns (int128);
 
-
     function initialize(address token_addr, address _governor, string memory base_uri) external;
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
@@ -38,14 +39,14 @@ interface IVotingEscrow {
     function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256);
     function balanceOfAtNFT(uint256 _tokenId, uint256 _block) external view returns (uint256);
     function totalSupply() external view returns (uint256);
-    function totalSupplyAtT(uint256 t) external view returns (uint256);
-    function totalSupplyAt(uint256 _block) external view returns (uint256);
+    function totalPower() external view returns (uint256);
+    function totalPowerAtT(uint256 t) external view returns (uint256);
+    function totalPowerAt(uint256 _block) external view returns (uint256);
     function isApprovedOrOwner(address _spender, uint256 _tokenId) external view returns (bool);
     function tokenOfOwnerByIndex(address _owner, uint256 _tokenIndex) external view returns (uint256);
     function get_last_user_slope(uint256 _tokenId) external view returns (int128);
     function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256);
     function locked__end(uint256 _tokenId) external view returns (uint256);
-    function block_number() external view returns (uint256);
 
     // ERC721 + Metadata + ERC165 + Votes
     // name
@@ -310,6 +311,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     uint8 internal _entered_state;
     uint256 internal _supply;
     uint256 internal tokenId;
+    uint256 internal _totalSupply;
 
     mapping(uint256 => LockedBalance) public locked;
     mapping(uint256 => uint256) public ownership_change;
@@ -324,6 +326,13 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     mapping(uint256 => uint256) internal tokenToOwnerIndex;
     mapping(address => mapping(address => bool)) internal ownerToOperators;
     mapping(bytes4 => bool) internal supportedInterfaces;
+ 
+    // delegated addresses
+    mapping(address => address) internal _delegatee;
+    // address delegatee => [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
+    mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints;
+    // tracking a signature's account nonce, incremented when delegateBySig is called
+    mapping(address => uint256) internal _nonces;
 
     string public constant name = "Voting Escrow Continuum";
     string public constant symbol = "veCTM";
@@ -333,14 +342,18 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
-    uint8 internal constant NOT_ENTERED = 1;
-    uint8 internal constant ENTERED = 2;
     uint8 public constant decimals = 18;
     bytes4 internal constant ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 internal constant ERC721_INTERFACE_ID = 0x80ac58cd;
     bytes4 internal constant ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
     bytes4 internal constant VOTES_INTERFACE_ID = 0xe90fb3f6;
     bytes4 internal constant ERC6372_INTERFACE_ID = 0xda287a1d;
+    uint8 internal constant NOT_ENTERED = 1;
+    uint8 internal constant ENTERED = 2;
+    bytes32 private constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 private constant DELEGATION_TYPEHASH =
+        keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
     // Events
     event Deposit(
@@ -355,6 +368,9 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     event Supply(uint256 prevSupply, uint256 supply);
 
     // Errors
+    error ERC6372InconsistentClock();
+    error ERC5805FutureLookup(uint256 timepoint, uint48 clock);
+    error InvalidAccountNonce(address account, uint256 currentNonce);
 
     // Modifiers
     modifier nonreentrant() {
@@ -490,9 +506,42 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     }
 
     function delegate(address delegatee) external {
+        address account = msg_sender();
+        _delegate(account, delegatee);
     }
 
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {
+    function delegateBySig(
+        address delegatee,
+        uint256 nonce,
+        uint256 expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+        if (block.timestamp > expiry) {
+            revert VotesExpiredSignature(expiry);
+        }
+
+        bytes32 domainSeparator = keccak256(abi.encode(TYPE_HASH, name, version, block.chainid, address(this)));
+        bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
+        bytes32 digest;
+
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, hex"19_01")
+            mstore(add(ptr, 0x02), domainSeparator)
+            mstore(add(ptr, 0x22), structHash)
+            digest := keccak256(ptr, 0x42)
+        }
+
+        address signer = ECDSA.recover(digest, v, r, s);
+
+        unchecked {
+            uint256 current = _nonces[signer]++;
+            if (nonce != current) revert InvalidAccountNonce(signer, current);
+        }
+
+        _delegate(signer, delegatee);
     }
 
     function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) external {
@@ -529,15 +578,20 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return idToOwner[_tokenId];
     }
 
+    // return the total number of NFTs
     function totalSupply() external view returns (uint256) {
-        return _totalSupplyAtT(block.timestamp);
+        return _totalSupply;
     }
 
-    function totalSupplyAtT(uint256 t) external view returns (uint256) {
-        return _totalSupplyAtT(t);
+    function totalPower() external view returns (uint256) {
+        return _totalPowerAtT(block.timestamp);
     }
 
-    function totalSupplyAt(uint256 _block) external view returns (uint256) {
+    function totalPowerAtT(uint256 t) external view returns (uint256) {
+        return _totalPowerAtT(t);
+    }
+
+    function totalPowerAt(uint256 _block) external view returns (uint256) {
         assert(_block <= block.number);
         uint256 _epoch = epoch;
         uint256 target_epoch = _find_block_epoch(_block, _epoch);
@@ -574,17 +628,33 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     }
 
     function getVotes(address account) external view returns (uint256) {
-        return _getVotes(account, block.timestamp);
+        uint256[] memory delegateTokenIdsCurrent = _delegateCheckpoints[account].latest();
+        return _calculateCumulativeVotingPower(delegateTokenIdsCurrent, clock());
     }
 
     function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
-        return _getVotes(account, timepoint);
+        uint48 currentTimepoint = clock();
+        if (timepoint >= currentTimepoint) {
+            revert ERC5805FutureLookup(timepoint, currentTimepoint);
+        }
+        uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(uint256(timepoint));
+        return _calculateCumulativeVotingPower(delegateTokenIdsAt, timepoint);
     }
 
+    /**
+     * @dev The name `getPastTotalSupply` is maintained to keep in-line with IVotes interface, but it actually returns
+     * total vote power. For current total supply of NFTs, call `totalSupply`.
+     */
     function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {
+        uint48 currentTimepoint = clock();
+        if (timepoint >= currentTimepoint) {
+            revert ERC5805FutureLookup(timepoint, currentTimepoint);
+        }
+        return _totalPowerAtT(timepoint);
     }
 
     function delegates(address account) external view returns (address) {
+        return _delegatee[account];
     }
 
     function get_last_user_slope(uint256 _tokenId) external view returns (int128) {
@@ -606,12 +676,24 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
     }
 
-    function block_number() external view returns (uint256) {
-        return block.number;
-    }
-
     function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
         return supportedInterfaces[_interfaceID];
+    }
+
+    function checkpoints(address account, uint32 pos) external view returns (ArrayCheckpoints.CheckpointArray memory) {
+        return _delegateCheckpoints[account].at(pos);
+    }
+
+    // Public view
+    function clock() public view returns (uint48) {
+        return uint48(block.timestamp);
+    }
+
+    function CLOCK_MODE() public view returns (string memory) {
+        if (clock() != uint48(block.timestamp)) {
+            revert ERC6372InconsistentClock();
+        }
+        return "mode=timestamp";
     }
 
     // Internal mutable
@@ -658,6 +740,39 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
 
         emit Deposit(from, _tokenId, _value, _locked.end, deposit_type, block.timestamp);
         emit Supply(supply_before, supply_before + _value);
+    }
+
+    function _delegate(address account, address delegatee) internal {
+        address oldDelegate = _delegatee[account];
+        _delegatee[account] = delegatee;
+
+        emit DelegateChanged(account, oldDelegate, delegatee);
+        _moveDelegateVotes(oldDelegate, delegatee, _getVotingUnits(account));
+    }
+
+    /**
+     * @dev Remove a specific amount of token IDs from the delegated balance of `from` and move them to `to`.
+     * Checkpoint both delegatees. 
+     */
+    function _moveDelegateVotes(address from, address to, uint256[] memory deltaTokenIDs) private {
+        if (from != to) {
+            if (from != address(0)) {
+                (uint256 oldBalance, uint256 newBalance) = _push(
+                    _delegateCheckpoints[from],
+                    _remove,
+                    deltaTokenIDs
+                );
+                emit DelegateVotesChanged(from, oldBalance, newBalance);
+            }
+            if (to != address(0)) {
+                (uint256 oldBalance, uint256 newBalance) = _push(
+                    _delegateCheckpoints[to],
+                    _add,
+                    deltaTokenIDs
+                );
+                emit DelegateVotesChanged(to, oldBalance, newBalance);
+            }
+        }
     }
 
     function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender) internal {
@@ -729,6 +844,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     function _mint(address _to, uint256 _tokenId) internal returns (bool) {
         assert(_to != address(0));
         _addTokenTo(_to, _tokenId);
+        _totalSupply++;
         emit Transfer(address(0), _to, _tokenId);
         return true;
     }
@@ -740,6 +856,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
 
         _approve(address(0), _tokenId);
         _removeTokenFrom(msg.sender, _tokenId);
+        _totalSupply--;
         emit Transfer(owner, address(0), _tokenId);
     }
 
@@ -957,7 +1074,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return uint256(uint128(last_point.bias));
     }
 
-    function _totalSupplyAtT(uint256 t) internal view returns (uint256) {
+    function _totalPowerAtT(uint256 t) internal view returns (uint256) {
         uint256 _epoch = epoch;
         Point memory last_point = point_history[_epoch];
         return _supply_at(last_point, t);
@@ -969,18 +1086,6 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         bool spenderIsApproved = _spender == idToApprovals[_tokenId];
         bool spenderIsApprovedForAll = (ownerToOperators[owner])[_spender];
         return spenderIsOwner || spenderIsApproved || spenderIsApprovedForAll;
-    }
-
-    function _getVotes(address _account, uint256 _t) internal view returns (uint256) {
-        uint256 cumulativeVotingPower = 0;
-        uint256 ownerNFTCount = ownerToNFTokenCount[_account];
-        for (uint8 i = 0; i < ownerNFTCount; i++) {
-            uint256 _tokenId = ownerToNFTokenIdList[_account][i];
-            if (ownership_change[_tokenId] == block.number) return 0;
-            cumulativeVotingPower += _balanceOfNFT(_tokenId, _t);
-        }
-
-        return cumulativeVotingPower;
     }
 
     function _authorizeUpgrade(address newImplementation) internal view override {
@@ -1005,12 +1110,41 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return _min;
     }
 
+    function _numCheckpoints(address account) internal view returns (uint32) {
+        return uint32(_delegateCheckpoints[account].length());
+    }
+
+    function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal pure returns (uint256) {
+        uint256 cumulativeVotingPower;
+        for (uint8 i = 0; i < _tokenIds.length; i++) {
+            // change below line to increment cumulativeVePower by the voting power of each token ID at time _t
+            cumulativeVotingPower += _tokenIds[i] + _t;
+        }
+        return cumulativeVotingPower;
+    }
+
     function _isContract(address account) internal view returns (bool) {
         uint256 size;
         assembly {
             size := extcodesize(account)
         }
         return size > 0;
+    }
+
+    function _getVotingUnits(address account) internal view returns (uint256[] memory tokenList) {
+        uint256 tokenCount = _balance(account);
+        tokenList = new uint256[](tokenCount);
+        for (uint256 i = 0; i < tokenCount; i++) {
+            tokenList[i] = ownerToNFTokenIdList[account][i];
+        }
+    }
+
+    function msg_sender() internal view returns (address) {
+        return msg.sender;
+    }
+
+    function block_number() internal view returns (uint256) {
+        return block.number;
     }
 
     function toString(uint256 value) internal pure returns (string memory) {
@@ -1035,4 +1169,37 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         }
     }
 
+    function _add(uint256[] memory current, uint256[] memory addIDs) internal pure returns (uint256[] memory) {
+        uint256[] memory updated;
+        uint256 updatedLength;
+        for (uint256 i = 0; i < addIDs.length; i++) {
+            current[updatedLength] = addIDs[i];
+            updatedLength++;
+        }
+        return updated;
+    }
+
+    function _remove(uint256[] memory current, uint256[] memory removeIDs) internal pure returns (uint256[] memory) {
+        uint256[] memory updated;
+        uint256 updatedLength;
+        for (uint256 i = 0; i < removeIDs.length; i++) {
+            for (uint256 j = 0; j < current.length; j++) {
+                if (current[j] != removeIDs[i]) {
+                    updated[updatedLength] = current[j];
+                    updatedLength++;
+                }
+            }
+        }
+
+        return updated;
+    }
+
+    // Private mutable
+    function _push(
+        ArrayCheckpoints.TraceArray storage store,
+        function(uint256[] memory, uint256[] memory) view returns (uint256[] memory) op,
+        uint256[] memory deltaTokenIDs
+    ) private returns (uint256, uint256) {
+        return store.push(clock(), op(store.latest(), deltaTokenIDs));
+    }
 }
