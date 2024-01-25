@@ -32,7 +32,12 @@ contract SetUp is Test {
 
         ctm = new CTM();
         veImplV1 = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI_V1);
+        bytes memory initializerData = abi.encodeWithSignature(
+            "initialize(address,address,string)",
+            address(ctm),
+            gov,
+            BASE_URI_V1
+        );
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
         ve = IVotingEscrowUpgradable(address(veProxy));
@@ -81,7 +86,12 @@ contract CreateLock is SetUp {
         ve.increase_unlock_time(tokenId, increasedTime);
     }
 
-    function testFuzz_IncreaseLockAmountAndIncreaseLockTime(uint256 amount, uint256 endpoint, uint256 amountIncrease, uint256 increasedTime) public prankUser {
+    function testFuzz_IncreaseLockAmountAndIncreaseLockTime(
+        uint256 amount,
+        uint256 endpoint,
+        uint256 amountIncrease,
+        uint256 increasedTime
+    ) public prankUser {
         amount = bound(amount, 1, ctmBalUser - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
         amountIncrease = bound(amountIncrease, 1, ctmBalUser - amount);
@@ -120,7 +130,12 @@ contract Proxy is SetUp {
         super.setUp();
 
         veImplV2 = new VotingEscrowV2();
-        initializerDataV2 = abi.encodeWithSignature("initialize(address,address,string)", address(ctm), gov, BASE_URI_V2);
+        initializerDataV2 = abi.encodeWithSignature(
+            "initialize(address,address,string)",
+            address(ctm),
+            gov,
+            BASE_URI_V2
+        );
 
         ctm.print(gov, ctmBalGov);
         vm.prank(gov);
@@ -158,5 +173,28 @@ contract Proxy is SetUp {
         veImplV2 = new VotingEscrowV2();
         vm.expectRevert(InvalidInitialization.selector);
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    }
+}
+
+
+contract Votes is SetUp {
+    // UTILS
+    modifier prankGov() {
+        vm.startPrank(gov);
+        _;
+        vm.stopPrank();
+    }
+
+    function setUp() public override {
+        super.setUp();
+
+        ctm.print(gov, ctmBalGov);
+        vm.prank(gov);
+        ctm.approve(address(ve), ctmBalGov);
+    }
+
+    // TESTS
+    function test_GetVotes() public {
+        // test that get votes by address returns vote power equivalent to vote power of all delegated NFTs
     }
 }

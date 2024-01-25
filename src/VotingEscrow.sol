@@ -306,12 +306,14 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     // State variables
     address public token;
     address public governor;
+    address public wallet;
     uint256 public epoch;
     string public baseURI;
     uint8 internal _entered_state;
     uint256 internal _supply;
     uint256 internal tokenId;
     uint256 internal _totalSupply;
+    uint256 internal _attachmentThreshold;
 
     mapping(uint256 => LockedBalance) public locked;
     mapping(uint256 => uint256) public ownership_change;
@@ -319,6 +321,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     mapping(uint256 => Point[1000000000]) public user_point_history;
     mapping(uint256 => uint256) public user_point_epoch;
     mapping(uint256 => int128) public slope_changes;
+    mapping(uint256 => bool) public nonVoting;
     mapping(uint256 => address) internal idToOwner;
     mapping(uint256 => address) internal idToApprovals;
     mapping(address => uint256) internal ownerToNFTokenCount;
@@ -326,6 +329,8 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     mapping(uint256 => uint256) internal tokenToOwnerIndex;
     mapping(address => mapping(address => bool)) internal ownerToOperators;
     mapping(bytes4 => bool) internal supportedInterfaces;
+    mapping(uint256 => uint256) internal _attachedNodeId; // token ID => node ID
+    mapping(uint256 => uint256) internal _attachedTokenId; // node ID => token ID
  
     // delegated addresses
     mapping(address => address) internal _delegatee;
@@ -337,12 +342,13 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     string public constant name = "Voting Escrow Continuum";
     string public constant symbol = "veCTM";
     string public constant version = "1.0.0";
+    uint8 public constant decimals = 18;
     bytes16 internal constant HEX_DIGITS = "0123456789abcdef";
     uint256 internal constant WEEK = 1 weeks;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
-    uint8 public constant decimals = 18;
+    uint256 public constant LIQUIDATION_PENALTY = 50000; // 50000 / 100000 = 50 %
     bytes4 internal constant ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 internal constant ERC721_INTERFACE_ID = 0x80ac58cd;
     bytes4 internal constant ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
@@ -367,6 +373,11 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
     event Withdraw(address indexed provider, uint256 tokenId, uint256 value, uint256 ts);
     event Supply(uint256 prevSupply, uint256 supply);
 
+    event Attachment(uint256 indexed _tokenId, uint256 indexed _nodeId, uint256 _chainId);
+    event Detachment(uint256 indexed _tokenId, uint256 indexed _nodeId, uint256 _chaindId);
+
+    event ThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
+
     // Errors
     error ERC6372InconsistentClock();
     error ERC5805FutureLookup(uint256 timepoint, uint48 clock);
@@ -378,6 +389,11 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         _entered_state = ENTERED;
         _;
         _entered_state = NOT_ENTERED;
+    }
+
+    modifier onlyGov() {
+        require(msg.sender == governor, "Only Governor is allowed to make upgrades");
+        _;
     }
 
     // Functions
@@ -415,6 +431,16 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         returns (uint256)
     {
         return _create_lock(_value, _lock_duration, _to);
+    }
+
+    function create_lock_for_non_voting(uint256 _value, uint256 _lock_duration, address _to)
+        external
+        nonreentrant
+        returns (uint256)
+    {
+        uint256 _tokenId = _create_lock(_value, _lock_duration, _to);
+        nonVoting[_tokenId] = true;
+        return _tokenId;
     }
 
     function increase_amount(uint256 _tokenId, uint256 _value) external nonreentrant {
@@ -467,6 +493,8 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
 
     function merge(uint256 _from, uint256 _to) external {
         // CHECK ATTACHMENT AND VOTING RESTRICTIONS
+        require((!nonVoting[_from] && !nonVoting[_to]) || (nonVoting[_from] && nonVoting[_to]));
+        require(_attachedNodeId[_from] == 0 && _attachedNodeId[_to] == 0);
         require(_from != _to);
         require(_isApprovedOrOwner(msg.sender, _from));
         require(_isApprovedOrOwner(msg.sender, _to));
@@ -474,12 +502,56 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         LockedBalance memory _locked0 = locked[_from];
         LockedBalance memory _locked1 = locked[_to];
         uint256 value0 = uint256(int256(_locked0.amount));
-        uint256 end = _locked0.end >= _locked1.end ? _locked0.end : _locked1.end;
+        uint256 value1 = uint256(int256(_locked1.amount));
+        // uint256 end = _locked0.end >= _locked1.end ? _locked0.end : _locked1.end;
+        uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
 
         locked[_from] = LockedBalance(0, 0);
         _checkpoint(_from, _locked0, LockedBalance(0, 0));
         _burn(_from);
-        _deposit_for(_to, value0, end, _locked1, DepositType.MERGE_TYPE);
+        _deposit_for(_to, value0, weightedEnd, _locked1, DepositType.MERGE_TYPE);
+    }
+
+    function split(uint256 _tokenId, int128 _extracted) external returns (uint256) {
+        // CHECK ATTACHMENT AND VOTING RESTRICTIONS
+        require(_extracted > 0);
+        require(_attachedNodeId[_tokenId] == 0); 
+        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        LockedBalance memory _locked = locked[_tokenId];
+        int128 value = _locked.amount;
+        require(_extracted < value);
+        int128 remainder = value - _extracted;
+        locked[_tokenId] = LockedBalance(remainder, _locked.end);
+        _checkpoint(_tokenId, _locked, LockedBalance(remainder, _locked.end));
+        uint256 extracted = uint256(int256(_extracted));
+
+        if (nonVoting[_tokenId]) {
+            uint256 extractedTokenId = _create_lock(extracted, _locked.end, msg.sender);
+            nonVoting[extractedTokenId] = true;
+            return extractedTokenId;
+        } else {
+            return _create_lock(extracted, _locked.end, msg.sender);
+        }
+    }
+
+    function liquidate(uint256 _tokenId) external nonreentrant {
+        require(_attachedNodeId[_tokenId] == 0); 
+        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        LockedBalance memory _locked = locked[_tokenId];
+        uint256 value = uint256(int256(_locked.amount));
+        uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
+        uint256 penalty = vePower * LIQUIDATION_PENALTY / 100000;
+
+        locked[_tokenId] = LockedBalance(0, 0);
+        uint256 supply_before = _supply;
+        _supply = supply_before - value;
+
+        _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
+
+        assert(IERC20(token).transfer(msg.sender, value - penalty));
+        assert(IERC20(token).transfer(wallet, penalty));
+
+        _burn(_tokenId);
     }
 
     function deposit_for(uint256 _tokenId, uint256 _value) external nonreentrant {
@@ -554,6 +626,37 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
 
     function checkpoint() external {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
+    }
+
+    function setAttachmentThreshold(uint256 _newThreshold) external onlyGov {
+        uint256 attachmentThreshold = _attachmentThreshold;
+        _attachmentThreshold = _newThreshold;
+        emit ThresholdChanged(attachmentThreshold, _newThreshold);
+    }
+
+    function attachNode(address _account, uint256 _tokenId, uint256 _nodeId, uint256 _chainId) external onlyGov {
+        require(_chainId == block.chainid);
+        require(_isApprovedOrOwner(_account, _tokenId));
+        require(_balanceOfNFT(_tokenId, clock()) >= _attachmentThreshold);
+        require(_attachedNodeId[_tokenId] == 0);
+        require(_attachedTokenId[_nodeId] == 0);
+        require(_nodeId != 0);
+        _attachedNodeId[_tokenId] = _nodeId;
+        _attachedTokenId[_nodeId] = _tokenId;
+        emit Attachment(_tokenId, _nodeId, _chainId);
+    }
+
+    function detachNode(uint256 _tokenId, uint256 _nodeId, uint256 _chainId) external onlyGov {
+        require(_chainId == block.chainid);
+        require(_attachedNodeId[_tokenId] != 0);
+        require(_attachedTokenId[_nodeId] != 0);
+        _attachedNodeId[_tokenId] = 0;
+        _attachedTokenId[_nodeId] = 0;
+        emit Detachment(_tokenId, _nodeId, _chainId);
+    }
+
+    function setWallet(address _wallet) external onlyGov {
+        wallet = _wallet;
     }
 
     // External view
@@ -1088,9 +1191,8 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return spenderIsOwner || spenderIsApproved || spenderIsApprovedForAll;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal view override {
+    function _authorizeUpgrade(address newImplementation) internal view override onlyGov {
         require(newImplementation != address(0), "New implementation cannot be zero address");
-        require(msg.sender == governor, "Only Governor is allowed to make upgrades");
     }
 
     function _find_block_epoch(uint256 _block, uint256 max_epoch) internal view returns (uint256) {
@@ -1114,11 +1216,14 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         return uint32(_delegateCheckpoints[account].length());
     }
 
-    function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal pure returns (uint256) {
+    function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal view returns (uint256) {
         uint256 cumulativeVotingPower;
         for (uint8 i = 0; i < _tokenIds.length; i++) {
-            // change below line to increment cumulativeVePower by the voting power of each token ID at time _t
-            cumulativeVotingPower += _tokenIds[i] + _t;
+            // increment cumulativeVePower by the voting power of each token ID at time _t
+            if (nonVoting[_tokenIds[i]]) {
+                continue;
+            }
+            cumulativeVotingPower += _balanceOfNFT(_tokenIds[i], _t);
         }
         return cumulativeVotingPower;
     }
