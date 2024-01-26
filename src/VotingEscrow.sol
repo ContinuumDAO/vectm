@@ -6,7 +6,6 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -534,6 +533,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         }
     }
 
+    // add an activation switch - don't want people to liquidate until token release
     function liquidate(uint256 _tokenId) external nonreentrant {
         require(_attachedNodeId[_tokenId] == 0); 
         require(_isApprovedOrOwner(msg.sender, _tokenId));
@@ -740,7 +740,7 @@ contract VotingEscrow is UUPSUpgradeable, IERC721Metadata, IVotingEscrow, IVotes
         if (timepoint >= currentTimepoint) {
             revert ERC5805FutureLookup(timepoint, currentTimepoint);
         }
-        uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(uint256(timepoint));
+        uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(timepoint);
         return _calculateCumulativeVotingPower(delegateTokenIdsAt, timepoint);
     }
 
