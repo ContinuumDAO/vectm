@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -11,9 +12,26 @@ interface IVotingEscrow {
     function balanceOfNFTAt(uint256 _tokenId, uint256 _ts) external view returns (uint256);
 }
 
+interface ISwapRouter {
+    struct ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
+
+    function exactInput(ExactInputParams memory params) external returns (uint256 amountOut);
+}
+
 
 contract Rewards {
     using Checkpoints for Checkpoints.Trace208;
+
+    struct Fee {
+        address token;
+        uint256 amount;
+    }
 
     uint48 public constant ONE_DAY = 1 days;
     uint48 public latestMidnight;
@@ -22,7 +40,13 @@ contract Rewards {
     address public gov; // for deciding on node quality scores
     address public committee; // for validating nodes' KYC
     address public rewardToken; // reward token
+    address public feeToken; // eg. USDC
+    address public swapRouter; // UniV3
     address public ve; // voting escrow
+
+    address public immutable WETH; // for middle-man in swap
+
+    bool internal _swapEnabled;
 
     Checkpoints.Trace208 internal _baseEmissionRates; // CTM / vePower
     Checkpoints.Trace208 internal _nodeEmissionRates; // CTM / vePower
@@ -31,19 +55,24 @@ contract Rewards {
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf; // token ID => ts checkpointed quality score
     mapping(uint256 => bool) internal _nodeValidated; // token ID => KYC check
     mapping(uint256 => uint48) internal _lastClaimOf; // token ID => midnight ts starting last day they claimed
+    mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
     // events
     event BaseEmissionRateChange(uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate);
     event NodeEmissionRateChange(uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate);
     event NodeRewardThresholdChange(uint256 _oldMinimumThreshold, uint256 _newMinimumThreshold);
     event RewardTokenChange(address indexed _oldRewardToken, address indexed _newRewardToken);
+    event FeeTokenChange(address indexed _oldFeeToken, address indexed _newFeeToken);
     event Claim(uint256 indexed _tokenId, uint256 _claimedReward, address indexed _rewardToken);
     event Withdrawal(address indexed _token, address indexed _recipient, uint256 _amount);
+    event FeesReceived(address indexed _token, uint256 _amount, uint256 indexed _fromChainId);
+    event Swap(address indexed _feeToken, address indexed _rewardToken, uint256 _amountIn, uint256 _amountOut);
 
     // errors
     error ERC6372InconsistentClock();
     error NoUnclaimedRewards();
     error InsufficientContractBalance(uint256 _balance, uint256 _required);
+    error FeesAlreadyReceivedFromChain();
 
     modifier onlyGov() {
         require(msg.sender == gov);
@@ -55,12 +84,24 @@ contract Rewards {
         _;
     }
 
-    constructor(uint48 _firstMidnight, address _gov, address _committee, address _rewardToken, address _ve) {
+    constructor(
+        uint48 _firstMidnight,
+        address _gov,
+        address _committee,
+        address _rewardToken,
+        address _feeToken,
+        address _swapRouter,
+        address _ve,
+        address _weth
+    ) {
         genesis = _firstMidnight;
         gov = _gov;
         committee = _committee;
         rewardToken = _rewardToken;
+        feeToken = _feeToken;
+        swapRouter = _swapRouter;
         ve = _ve;
+        WETH = _weth;
     }
 
 
@@ -92,8 +133,10 @@ contract Rewards {
         _nodeQualitiesOf[_tokenId].push(clock(), _nodeQualityOf);
     }
 
-    function setNodeValidated(uint256 _tokenId, bool _validated) external onlyCommittee {
-        _nodeValidated[_tokenId] = _validated;
+    function setNodeValidations(uint256[] memory _tokenIds, bool[] memory _validated) external onlyCommittee {
+        for (uint8 i = 0; i < _tokenIds.length; i++) {
+            _nodeValidated[_tokenIds[i]] = _validated[i];
+        }
     }
 
     function setCommittee(address _committee) external onlyGov {
@@ -105,7 +148,7 @@ contract Rewards {
         emit Withdrawal(_token, _recipient, _amount);
     }
 
-    function setRewardsToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external onlyGov {
+    function setRewardToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external onlyGov {
         address _oldRewardToken = rewardToken;
         rewardToken = _rewardToken;
         genesis = _firstMidnight;
@@ -117,6 +160,36 @@ contract Rewards {
         }
 
         emit RewardTokenChange(_oldRewardToken, _rewardToken);
+    }
+
+    function setFeeToken(address _feeToken, address _recipient) external onlyGov {
+        address _oldFeeToken = feeToken;
+        feeToken = _feeToken;
+        uint256 _oldTokenContractBalance = IERC20(_oldFeeToken).balanceOf(address(this));
+        
+        if (_oldTokenContractBalance != 0) {
+            _withdrawToken(_oldFeeToken, _recipient, _oldTokenContractBalance);
+            emit Withdrawal(_oldFeeToken, _recipient, _oldTokenContractBalance);
+        }
+
+        emit FeeTokenChange(_oldFeeToken, _feeToken);
+    }
+
+    function setSwapEnabled(bool _enabled) external onlyGov {
+        _swapEnabled = _enabled;
+    }
+
+    function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
+        require(_token == feeToken || _token == rewardToken);
+
+        if (_feeReceivedFromChainAt[_fromChainId][clock()].amount != 0) {
+            revert FeesAlreadyReceivedFromChain();
+        }
+
+        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
+
+        _feeReceivedFromChainAt[_fromChainId][clock()] = Fee(_token, _amount);
+        emit FeesReceived(_token, _amount, _fromChainId);
     }
 
     function claimRewards(uint256 _tokenId, address _to) external {
@@ -147,6 +220,34 @@ contract Rewards {
     function updateLatestMidnight() external {
         uint48 _latestMidnight = _getLatestMidnight();
         _updateLatestMidnight(_latestMidnight);
+    }
+
+    function swapFeeToReward(
+        uint256 _amountIn,
+        uint256 _deadline,
+        uint256 _uniFeeWETH,
+        uint256 _uniFeeReward
+    ) external returns (uint256 _amountOut) {
+        require(_swapEnabled);
+        uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
+
+        if (_amountIn > _contractBalance) {
+            _amountIn = _contractBalance;
+        }
+
+        IERC20(feeToken).approve(swapRouter, _amountIn);
+
+        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+            path: abi.encodePacked(feeToken, _uniFeeWETH, WETH, _uniFeeReward, rewardToken),
+            recipient: address(this),
+            deadline: _deadline,
+            amountIn: _amountIn,
+            amountOutMinimum: 0
+        });
+
+        _amountOut = ISwapRouter(swapRouter).exactInput(params);
+
+        emit Swap(feeToken, rewardToken, _amountIn, _amountOut);
     }
 
 
