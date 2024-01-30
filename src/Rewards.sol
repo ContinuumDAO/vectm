@@ -1,15 +1,20 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 
 interface IVotingEscrow {
     function balanceOfNFTAt(uint256 _tokenId, uint256 _ts) external view returns (uint256);
+    function ownerOf(uint256 _tokenId) external view returns (address);
+    function clock() external view returns (uint48);
+}
+
+interface INodeProperties {
+    function nodeQualityOfAt(uint256 _tokenId, uint256 _timestamp) external view returns (uint256);
 }
 
 interface ISwapRouter {
@@ -38,11 +43,12 @@ contract Rewards {
     uint48 public genesis;
 
     address public gov; // for deciding on node quality scores
-    address public committee; // for validating nodes' KYC
     address public rewardToken; // reward token
     address public feeToken; // eg. USDC
     address public swapRouter; // UniV3
-    address public ve; // voting escrow
+
+    INodeProperties public nodeProperties; // node info storage
+    IVotingEscrow public ve; // voting escrow
 
     address public immutable WETH; // for middle-man in swap
 
@@ -52,8 +58,6 @@ contract Rewards {
     Checkpoints.Trace208 internal _nodeEmissionRates; // CTM / vePower
     Checkpoints.Trace208 internal _nodeRewardThresholds; // minimum ve power threshold for node rewards
 
-    mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf; // token ID => ts checkpointed quality score
-    mapping(uint256 => bool) internal _nodeValidated; // token ID => KYC check
     mapping(uint256 => uint48) internal _lastClaimOf; // token ID => midnight ts starting last day they claimed
     mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
@@ -79,28 +83,23 @@ contract Rewards {
         _;
     }
 
-    modifier onlyCommittee {
-        require(msg.sender == committee);
-        _;
-    }
-
     constructor(
         uint48 _firstMidnight,
         address _gov,
-        address _committee,
         address _rewardToken,
         address _feeToken,
         address _swapRouter,
         address _ve,
+        address _nodeProperties,
         address _weth
     ) {
         genesis = _firstMidnight;
         gov = _gov;
-        committee = _committee;
         rewardToken = _rewardToken;
         feeToken = _feeToken;
         swapRouter = _swapRouter;
-        ve = _ve;
+        ve = IVotingEscrow(_ve);
+        nodeProperties = INodeProperties(_nodeProperties);
         WETH = _weth;
     }
 
@@ -110,37 +109,22 @@ contract Rewards {
     function setBaseEmissionRate(uint208 _baseEmissionRate) external onlyGov {
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
-            _baseEmissionRates.push(clock(), _baseEmissionRate208);
+            _baseEmissionRates.push(ve.clock(), _baseEmissionRate208);
         emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
     }
 
     function setNodeEmissionRate(uint208 _nodeEmissionRate) external onlyGov {
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
-            _nodeEmissionRates.push(clock(), _nodeEmissionRate208);
+            _nodeEmissionRates.push(ve.clock(), _nodeEmissionRate208);
         emit NodeEmissionRateChange(_oldNodeEmissionRate, _newNodeEmissionRate);
     }
 
     function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external onlyGov {
         uint208 _nodeRewardThreshold208 = SafeCast.toUint208(_nodeRewardThreshold);
         (uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold) =
-            _nodeRewardThresholds.push(clock(), _nodeRewardThreshold208);
+            _nodeRewardThresholds.push(ve.clock(), _nodeRewardThreshold208);
         emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
-    }
-
-    function setNodeQualityOf(uint256 _tokenId, uint208 _nodeQualityOf) external onlyGov {
-        assert(_nodeQualityOf <= 10);
-        _nodeQualitiesOf[_tokenId].push(clock(), _nodeQualityOf);
-    }
-
-    function setNodeValidations(uint256[] memory _tokenIds, bool[] memory _validated) external onlyCommittee {
-        for (uint8 i = 0; i < _tokenIds.length; i++) {
-            _nodeValidated[_tokenIds[i]] = _validated[i];
-        }
-    }
-
-    function setCommittee(address _committee) external onlyGov {
-        committee = _committee;
     }
 
     function withdrawToken(address _token, address _recipient, uint256 _amount) external onlyGov {
@@ -175,6 +159,10 @@ contract Rewards {
         emit FeeTokenChange(_oldFeeToken, _feeToken);
     }
 
+    function setNodeProperties(address _nodeProperties) external onlyGov {
+        nodeProperties = INodeProperties(_nodeProperties);
+    }
+
     function setSwapEnabled(bool _enabled) external onlyGov {
         _swapEnabled = _enabled;
     }
@@ -182,18 +170,18 @@ contract Rewards {
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
         require(_token == feeToken || _token == rewardToken);
 
-        if (_feeReceivedFromChainAt[_fromChainId][clock()].amount != 0) {
+        if (_feeReceivedFromChainAt[_fromChainId][ve.clock()].amount != 0) {
             revert FeesAlreadyReceivedFromChain();
         }
 
         require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
 
-        _feeReceivedFromChainAt[_fromChainId][clock()] = Fee(_token, _amount);
+        _feeReceivedFromChainAt[_fromChainId][ve.clock()] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
     }
 
     function claimRewards(uint256 _tokenId, address _to) external {
-        require(IERC721(ve).ownerOf(_tokenId) == msg.sender);
+        require(ve.ownerOf(_tokenId) == msg.sender);
 
         uint48 _latestMidnight = _getLatestMidnight();
 
@@ -265,33 +253,14 @@ contract Rewards {
         return _nodeRewardThresholds.latest();
     }
 
-    function nodeQualityOf(uint256 _tokenId) external view returns (uint256) {
-        return uint256(_nodeQualitiesOf[_tokenId].latest());
-    }
-
     function unclaimedRewards(uint256 _tokenId) external view returns (uint256) {
         uint48 _latestMidnight = _getLatestMidnight();
         return _calculateRewardsOf(_tokenId, _latestMidnight);
     }
 
-    function nodeValidated(uint256 _tokenId) external view returns (bool) {
-        return _nodeValidated[_tokenId];
-    }
-
 
 
     // public view
-    function clock() public view returns (uint48) {
-        return uint48(block.timestamp);
-    }
-
-    function CLOCK_MODE() public view returns (string memory) {
-        if (clock() != uint48(block.timestamp)) {
-            revert ERC6372InconsistentClock();
-        }
-        return "mode=timestamp";
-    }
-
     function baseEmissionRateAt(uint256 _timestamp) public view returns (uint256) {
         return _baseEmissionRates.upperLookupRecent(SafeCast.toUint48(_timestamp));
     }
@@ -302,10 +271,6 @@ contract Rewards {
 
     function nodeRewardThresholdAt(uint256 _timestamp) public view returns (uint256) {
         return _nodeRewardThresholds.upperLookupRecent(SafeCast.toUint48(_timestamp));
-    }
-
-    function nodeQualityOfAt(uint256 _tokenId, uint256 _timestamp) public view returns (uint256) {
-        return _nodeQualitiesOf[_tokenId].upperLookupRecent(SafeCast.toUint48(_timestamp));
     }
 
 
@@ -324,12 +289,13 @@ contract Rewards {
     // internal view
     function _getLatestMidnight() internal view returns (uint48) {
         uint48 _latestMidnight = latestMidnight;
+        uint48 _time = ve.clock();
 
-        if ((clock() - _latestMidnight) < ONE_DAY) {
+        if ((_time - _latestMidnight) < ONE_DAY) {
             return _latestMidnight;
         }
 
-        while (_latestMidnight < (clock() - ONE_DAY)) {
+        while (_latestMidnight < (_time - ONE_DAY)) {
             _latestMidnight += ONE_DAY;
         }
 
@@ -350,12 +316,13 @@ contract Rewards {
         uint256 _reward;
 
         for (uint48 i = _lastClaimed + ONE_DAY; i <= _daysUnclaimed; i += ONE_DAY) {
-            uint256 _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, uint256(i));
+            uint256 _time = uint256(i);
+            uint256 _vePower = ve.balanceOfNFTAt(_tokenId, _time);
             uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);
             uint256 _nodeQuality;
 
             if (_vePower >= _nodeRewardThreshold) {
-                _nodeQuality = nodeQualityOfAt(_tokenId, i);
+                _nodeQuality = nodeProperties.nodeQualityOfAt(_tokenId, _time);
             }
 
             uint256 _baseEmissionRate = baseEmissionRateAt(i);
