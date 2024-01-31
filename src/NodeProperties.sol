@@ -61,6 +61,7 @@ contract NodeProperties {
 
     function setNodeInfo(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
         require(ve.ownerOf(_tokenId) == msg.sender);
+        require(_attachedNodeId[_tokenId] == 0 && !_nodeValidated[_tokenId]);
         _nodeInfoOf[_tokenId] = _nodeInfo;
     }
 
@@ -79,6 +80,7 @@ contract NodeProperties {
         require(_attachedTokenId[_nodeId] != 0);
         _attachedNodeId[_tokenId] = 0;
         _attachedTokenId[_nodeId] = 0;
+        _nodeValidated[_tokenId] = false;
         emit Detachment(_tokenId, _nodeId);
     }
 
