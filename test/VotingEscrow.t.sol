@@ -36,7 +36,7 @@ contract SetUp is Test {
         uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
         user = vm.addr(privKey2);
 
-        ctm = new CTM();
+        ctm = new CTM(gov);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,address,string)",
@@ -235,7 +235,7 @@ contract Votes is SetUp {
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
     }
 
-    function test_DelegateTokensOnCreation() public {
+    function test_DelegateTokens() public {
         vm.startPrank(user);
 
         console.log("Pre-check: User and user2 should have no delegated tokens");
