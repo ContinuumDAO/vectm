@@ -27,6 +27,12 @@ contract NodeProperties {
         bytes data;
     }
 
+    enum NodeValidationStatus {
+        Default,
+        Pending,
+        Approved
+    }
+
     address public gov;
     address public committee; // for validating nodes' KYC
     IVotingEscrow public ve;
@@ -35,7 +41,8 @@ contract NodeProperties {
     mapping(uint256 => uint256) internal _attachedTokenId; // node ID => token ID
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf; // token ID => ts checkpointed quality score
     mapping(uint256 => bool) internal _nodeValidated; // token ID => dID check
-    mapping(uint256 => NodeInfo) internal _nodeInfoOf; // token ID => node info
+    mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf; // token ID => address => node info
+    mapping(uint256 => mapping(address => NodeValidationStatus)) internal _nodeValidationStatus; // token ID => address => node validation status
 
     uint256 internal _attachmentThreshold;
 
@@ -60,9 +67,17 @@ contract NodeProperties {
     }
 
     function setNodeInfo(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
-        require(ve.ownerOf(_tokenId) == msg.sender);
+        address _account = ve.ownerOf(_tokenId);
+        require(msg.sender == _account);
         require(_attachedNodeId[_tokenId] == 0 && !_nodeValidated[_tokenId]);
-        _nodeInfoOf[_tokenId] = _nodeInfo;
+        _nodeInfoOf[_tokenId][_account] = _nodeInfo;
+        _nodeValidationStatus[_tokenId][_account] = NodeValidationStatus.Pending;
+    }
+
+    function cancelValidation(uint256 _tokenId) external {
+        address _account = ve.ownerOf(_tokenId);
+        require(msg.sender == _account);
+        _nodeValidationStatus[_tokenId][_account] = NodeValidationStatus.Default;
     }
 
     function attachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
@@ -99,9 +114,16 @@ contract NodeProperties {
         committee = _committee;
     }
 
-    function setNodeValidations(uint256[] memory _tokenIds, bool[] memory _validated) external onlyCommittee {
+    function setNodeValidations(uint256[] memory _tokenIds, bool[] memory _validation) external onlyCommittee {
         for (uint8 i = 0; i < _tokenIds.length; i++) {
-            _nodeValidated[_tokenIds[i]] = _validated[i];
+            address _account = ve.ownerOf(_tokenIds[i]);
+            if (_nodeValidationStatus[_tokenIds[i]][_account] != NodeValidationStatus.Default) {
+                if (_validation[i]) {
+                    _nodeValidationStatus[_tokenIds[i]][_account] = NodeValidationStatus.Approved;
+                } else {
+                    _nodeValidationStatus[_tokenIds[i]][_account] = NodeValidationStatus.Default;
+                }
+            }
         }
     }
 
@@ -121,7 +143,8 @@ contract NodeProperties {
         return _nodeQualitiesOf[_tokenId].upperLookupRecent(SafeCast.toUint48(_timestamp));
     }
 
-    function nodeValidated(uint256 _tokenId) external view returns (bool) {
-        return _nodeValidated[_tokenId];
+    function nodeValidationStatus(uint256 _tokenId) external view returns (NodeValidationStatus) {
+        address _account = ve.ownerOf(_tokenId);
+        return _nodeValidationStatus[_tokenId][_account];
     }
 }

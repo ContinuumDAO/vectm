@@ -42,6 +42,9 @@ contract Rewards {
     uint48 public latestMidnight;
     uint48 public genesis;
 
+    uint256 public feePerByteRewardToken; // CTM
+    uint256 public feePerByteFeeToken; // USDC
+
     address public gov; // for deciding on node quality scores
     address public rewardToken; // reward token
     address public feeToken; // eg. USDC
@@ -157,6 +160,14 @@ contract Rewards {
         }
 
         emit FeeTokenChange(_oldFeeToken, _feeToken);
+    }
+
+    function setFeePerByteRewardToken(uint256 _fee) external onlyGov {
+        feePerByteRewardToken = _fee;
+    }
+
+    function setFeePerByteFeeToken(uint256 _fee) external onlyGov {
+        feePerByteFeeToken = _fee;
     }
 
     function setNodeProperties(address _nodeProperties) external onlyGov {
