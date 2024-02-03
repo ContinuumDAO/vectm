@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorStorage.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorPreventLateQuorum.sol";
+import "./Governor.sol";
+import "./GovernorSettings.sol";
+import "./GovernorCountingSimple.sol";
+import "./GovernorStorage.sol";
+import "./GovernorVotes.sol";
+import "./GovernorVotesQuorumFraction.sol";
+import "./GovernorPreventLateQuorum.sol";
 
-contract MyGovernor is 
+contract CTMDAOGovernor is 
     Governor, 
     GovernorSettings, 
     GovernorCountingSimple, 
@@ -19,8 +19,8 @@ contract MyGovernor is
     GovernorPreventLateQuorum
 {
     constructor(IVotes _token)
-        Governor("MyGovernor")
-        GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 180000 /* 1% of total voting power */)
+        Governor("CTMDAOGovernor")
+        GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(20)
         GovernorPreventLateQuorum(172800 /* 2 days */)
@@ -61,7 +61,9 @@ contract MyGovernor is
         override(Governor, GovernorSettings)
         returns (uint256)
     {
-        return super.proposalThreshold();
+        // proposal threshold is always a percentage of current total voting power
+        uint256 proposalThresholdTsPercentage = super.proposalThreshold();
+        return token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100000;
     }
 
     function _propose(
