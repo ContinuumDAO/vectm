@@ -24,9 +24,11 @@ contract SetUp is Test {
     address gov;
     address committee;
     address user;
-    uint256 ctmBalGov = 10 ether;
-    uint256 ctmBalUser = 10 ether;
+    uint256 ctmBalGov = 10000000 ether;
+    uint256 ctmBalUser = 10000000 ether;
     uint256 constant MAXTIME = 4 * 365 * 86400;
+    uint256 constant ONE_YEAR = 365 * 86400;
+    uint256 constant WEEK = 1 weeks;
 
     function setUp() public virtual {
         uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
@@ -228,11 +230,39 @@ contract Votes is SetUp {
         vm.warp(block.timestamp + 1);
     }
 
+    function _weekTsInXYears(uint256 _years) internal view returns (uint256) {
+        return (block.timestamp + (_years * ONE_YEAR)) / WEEK * WEEK;
+    }
+
     // TESTS
     function test_FailSameTimestamp() public prankUser {
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
         vm.expectRevert(VotingEscrow.SameTimestamp.selector);
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
+    }
+
+    function test_GetVePower() public prankUser {
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+        uint256 vepowerStartEth = ve.balanceOfNFT(id1) / 1e18;
+        (int128 _value, uint256 _end) = ve.locked(id1);
+        assertEq(vepowerStartEth, 997);
+        assertEq(_value, 1000 ether);
+        assertEq(_end, WEEK_4_YEARS);
+
+        uint256 WEEK_2_YEARS = _weekTsInXYears(2);
+        vm.warp(WEEK_2_YEARS);
+        uint256 vepowerHalfwayEth = ve.balanceOfNFT(id1) / 1e18;
+        assertEq(vepowerHalfwayEth, vepowerStartEth / 2);
+
+        vm.warp(WEEK_4_YEARS);
+        uint256 vepowerEndEth = ve.balanceOfNFT(id1) / 1e18;
+        assertEq(vepowerEndEth, 0);
+
+        uint256 balBefore = ctm.balanceOf(user);
+        ve.withdraw(id1);
+        uint256 balAfter = ctm.balanceOf(user);
+        assertEq(balAfter, balBefore + uint256(int256(_value)));
     }
 
     function test_DelegateTokens() public {
@@ -352,7 +382,79 @@ contract Votes is SetUp {
 
     // function test_Delegate
 
-    function test_GetVotes() public {
-        // test that get votes by address returns vote power equivalent to vote power of all delegated NFTs
+    function test_GetVotes() public prankUser {
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+        id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user2);
+        uint256 vePower1Start = ve.balanceOfNFT(id1);
+        uint256 vePower2Start = ve.balanceOfNFT(id2);
+        uint256 votesUserStart = ve.getVotes(user);
+        uint256 votesUser2Start = ve.getVotes(user2);
+        _warp1();
+        uint256 totalSupplyStart = ve.getPastTotalSupply(1);
+        assertEq(totalSupplyStart, vePower1Start + vePower2Start);
+        assertEq(votesUserStart, vePower1Start);
+        assertEq(votesUser2Start, vePower2Start);
+        ve.delegate(user2);
+        vePower1Start = ve.balanceOfNFT(id1);
+        vePower2Start = ve.balanceOfNFT(id2);
+        uint256 votesUserDelegated = ve.getVotes(user);
+        uint256 votesUser2Delegated = ve.getVotes(user2);
+        assertEq(votesUserDelegated, 0);
+        assertEq(votesUser2Delegated, vePower1Start + vePower2Start);
+
+        uint256 WEEK_2_YEARS = _weekTsInXYears(2);
+        vm.warp(WEEK_2_YEARS);
+        uint256 vePower1Halfway = ve.balanceOfNFT(id1);
+        uint256 vePower2Halfway = ve.balanceOfNFT(id2);
+        uint256 votesUser1Halfway = ve.getVotes(user);
+        uint256 votesUser2Halfway = ve.getVotes(user2);
+        assertEq(votesUser1Halfway, 0);
+        assertEq(votesUser2Halfway, vePower1Halfway + vePower2Halfway);
+    }
+
+    function test_GetPastVotes() public prankUser {
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+        _warp1();
+        id2 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+        uint256 votesUserStart = ve.getVotes(user);
+        uint256 votesUser2Start = ve.getVotes(user2);
+
+        uint256 WEEK_2_YEARS = _weekTsInXYears(2);
+        vm.warp(WEEK_2_YEARS);
+        ve.delegate(user2);
+        uint256 pastVotesUserStart = ve.getPastVotes(user, 2);
+        uint256 pastVotesUser2Start = ve.getPastVotes(user2, 2);
+        assertEq(pastVotesUserStart, votesUserStart);
+        assertEq(pastVotesUser2Start, votesUser2Start);
+        uint256 votesUserHalfway = ve.getVotes(user);
+        uint256 votesUser2Halfway = ve.getVotes(user2);
+
+        vm.warp(WEEK_4_YEARS);
+        ve.delegate(user);
+        uint256 pastVotesUserHalfway = ve.getPastVotes(user, WEEK_2_YEARS);
+        uint256 pastVotesUser2Halfway = ve.getPastVotes(user2, WEEK_2_YEARS);
+        assertEq(pastVotesUserHalfway, votesUserHalfway);
+        assertEq(pastVotesUser2Halfway, votesUser2Halfway);
+    }
+
+    function test_MergeInvalidatesVotes() public prankUser {
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        uint256 WEEK_2_YEARS = _weekTsInXYears(2);
+        id1 = ve.create_lock(500 ether, WEEK_4_YEARS);
+        _warp1();
+        id2 = ve.create_lock(1000 ether, WEEK_2_YEARS);
+        uint256 individualVotesEth = ve.getVotes(user) / 1e18;
+        uint256 vePower1EthBefore = ve.balanceOfNFT(id1) / 1e18;
+        uint256 vePower2EthBefore = ve.balanceOfNFT(id2) / 1e18;
+        assertEq(vePower1EthBefore, vePower2EthBefore);
+        ve.merge(id1, id2);
+        uint256 mergedVotesEth = ve.getVotes(user) / 1e18;
+        uint256 vePower1EthAfter = ve.balanceOfNFT(id1) / 1e18;
+        uint256 vePower2EthAfter = ve.balanceOfNFT(id2) / 1e18;
+        assertEq(mergedVotesEth, individualVotesEth);
+        assertEq(vePower1EthAfter, 0);
+        assertEq(vePower2EthAfter, mergedVotesEth);
     }
 }
