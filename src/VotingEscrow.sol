@@ -222,19 +222,11 @@ library ArrayCheckpoints {
             if (last._key == key) {
                 _unsafeAccess(self, pos - 1)._values = values;
             } else {
-                // Directly pushing the `CheckpointArray` struct with `key` and `values` does not work for some unknown
-                // reason in Solidity. So we must insert a blank `CheckpointArray` and write to its position directly.
-                self.push(CheckpointArray({_key: 0, _values: new uint[](values.length)}));
-                _unsafeAccess(self, pos)._key = key;
-                _unsafeAccess(self, pos)._values = values;
+                self.push(CheckpointArray({_key: key, _values: values}));
             }
             return (last._values.length, values.length);
         } else {
-            // Directly pushing the `CheckpointArray` struct with `key` and `values` does not work for some unknown
-            // reason in Solidity. So we must insert a blank `CheckpointArray` and write to its position directly.
-            self.push(CheckpointArray({_key: 0, _values: new uint[](values.length)}));
-            _unsafeAccess(self, pos)._key = key;
-            _unsafeAccess(self, pos)._values = values;
+            self.push(CheckpointArray({_key: key, _values: values}));
             return (0, values.length);
         }
     }
@@ -293,11 +285,12 @@ library ArrayCheckpoints {
     function _unsafeAccess(
         CheckpointArray[] storage self,
         uint256 pos
-    ) private pure returns (CheckpointArray storage result) {
-        assembly {
-            mstore(0, self.slot)
-            result.slot := add(keccak256(0, 0x20), pos)
-        }
+    ) private view returns (CheckpointArray storage result) {
+        // assembly {
+        //     mstore(0, self.slot)
+        //     result.slot := add(keccak256(0, 0x20), pos)
+        // }
+        return self[pos];
     }
 }
 
@@ -1266,6 +1259,10 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
             cumulativeVotingPower += _balanceOfNFT(_tokenIds[i], _t);
         }
         return cumulativeVotingPower;
+    }
+
+    function calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) external view returns (uint256) {
+        return _calculateCumulativeVotingPower(_tokenIds, _t);
     }
 
     function _isContract(address account) internal view returns (bool) {
