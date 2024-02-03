@@ -7,6 +7,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 
@@ -17,10 +18,10 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function governor() external view returns (address);
     function epoch() external view returns (uint256);
     function baseURI() external view returns (string memory);
-    // function locked(uint256 tokenId) external view returns (LockedBalance);
+    function locked(uint256 tokenId) external view returns (int128, uint256);
     function ownership_change(uint256 tokenId) external view returns (uint256);
-    // function point_history(uint256 tokenId) external view returns (Point);
-    // function user_point_history(uint256 tokenId) external view returns (Point[1000000000]);
+    function point_history(uint256 tokenId) external view returns (int128, int128, uint256, uint256);
+    // function user_point_history(uint256 tokenId) external view returns (VotingEscrow.Point[] memory);
     function user_point_epoch(uint256 tokenId) external view returns (uint256);
     function slope_changes(uint256 tokenId) external view returns (int128);
 
@@ -734,12 +735,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
+        uint48 timepoint48 = SafeCast.toUint48(timepoint);
         uint48 currentTimepoint = clock();
-        if (timepoint >= currentTimepoint) {
+        if (timepoint48 >= currentTimepoint) {
             revert ERC5805FutureLookup(timepoint, currentTimepoint);
         }
-        uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(timepoint);
-        return _calculateCumulativeVotingPower(delegateTokenIdsAt, timepoint);
+        uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(timepoint48);
+        return _calculateCumulativeVotingPower(delegateTokenIdsAt, timepoint48);
     }
 
     /**
@@ -747,8 +749,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
      * total vote power. For current total supply of NFTs, call `totalSupply`.
      */
     function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {
+        uint48 timepoint48 = SafeCast.toUint48(timepoint);
         uint48 currentTimepoint = clock();
-        if (timepoint >= currentTimepoint) {
+        if (timepoint48 >= currentTimepoint) {
             revert ERC5805FutureLookup(timepoint, currentTimepoint);
         }
         return _totalPowerAtT(timepoint);
@@ -851,7 +854,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _supply = supply_before + _value;
         LockedBalance memory old_locked;
         (old_locked.amount, old_locked.end) = (_locked.amount, _locked.end);
-        _locked.amount += int128(int256(_value));
+        _locked.amount += SafeCast.toInt128(SafeCast.toInt256(_value));
         if (unlock_time != 0) {
             _locked.end = unlock_time;
         }
@@ -1136,7 +1139,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
             return 0;
         } else {
             Point memory last_point = user_point_history[_tokenId][_epoch];
-            last_point.bias -= last_point.slope * int128(int256(_t) - int256(last_point.ts));
+            last_point.bias -= last_point.slope * int128(SafeCast.toInt256(_t) - int256(last_point.ts));
             if (last_point.bias < 0) {
                 last_point.bias = 0;
             }
