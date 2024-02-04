@@ -638,6 +638,10 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
     }
 
+    function setBaseURI(string memory _baseURI) external onlyGov {
+        baseURI = _baseURI;
+    }
+
     function setTreasury(address _treasury) external onlyGov {
         treasury = _treasury;
     }
