@@ -43,6 +43,7 @@ contract NodeProperties {
     mapping(uint256 => bool) internal _nodeValidated; // token ID => dID check
     mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf; // token ID => address => node info
     mapping(uint256 => mapping(address => NodeValidationStatus)) internal _nodeValidationStatus; // token ID => address => node validation status
+    mapping(uint256 => bool) internal _toBeRemoved;
 
     uint256 internal _attachmentThreshold;
 
@@ -80,6 +81,11 @@ contract NodeProperties {
         _nodeValidationStatus[_tokenId][_account] = NodeValidationStatus.Default;
     }
 
+    function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
+        require(msg.sender == ve.ownerOf(_tokenId));
+        _toBeRemoved[_tokenId] = _status;
+    }
+
     function attachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
         require(ve.balanceOfNFT(_tokenId) >= _attachmentThreshold);
         require(_attachedNodeId[_tokenId] == 0);
@@ -96,6 +102,7 @@ contract NodeProperties {
         _attachedNodeId[_tokenId] = 0;
         _attachedTokenId[_nodeId] = 0;
         _nodeValidated[_tokenId] = false;
+        _toBeRemoved[_tokenId] = false;
         emit Detachment(_tokenId, _nodeId);
     }
 
@@ -146,5 +153,9 @@ contract NodeProperties {
     function nodeValidationStatus(uint256 _tokenId) external view returns (NodeValidationStatus) {
         address _account = ve.ownerOf(_tokenId);
         return _nodeValidationStatus[_tokenId][_account];
+    }
+
+    function nodeRequestingDetachment(uint256 _tokenId) external view returns (bool) {
+        return _toBeRemoved[_tokenId];
     }
 }
