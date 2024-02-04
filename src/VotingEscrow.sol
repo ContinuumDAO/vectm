@@ -32,6 +32,8 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;
     function merge(uint256 _from, uint256 _to) external;
+    function split(uint256 _tokenId, int128 _extracted) external returns (uint256);
+    function liquidate(uint256 _tokenId) external;
     function deposit_for(uint256 _tokenId, uint256 _value) external;
     function checkpoint() external;
 
@@ -500,6 +502,10 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         assert(IERC20(token).transfer(msg.sender, value));
 
+        uint256[] memory _votingUnit = new uint256[](1);
+        _votingUnit[0] = _tokenId;
+        _moveDelegateVotes(msg.sender, address(0), _votingUnit);
+
         _burn(_tokenId);
 
         emit Withdraw(msg.sender, _tokenId, value, block.timestamp);
@@ -520,6 +526,11 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         locked[_from] = LockedBalance(0, 0);
         _checkpoint(_from, _locked0, LockedBalance(0, 0));
+
+        uint256[] memory _votingUnit = new uint256[](1);
+        _votingUnit[0] = _from;
+        _moveDelegateVotes(msg.sender, address(0), _votingUnit);
+
         _burn(_from);
         _deposit_for(_to, value0, weightedEnd, _locked1, DepositType.MERGE_TYPE);
     }
@@ -560,6 +571,10 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         assert(IERC20(token).transfer(msg.sender, value - penalty));
         assert(IERC20(token).transfer(treasury, penalty));
+
+        uint256[] memory _votingUnit = new uint256[](1);
+        _votingUnit[0] = _tokenId;
+        _moveDelegateVotes(msg.sender, address(0), _votingUnit);
 
         _burn(_tokenId);
     }
