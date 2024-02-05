@@ -477,7 +477,7 @@ contract Votes is SetUp {
         uint256 votesBeforeEth = ve.getVotes(user) / 1e18;
         (,uint256 _endBefore) = ve.locked(id1);
         _warp1();
-        id2 = ve.split(id1, int128(980 ether));
+        id2 = ve.split(id1, 980 ether);
         (int128 _value1, uint256 _end1) = ve.locked(id1);
         (int128 _value2, uint256 _end2) = ve.locked(id2);
         uint256 votesAfterEth = ve.getVotes(user) / 1e18;
@@ -530,4 +530,10 @@ contract Votes is SetUp {
         assertEq(balanceUserAfterEth, initialBalUser);
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth);
     }
+
+    // function test_Solidity() public {
+    //     uint256 u256 = uint256(type(int256).max) + 1;
+    //     int256 i256 = int256(u256);
+    //     console.logInt(i256);
+    // }
 }
