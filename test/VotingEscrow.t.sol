@@ -3,8 +3,8 @@ pragma solidity ^0.8.23;
 
 import "forge-std/Test.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
-import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
+import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
 import {CTM} from "../src/CTM.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -43,14 +43,14 @@ contract SetUp is Test {
         ctm = new CTM(gov);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
-            "initialize(address,address,string)",
+            "initialize(address,string)",
             address(ctm),
-            gov,
             BASE_URI_V1
         );
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
         ve = IVotingEscrowUpgradable(address(veProxy));
+        ve.setGovernor(gov);
         ctm.print(user, initialBalUser);
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
@@ -155,9 +155,8 @@ contract Proxy is SetUp {
 
         veImplV2 = new VotingEscrowV2();
         initializerDataV2 = abi.encodeWithSignature(
-            "initialize(address,address,string)",
+            "initialize(address,string)",
             address(ctm),
-            gov,
             BASE_URI_V2
         );
 
@@ -174,7 +173,7 @@ contract Proxy is SetUp {
 
     function test_CannotInitializeTwice() public {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        ve.initialize(address(ctm), gov, BASE_URI_V1);
+        ve.initialize(address(ctm), BASE_URI_V1);
     }
 
     function test_ValidUpgrade() public prankGov {

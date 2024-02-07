@@ -46,7 +46,7 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function user_point_epoch(uint256 tokenId) external view returns (uint256);
     function slope_changes(uint256 tokenId) external view returns (int128);
 
-    function initialize(address token_addr, address _governor, string memory base_uri) external;
+    function initialize(address token_addr, string memory base_uri) external;
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
     function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
@@ -72,6 +72,7 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256);
     function locked__end(uint256 _tokenId) external view returns (uint256);
 
+    function setGovernor(address _governor) external;
     function setTreasury(address _treasury) external;
     function enableLiquidations() external;
     function setNodeProperties(address _nodeProperties) external;
@@ -501,11 +502,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     ///
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
-    /// @param _governor Address of the governor contract
     /// @param base_uri Base URI for token ID images
-    function initialize(address token_addr, address _governor, string memory base_uri) external initializer {
+    function initialize(address token_addr, string memory base_uri) external initializer {
         token = token_addr;
-        governor = _governor;
         baseURI = base_uri;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
@@ -779,6 +778,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Record global data to checkpoint
     function checkpoint() external {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
+    }
+
+    /// @notice Because Voting Escrow is deployed before Governor, we need a set Governor function.
+    function setGovernor(address _governor) external {
+        if (governor == address(0)) {
+            governor = _governor;
+        }
     }
 
     function setBaseURI(string memory _baseURI) external onlyGov {
