@@ -49,6 +49,7 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function initialize(address token_addr, address _governor, string memory base_uri) external;
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
+    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
     function increase_amount(uint256 _tokenId, uint256 _value) external;
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;
@@ -74,13 +75,16 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function setTreasury(address _treasury) external;
     function enableLiquidations() external;
     function setNodeProperties(address _nodeProperties) external;
+
+    function nonVoting(uint256 _tokenId) external view returns (bool);
     function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory);
     function tokenIdsDelegatedToAt(address account, uint256 timepoint) external view returns (uint256[] memory);
 
     // dummy
-    function returnCheckpointInfo(address account) external view returns (bool, uint256, uint256[] memory, uint256);
+    //
 
     // ERC721 + Metadata + ERC165 + Votes
+    //
     // name
     // symbol
     // transferFrom
@@ -312,7 +316,10 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
+     * @notice Access the member of an array `self` at position `pos`.
+     * @dev Due to modifications on the original Checkpoints library (which checkpoints single values
+     *      as opposed to dynamic-sized arrays), the assembly outlined here does not work, nor is required.
+     *      It now does a high level array read and is no longer unsafe.
      */
     function _unsafeAccess(
         CheckpointArray[] storage self,
@@ -328,12 +335,13 @@ library ArrayCheckpoints {
 
 
 /**
- * @notice Compatible with UUPS proxy pattern, Open Zeppelin Governor Votes
+ * @notice Compatible with UUPS proxy pattern, OpenZeppelin Governor Votes
  */
 contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
 
     /// @notice Type declarations
+    ///
     struct Point {
         int128 bias;
         int128 slope; // # -dweight / dt
@@ -356,11 +364,11 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         CREATE_LOCK_TYPE,
         INCREASE_LOCK_AMOUNT,
         INCREASE_UNLOCK_TIME,
-        MERGE_TYPE,
-        SPLIT_TYPE
+        MERGE_TYPE
     }
 
     /// @notice State variables
+    ///
     address public token;
     address public governor;
     address public treasury;
@@ -371,9 +379,11 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     uint256 internal _supply;
     // current count of token
     uint256 internal tokenId;
+    // total # of NFTs
     uint256 internal _totalSupply;
 
     mapping(uint256 => LockedBalance) public locked;
+    // prevent flash NFT
     mapping(uint256 => uint256) public ownership_change;
     // epoch -> unsigned point
     mapping(uint256 => Point) public point_history;
@@ -439,6 +449,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
     /// @notice Events
+    ///
     event Deposit(
         address indexed provider,
         uint256 tokenId,
@@ -449,14 +460,20 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     );
     event Withdraw(address indexed provider, uint256 tokenId, uint256 value, uint256 ts);
     event Supply(uint256 prevSupply, uint256 supply);
+    event Merge(uint256 indexed _fromId, uint256 indexed _toId);
+    event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
+    event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
 
     /// @notice Errors
+    ///
     error ERC6372InconsistentClock();
     error ERC5805FutureLookup(uint256 timepoint, uint48 clock);
     error InvalidAccountNonce(address account, uint256 currentNonce);
     error SameTimestamp();
+    error NotApproved(address _spender, uint256 _tokenId);
 
     /// @notice Modifiers
+    ///
     modifier nonreentrant() {
         require(_entered_state == NOT_ENTERED);
         _entered_state = ENTERED;
@@ -481,7 +498,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     /// @notice External mutable
-
+    ///
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
     /// @param _governor Address of the governor contract
@@ -527,7 +544,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Deposit `_value` additional tokens for `_tokenId` without modifying the unlock time
     /// @param _value Amount of tokens to deposit and add to the lock
     function increase_amount(uint256 _tokenId, uint256 _value) external nonreentrant {
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
 
@@ -541,7 +558,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Extend the unlock time for `_tokenId`
     /// @param _lock_duration New number of seconds until tokens unlock
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external nonreentrant {
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
@@ -557,40 +574,26 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Withdraw all tokens for `_tokenId`
     /// @dev Only possible if the lock has expired
     function withdraw(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) {
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
-
-        LockedBalance memory _locked = locked[_tokenId];
-        require(block.timestamp >= _locked.end, "The lock didn't expire");
-        uint256 value = uint256(int256(_locked.amount));
-        address owner = idToOwner[_tokenId];
-
-        locked[_tokenId] = LockedBalance(0, 0);
-        uint256 supply_before = _supply;
-        _supply = supply_before - value;
-
-        // old_locked can have either expired <= timestamp or zero end
-        // _locked has only 0 end
-        // Both can have >= 0 amount
-        _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
-
-        assert(IERC20(token).transfer(owner, value));
-
-        uint256[] memory _votingUnit = new uint256[](1);
-        _votingUnit[0] = _tokenId;
-        _moveDelegateVotes(owner, address(0), _votingUnit);
-
-        // Burn the NFT
-        _burn(_tokenId);
-
-        emit Withdraw(owner, _tokenId, value, block.timestamp);
-        emit Supply(supply_before, supply_before - value);
+        _withdraw(_tokenId);
     }
 
+    /// @notice Merge two token IDs and combine their underlying values.
+    /// @dev End timestamp of merge is value-weighted based on composite tokens.
+    /// @param _from The token ID that gets burned.
+    /// @param _to The token ID that burned token gets merged into.
     function merge(uint256 _from, uint256 _to) external checkNotAttached(_from) checkNotAttached(_to) {
-        require((!nonVoting[_from] && !nonVoting[_to]) || (nonVoting[_from] && nonVoting[_to]));
+        require(
+            (!nonVoting[_from] && !nonVoting[_to]) || (nonVoting[_from] && nonVoting[_to]),
+            "veCTM: Merging between voting and non-voting token ID not allowed"
+        );
+
         require(_from != _to);
-        require(_isApprovedOrOwner(msg.sender, _from));
-        require(_isApprovedOrOwner(msg.sender, _to));
+        _checkApprovedOrOwner(msg.sender, _from);
+        _checkApprovedOrOwner(msg.sender, _to);
+
+        if (ownership_change[_from] == clock() || ownership_change[_to] == clock()) {
+            revert SameTimestamp();
+        }
 
         address ownerFrom = idToOwner[_from];
         address ownerTo = idToOwner[_from];
@@ -601,6 +604,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         LockedBalance memory _locked1 = locked[_to];
         uint256 value0 = uint256(int256(_locked0.amount));
         uint256 value1 = uint256(int256(_locked1.amount));
+        // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
 
         // checkpoint the _from lock to zero (_from gets burned)
@@ -612,16 +616,21 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _moveDelegateVotes(ownerFrom, address(0), _votingUnit);
         _burn(_from);
 
-        // we need to decrease the supply by value0 because _deposit_for adds it again, when in reality supply doesn't change here
-        _supply = _supply - value0;
         // add _from lock value to _to lock, using the value-weighted unlock time
         _deposit_for(_to, value0, weightedEnd, _locked1, DepositType.MERGE_TYPE);
-
+        // we need to decrease the supply by value0 because _deposit_for adds it again, when in reality
+        // _supply doesn't change in this operation
+        _supply -= value0;
         assert(_supply == supply_before);
+
+        emit Merge(_from, _to);
     }
 
+    /// @notice Split into two NFTs, with a new one created with an extracted value.
+    /// @param _tokenId The token ID to be split.
+    /// @param _extraction The underlying value to be used to make a new NFT.
     function split(uint256 _tokenId, uint256 _extraction) external checkNotAttached(_tokenId) returns (uint256) {
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        _checkApprovedOrOwner(msg.sender, _tokenId);
 
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
@@ -630,31 +639,52 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         require(extraction < value);
         int128 remainder = value - extraction;
         uint256 supply_before = _supply;
-        _supply = supply_before - _extraction;
 
         locked[_tokenId] = LockedBalance(remainder, _locked.end);
         _checkpoint(_tokenId, _locked, LockedBalance(remainder, _locked.end));
 
         uint256 extractionId;
         if (nonVoting[_tokenId]) {
+            // create another non-voting lock
             extractionId = create_nonvoting_lock_for(_extraction, _locked.end, owner);
         } else {
+            // create another voting lock
             extractionId = _create_lock(_extraction, _locked.end, owner);
         }
 
+        // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
+        // _supply doesn't change in this operation
+        _supply -= _extraction;
         assert(_supply == supply_before);
+
+        emit Split(_tokenId, extractionId, _extraction);
 
         return extractionId;
     }
 
+    /// @notice Opt-out mechanism for users to liquidate their veCTM anytime before end timestamp, incurring a penalty.
+    /// @dev User is penalized 50% of their remaining voting power in underlying tokens, transferred to the DAO treasury.
+    /// e.g. Unlock at 4 years before end => user is penalized 50% of tokens
+    ///      Unlock at 3 years before end => user is penalized 37.5% of tokens
+    ///      Unlock at 2 years before end => user is penalized 25% of tokens
+    ///      Unlock at 1 year before end => user is penalized 12.5% of tokens
+    ///      Unlock on/after end => user is not penalized.
+    /// @dev Minimum value to withdraw is 100 gwei, to prevent liquidation of low voting power, as this can
+    ///      potentially lead to zero penalty.
     function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) {
         require(liquidationsEnabled);
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
+        _checkApprovedOrOwner(msg.sender, _tokenId);
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
+        if (block.timestamp >= _locked.end) {
+            _withdraw(_tokenId);
+            return;
+        }
         uint256 value = uint256(int256(_locked.amount));
+        require(value > 100 gwei);
         uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
         uint256 penalty = vePower * LIQUIDATION_PENALTY / 100000;
+        assert(penalty != 0);
 
         locked[_tokenId] = LockedBalance(0, 0);
         uint256 supply_before = _supply;
@@ -665,11 +695,15 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         assert(IERC20(token).transfer(owner, value - penalty));
         assert(IERC20(token).transfer(treasury, penalty));
 
+        // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
         _moveDelegateVotes(owner, address(0), _votingUnit);
 
+        // Burn the NFT
         _burn(_tokenId);
+
+        emit Liquidate(_tokenId, value, penalty);
     }
 
     /// @notice Deposit `_value` tokens for `_tokenId` and add to the lock
@@ -716,6 +750,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
+    /// @notice Delegate all voting power for your balance of token IDs to an address.
+    /// @param delegatee The address to cast your total voting power.
     function delegate(address delegatee) external {
         address account = msg_sender();
         _delegate(account, delegatee);
@@ -749,21 +785,24 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         baseURI = _baseURI;
     }
 
+    /// @notice Set the address of the receiver of liquidation penalties.
     function setTreasury(address _treasury) external onlyGov {
         treasury = _treasury;
     }
 
+    /// @notice Set the address of contract which stores user node parameters.
     function setNodeProperties(address _nodeProperties) external onlyGov {
         nodeProperties = _nodeProperties;
     }
 
+    /// @notice One time use flag to enable liquidations.
     function enableLiquidations() external onlyGov {
         require(treasury != address(0));
         liquidationsEnabled = true;
     }
 
     /// @notice External view
-
+    ///
     /// @dev Returns the number of NFTs owned by `_owner`.
     ///      Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
     /// @param _owner Address for whom to query the balance.
@@ -790,11 +829,12 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return idToOwner[_tokenId];
     }
 
-    // return the total number of NFTs
+    /// @notice Return the total number of NFTs
     function totalSupply() external view returns (uint256) {
         return _totalSupply;
     }
 
+    /// @notice Return the current total vote power.
     function totalPower() external view returns (uint256) {
         return _totalPowerAtT(block.timestamp);
     }
@@ -852,11 +892,17 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return ownerToNFTokenIdList[_owner][_tokenIndex];
     }
 
+    /// @notice Governor compliant method for counting current voting power of an address.
     function getVotes(address account) external view returns (uint256) {
         uint256[] memory delegateTokenIdsCurrent = _delegateCheckpoints[account].latest();
         return _calculateCumulativeVotingPower(delegateTokenIdsCurrent, clock());
     }
 
+    /// @notice Governor compliant method for counting voting power of an address at a historic timestamp, by getting
+    ///         their balance of token IDs at that timestamp and the corresponding vote power of each one at that time.
+    /// @param account The address to get votes for.
+    /// @param timepoint The timestamp to get votes for.
+    /// @dev The votes are calculated at the upper checkpoint of a binary search on that user's delegation history.
     function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
         uint48 timepoint48 = SafeCast.toUint48(timepoint);
         uint48 currentTimepoint = clock();
@@ -868,8 +914,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     /**
+     * @notice The total voting power at a historic timestamp.
      * @dev The name `getPastTotalSupply` is maintained to keep in-line with IVotes interface, but it actually returns
-     * total vote power. For current total supply of NFTs, call `totalSupply`.
+     *      total vote power. For current total supply of NFTs, call `totalSupply`.
      */
     function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {
         uint48 timepoint48 = SafeCast.toUint48(timepoint);
@@ -880,22 +927,19 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return _totalPowerAtT(timepoint);
     }
 
+    /// @notice Check the current delegated address for `account`.
     function delegates(address account) external view returns (address) {
         return _delegatee[account];
     }
 
+    /// @notice Get the list of token IDs that are currently delegated to `account`.
     function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory) {
         return _delegateCheckpoints[account].latest();
     }
 
+    /// @notice Get the list of token IDs that were delegated to `account` at historic timestamp.
     function tokenIdsDelegatedToAt(address account, uint256 timepoint) external view returns (uint256[] memory) {
         return _delegateCheckpoints[account].upperLookupRecent(timepoint);
-    }
-
-    function returnCheckpointInfo(address account) external view returns (bool, uint256, uint256[] memory, uint256) {
-        (bool exists, uint256 ts, uint256[] memory values) = _delegateCheckpoints[account].latestCheckpoint();
-        uint256 length = _delegateCheckpoints[account].length();
-        return (exists, ts, values, length);
     }
 
     /// @notice Get the most recently recorded rate of voting power decrease for `_tokenId`
@@ -929,15 +973,20 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
     }
 
+    /// @notice ERC165 compliant method for checking supported interfaces.
     function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
         return supportedInterfaces[_interfaceID];
     }
 
+    /// @notice Get the checkpoint (including timestamp and list of delegated token IDs) at position `pos` in the
+    ///         delegated checkpoint array of address `account`.
     function checkpoints(address account, uint32 pos) external view returns (ArrayCheckpoints.CheckpointArray memory) {
         return _delegateCheckpoints[account].at(pos);
     }
 
     /// @notice Public mutable
+    ///
+    /// @notice Create a lock that has voting power, but that the delegatee cannot use to cast votes.
     function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
         public
         nonreentrant
@@ -1005,10 +1054,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
 
     /// @notice Public view
+    ///
+    /// @notice ERC6372
     function clock() public view returns (uint48) {
         return uint48(block.timestamp);
     }
 
+    /// @notice ERC6372
     function CLOCK_MODE() public view returns (string memory) {
         if (clock() != uint48(block.timestamp)) {
             revert ERC6372InconsistentClock();
@@ -1022,6 +1074,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)
     /// @param _to Address to deposit
+    /// @dev If the receiver does not have a delegatee, then automatically delegate receiver.
+    ///      Otherwise, checkpoint the receiver's delegatee's balance with the new token ID.
     function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
@@ -1090,6 +1144,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         emit Supply(supply_before, supply_before + _value);
     }
 
+    /// @notice Change the delegatee of `account` to `delegatee` including all currently delegated token IDs.
     function _delegate(address account, address delegatee) internal {
         address oldDelegate = _delegatee[account];
         _delegatee[account] = delegatee;
@@ -1136,7 +1191,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         address _sender
     ) internal checkNotAttached(_tokenId) {
         // Check requirements
-        require(_isApprovedOrOwner(_sender, _tokenId));
+        _checkApprovedOrOwner(_sender, _tokenId);
 
         // move delegated votes
         uint256[] memory _votingUnit = new uint256[](1);
@@ -1156,6 +1211,37 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         ownership_change[_tokenId] = clock();
         // Log the transfer
         emit Transfer(_from, _to, _tokenId);
+    }
+
+    function _withdraw(uint256 _tokenId) internal {
+        _checkApprovedOrOwner(msg.sender, _tokenId);
+
+        LockedBalance memory _locked = locked[_tokenId];
+        require(block.timestamp >= _locked.end, "The lock didn't expire");
+        uint256 value = uint256(int256(_locked.amount));
+        address owner = idToOwner[_tokenId];
+
+        locked[_tokenId] = LockedBalance(0, 0);
+        uint256 supply_before = _supply;
+        _supply = supply_before - value;
+
+        // old_locked can have either expired <= timestamp or zero end
+        // _locked has only 0 end
+        // Both can have >= 0 amount
+        _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
+
+        assert(IERC20(token).transfer(owner, value));
+
+        // checkpoint the owner's balance to remove _from ID
+        uint256[] memory _votingUnit = new uint256[](1);
+        _votingUnit[0] = _tokenId;
+        _moveDelegateVotes(owner, address(0), _votingUnit);
+
+        // Burn the NFT
+        _burn(_tokenId);
+
+        emit Withdraw(owner, _tokenId, value, block.timestamp);
+        emit Supply(supply_before, supply_before - value);
     }
 
     /// @dev Clear an approval of a given address
@@ -1252,7 +1338,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     function _burn(uint256 _tokenId) internal {
-        require(_isApprovedOrOwner(msg.sender, _tokenId), "caller is not owner nor approved");
+        _checkApprovedOrOwner(msg.sender, _tokenId);
 
         address owner = idToOwner[_tokenId];
 
@@ -1431,8 +1517,12 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         }
     }
 
-    /// @notice Internal view
+    // The following ERC20/minime-compatible methods are not real balanceOf and supply!
+    // They measure the weights for the purpose of voting, so they don't represent
+    // real coins.
 
+    /// @notice Internal view
+    ///
     /// @dev Returns the number of NFTs owned by `_owner`.
     ///      Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
     /// @param _owner Address for whom to query the balance.
@@ -1542,6 +1632,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return uint256(uint128(last_point.bias));
     }
 
+    /// @notice Return the total voting power at timestamp `t`.
     function _totalPowerAtT(uint256 t) internal view returns (uint256) {
         uint256 _epoch = epoch;
         Point memory last_point = point_history[_epoch];
@@ -1561,13 +1652,16 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return spenderIsOwner || spenderIsApproved || spenderIsApprovedForAll;
     }
 
+    function _checkApprovedOrOwner(address _spender, uint256 _tokenId) internal view {
+        if (!_isApprovedOrOwner(_spender, _tokenId)) {
+            revert NotApproved(_spender, _tokenId);
+        }
+    }
+
+    /// @notice Conditions for upgrading the implementation.
     function _authorizeUpgrade(address newImplementation) internal view override onlyGov {
         require(newImplementation != address(0), "New implementation cannot be zero address");
     }
-
-    // The following ERC20/minime-compatible methods are not real balanceOf and supply!
-    // They measure the weights for the purpose of voting, so they don't represent
-    // real coins.
 
     /// @notice Binary search to estimate timestamp for block number
     /// @param _block Block to find
@@ -1592,10 +1686,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return _min;
     }
 
+    /// @notice The number of NFT balance checkpoints there are for address `account`.
     function _numCheckpoints(address account) internal view returns (uint32) {
         return uint32(_delegateCheckpoints[account].length());
     }
 
+    /// @notice Calculate the voting power of a given list of token IDs at timestamp `_t`.
+    ///         Does not count non-voting token IDs.
     function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal view returns (uint256) {
         uint256 cumulativeVotingPower;
         for (uint8 i = 0; i < _tokenIds.length; i++) {
@@ -1606,10 +1703,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
             cumulativeVotingPower += _balanceOfNFT(_tokenIds[i], _t);
         }
         return cumulativeVotingPower;
-    }
-
-    function calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) external view returns (uint256) {
-        return _calculateCumulativeVotingPower(_tokenIds, _t);
     }
 
     function _isContract(address account) internal view returns (bool) {
@@ -1623,6 +1716,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return size > 0;
     }
 
+    /// @notice Return the list of token IDs currently owned by address `account`.
+    /// @dev This does not count token IDs delegated to `account`, only tokens they own.
     function _getVotingUnits(address account) internal view returns (uint256[] memory tokenList) {
         uint256 tokenCount = _balance(account);
         tokenList = new uint256[](tokenCount);
@@ -1660,6 +1755,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         }
     }
 
+    /// @notice Concatenate an array of token IDs to a given array of token IDs.
+    ///         Removes duplicates.
     function _add(uint256[] memory current, uint256[] memory addIDs) internal pure returns (uint256[] memory) {
         uint256 _currentLength = current.length;
         uint256[] memory updated = new uint256[](_currentLength + addIDs.length);
@@ -1674,12 +1771,14 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return updated;
     }
 
+    /// @notice Remove an array of token IDs from a given array of token IDs.
     function _remove(uint256[] memory current, uint256[] memory removeIDs) internal pure returns (uint256[] memory) {
         uint256 _excess = current.length - removeIDs.length;
         bool[] memory _ignore = new bool[](current.length);
         uint256[] memory _updated = new uint256[](_excess);
         uint256 _updatedLength;
 
+        // mark whether the token ID exists on the removal array
         for (uint256 i = 0; i < removeIDs.length; i++) {
             for (uint256 j = 0; j < current.length; j++) {
                 if (removeIDs[i] == current[j]) {
@@ -1688,6 +1787,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
             }
         }
 
+        // populate a new array, ignoring the token IDs to be removed
         for (uint256 i = 0; i < _ignore.length; i++) {
             if (!_ignore[i]) {
                 _updated[_updatedLength++] = current[i];
@@ -1698,6 +1798,11 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     /// @notice Private mutable
+    ///
+    /// @notice Create a new checkpoint which either adds to or removes from the latest checkpoint, a given array of token IDs.
+    /// @param store The checkpoint array to be operated on.
+    /// @param op The operation to perform - can be `_add` or `_subtract`.
+    /// @param deltaTokenIDs The array of token IDs that are to be added or removed from `store`.
     function _push(
         ArrayCheckpoints.TraceArray storage store,
         function(uint256[] memory, uint256[] memory) view returns (uint256[] memory) op,
