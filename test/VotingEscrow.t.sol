@@ -236,17 +236,6 @@ contract Votes is SetUp {
         vm.stopPrank();
     }
 
-    function _displayCheckpointInfo(address user) internal view {
-         (bool exists, uint256 ts, uint256[] memory values, uint256 length) = ve.returnCheckpointInfo(user);
-        console.log("exists ", exists);
-        console.log("ts ", ts);
-        console.log("length ", length);
-        for (uint8 i = 0; i < values.length; i++) {
-            console.log("values ", i, ":", values[i]);
-        }
-        console.log("################");      
-    }
-
     function _warp1() internal {
         vm.warp(block.timestamp + 1);
     }
@@ -290,13 +279,11 @@ contract Votes is SetUp {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 vePowerBefore = ve.balanceOfNFT(id1);
-        (,,uint256[] memory _ids,) = ve.returnCheckpointInfo(user);
-        uint256 idLengthBefore = _ids.length;
+        uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user).length;
         _warp1();
         id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
         uint256 vePowerAfter = ve.balanceOfNFTAt(id1, block.timestamp - 1);
-        (,,_ids,) = ve.returnCheckpointInfo(user);
-        uint256 idLengthAfter = _ids.length;
+        uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user).length;
         assertEq(idLengthAfter, idLengthBefore + 1);
         assertEq(vePowerAfter, vePowerBefore);
     }
@@ -513,14 +500,12 @@ contract Votes is SetUp {
     function test_LiquidateInvalidatesVotes() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
-        (,,uint256[] memory _ids,) = ve.returnCheckpointInfo(user);
-        uint256 lengthBefore = _ids.length;
+        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user).length;
         uint256 balanceUserBeforeEth = ctm.balanceOf(user) / 1e18;
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
         _warp1();
         ve.liquidate(id1);
-        (,,_ids,) = ve.returnCheckpointInfo(user);
-        uint256 lengthAfter = _ids.length;
+        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user).length;
         uint256 votesAfterEth = ve.getVotes(user) / 1e18;
         uint256 balanceUserAfterEth = ctm.balanceOf(user) / 1e18;
         uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
@@ -530,7 +515,7 @@ contract Votes is SetUp {
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 49);
     }
 
-    function test_Liquidate3Years() public prank(user) {
+    function test_Liquidate1YearBefore() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         uint256 WEEK_3_YEARS = _weekTsInXYears(3);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
@@ -546,7 +531,7 @@ contract Votes is SetUp {
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5 (truncation)
     }
 
-    function test_Liquidate4Years() public prank(user) {
+    function test_LiquidateAfter4Years() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury);
@@ -596,17 +581,6 @@ contract MergeSplitLiquidate is SetUp {
         ve.enableLiquidations();
 
         vm.stopPrank();
-    }
-
-    function _displayCheckpointInfo(address user) internal view {
-         (bool exists, uint256 ts, uint256[] memory values, uint256 length) = ve.returnCheckpointInfo(user);
-        console.log("exists ", exists);
-        console.log("ts ", ts);
-        console.log("length ", length);
-        for (uint8 i = 0; i < values.length; i++) {
-            console.log("values ", i, ":", values[i]);
-        }
-        console.log("################");      
     }
 
     function _warp1() internal {
@@ -707,11 +681,6 @@ contract MergeSplitLiquidate is SetUp {
         );
     }
 
-
-
-
-
-
     function test_SplitValueOver128() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
@@ -792,23 +761,29 @@ contract MergeSplitLiquidate is SetUp {
     function test_ApprovedLiquidation() public approveUser2 prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        (,,uint256[] memory _ids,) = ve.returnCheckpointInfo(user);
-        uint256 lengthBefore = _ids.length;
+        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user).length;
         vm.warp(WEEK_4_YEARS);
         ve.liquidate(id1);
-        (,,_ids,) = ve.returnCheckpointInfo(user);
-        uint256 lengthAfter = _ids.length;
+        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user).length;
         assertEq(lengthAfter, lengthBefore - 1);
     }
 
-    function testFuzz_Liquidate(uint256 _value, uint256 _end) public prank(user) {
+    function testFuzz_Liquidate(uint256 _value, uint256 _end, uint256 _liquidationTs) public prank(user) {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
         uint256 MAX_LOCK = _weekTsInXYears(4);
         _value = bound(_value, 101 gwei, initialBalUser);
         _end = bound(_end, MIN_LOCK, MAX_LOCK);
+        _liquidationTs = bound(_liquidationTs, MIN_LOCK + 1, MAX_LOCK + 1);
 
         id1 = ve.create_lock(_value, _end);
-        vm.warp(_end);
-        ve.liquidate(id1);
+        vm.warp(_liquidationTs);
+
+        if (block.timestamp >= _end) {
+            vm.expectEmit(true, true, true, true);
+            emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
+            ve.liquidate(id1);
+        } else {
+            ve.liquidate(id1);
+        }
     }
 }
