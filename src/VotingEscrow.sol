@@ -483,7 +483,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     modifier onlyGov() {
-        require(msg.sender == governor, "Only Governor is allowed to make upgrades");
+        require(msg.sender == governor, "ContinuumDAO: Only Governor can perform this operation.");
         _;
     }
 

@@ -65,12 +65,6 @@ contract SetUp is Test {
         _;
         vm.stopPrank();
     }
-
-    modifier prankGov() {
-        vm.startPrank(gov);
-        _;
-        vm.stopPrank();
-    }
 }
 
 
@@ -176,20 +170,20 @@ contract Proxy is SetUp {
         ve.initialize(address(ctm), BASE_URI_V1);
     }
 
-    function test_ValidUpgrade() public prankGov {
+    function test_ValidUpgrade() public prank(gov) {
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         string memory baseURI = ve.baseURI();
         assertEq(baseURI, BASE_URI_V2);
     }
 
     function test_UnauthorizedUpgrade() public {
-        vm.expectRevert("Only Governor is allowed to make upgrades");
+        vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         string memory baseURI = ve.baseURI();
         assertEq(baseURI, BASE_URI_V1);
     }
 
-    function test_CannotUpgradeToSameVersion() public prankGov {
+    function test_CannotUpgradeToSameVersion() public prank(gov) {
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         string memory baseURI = ve.baseURI();
         assertEq(baseURI, BASE_URI_V2);
@@ -777,7 +771,7 @@ contract MergeSplitLiquidate is SetUp {
         id1 = ve.create_lock(_value, _end);
         vm.warp(_liquidationTs);
 
-        if (block.timestamp >= _end) {
+        if (_liquidationTs >= _end) {
             vm.expectEmit(true, true, true, true);
             emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
             ve.liquidate(id1);
