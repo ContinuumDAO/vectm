@@ -42,7 +42,7 @@ contract SetUp is Test {
         ctm = new CTM(gov);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
-            "initialize(address,address,string)",
+            "initialize(address,string)",
             address(ctm),
             BASE_URI_V1
         );
@@ -57,8 +57,7 @@ contract SetUp is Test {
         ctm.approve(address(ve), initialBalUser);
         
         nodeProperties = new NodeProperties(gov, committee, address(ve));
-        vm.prank(gov);
-        ve.setNodeProperties(address(nodeProperties));
+        // ve.setNodeProperties(address(nodeProperties));
     }
 
     modifier prank(address _user) {
@@ -68,4 +67,73 @@ contract SetUp is Test {
     }
 }
 
-contract GovernorBasic is SetUp {}
+contract GovernorBasic is SetUp {
+    uint256 tokenId;
+
+    // UTILS
+    
+    function setUp() public override {
+        super.setUp();
+        vm.prank(user);
+        tokenId = ve.create_lock(1 ether, block.timestamp + MAXTIME);
+        vm.warp(100);
+    }
+
+    function _proposeVote(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal returns (uint256) {
+        return governor.propose(targets, values, calldatas, description);
+    }
+
+    function _castVote(uint256 proposalId, uint8 support) internal returns (uint256) {
+        vm.warp(block.timestamp + 5 days);
+        uint256 weight = governor.castVote(proposalId, support);
+        return weight;
+    }
+
+    function _queueVote(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal returns (uint256) {
+        vm.warp(block.timestamp + 10 days);
+        uint256 proposalId = governor.queue(targets, values, calldatas, keccak256(bytes(description)));
+        return proposalId;
+    }
+
+    function _executeVote(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal returns (uint256) {
+        uint256 proposalId = governor.execute(targets, values, calldatas, keccak256(bytes(description)));
+        return proposalId;
+    }
+
+    function test_InitialSettings() public prank(user) {
+        vm.warp(block.timestamp + 1);
+        uint256 totalPower = ve.getPastTotalSupply(block.timestamp - 1);
+        uint256 votingDelay = governor.votingDelay();
+        uint256 votingPeriod = governor.votingPeriod();
+        uint256 proposalThreshold = governor.proposalThreshold();
+        assertEq(votingDelay, 5 days);
+        assertEq(votingPeriod, 10 days);
+        assertEq(proposalThreshold, totalPower / 100);
+    }
+
+    function test_ProposeSetNodeProperties() public prank(user) {
+        address[] memory targets = new address[](1);
+        targets[0] = address(ve);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setNodeProperties(address)", address(nodeProperties));
+
+        _proposeVote(targets, values, calldatas, "Proposal #1: Set node properties address.");
+    }
+}

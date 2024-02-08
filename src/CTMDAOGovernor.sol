@@ -63,7 +63,9 @@ contract CTMDAOGovernor is
     {
         // proposal threshold is always a percentage of current total voting power
         uint256 proposalThresholdTsPercentage = super.proposalThreshold();
-        return token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100000;
+        uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100000;
+        assert(totalVotingPower > 0);
+        return  totalVotingPower;
     }
 
     function _propose(
