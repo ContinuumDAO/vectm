@@ -14,11 +14,11 @@ OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#
 
 ### VotingEscrow Topology Diagram
 
-![VotingEscrow Topology](diagrams/VotingEscrow Topology.png)
+![VotingEscrow Topology](diagrams/VotingEscrow_Topology.png)
 
 ### CTMDAOGovernor Topology Diagram
 
-![Governor Topology](diagrams/CTMDAOGovernor Topology.png)
+![Governor Topology](diagrams/CTMDAOGovernor_Topology.png)
 
 ### Compile and run tests
 
