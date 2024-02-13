@@ -37,6 +37,8 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function decimals() external view returns (uint8);
     function token() external view returns (address);
     function governor() external view returns (address);
+    function treasury() external view returns (address);
+    function nodeProperties() external view returns (address);
     function epoch() external view returns (uint256);
     function baseURI() external view returns (string memory);
     function locked(uint256 tokenId) external view returns (int128, uint256);
@@ -80,6 +82,7 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function nonVoting(uint256 _tokenId) external view returns (bool);
     function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory);
     function tokenIdsDelegatedToAt(address account, uint256 timepoint) external view returns (uint256[] memory);
+    function liquidationsEnabled() external view returns (bool);
 
     // dummy
     //
@@ -427,7 +430,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     // penalty for liquidating veCTM before maturity date. 50,000 / 100,000  =  50%
     uint256 public constant LIQUIDATION_PENALTY = 50000;
-    bool internal liquidationsEnabled;
+    bool public liquidationsEnabled;
 
     // ERC165 interface ID of ERC165
     bytes4 internal constant ERC165_INTERFACE_ID = 0x01ffc9a7;
@@ -782,9 +785,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
     /// @notice Because Voting Escrow is deployed before Governor, we need a set Governor function.
     function setGovernor(address _governor) external {
-        if (governor == address(0)) {
-            governor = _governor;
-        }
+        require(governor == address(0) || msg.sender == governor);
+        governor = _governor;
     }
 
     function setBaseURI(string memory _baseURI) external onlyGov {
