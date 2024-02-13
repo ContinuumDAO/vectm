@@ -12,7 +12,13 @@ Modifying a copy of [Solidly Voting Escrow code](https://web.archive.org/web/202
 
 OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) patterns are used, complying to ERC-1967.
 
-![veCTM Topology](diagrams/veCTM_Topology_UUPS.png)
+### VotingEscrow Topology Diagram
+
+![VotingEscrow Topology](diagrams/VotingEscrow Topology.png)
+
+### CTMDAOGovernor Topology Diagram
+
+![Governor Topology](diagrams/CTMDAOGovernor Topology.png)
 
 ### Compile and run tests
 
