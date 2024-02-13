@@ -65,7 +65,7 @@ contract CTMDAOGovernor is
         uint256 proposalThresholdTsPercentage = super.proposalThreshold();
         uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100000;
         assert(totalVotingPower > 0);
-        return  totalVotingPower;
+        return totalVotingPower;
     }
 
     function _propose(
