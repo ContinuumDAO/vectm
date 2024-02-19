@@ -61,10 +61,11 @@ contract NodeProperties {
         _;
     }
 
-    constructor(address _gov, address _committee, address _ve) { 
+    constructor(address _gov, address _committee, address _ve, uint256 _initialThreshold) {
         gov = _gov;
         committee = _committee;
         ve = IVotingEscrow(_ve);
+        _attachmentThreshold = _initialThreshold;
     }
 
     function setNodeInfo(uint256 _tokenId, NodeInfo memory _nodeInfo) external {

@@ -55,7 +55,7 @@ contract SetUp is Test {
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
         
-        nodeProperties = new NodeProperties(gov, committee, address(ve));
+        nodeProperties = new NodeProperties(gov, committee, address(ve), 5000 ether);
         vm.prank(gov);
         ve.setNodeProperties(address(nodeProperties));
     }
