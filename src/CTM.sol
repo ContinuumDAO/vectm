@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {TheiaERC20} from "./theia/TheiaERC20.sol";
 
 contract CTM is TheiaERC20 {
