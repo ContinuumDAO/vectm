@@ -10,6 +10,10 @@ interface IVotingEscrow {
     function clock() external view returns (uint48);
 }
 
+interface IRewards {
+    function nodeRewardThreshold() external view returns (uint256);
+}
+
 contract NodeProperties {
     using Checkpoints for Checkpoints.Trace208;
 
@@ -35,6 +39,7 @@ contract NodeProperties {
 
     address public gov;
     address public committee; // for validating nodes' KYC
+    IRewards public rewards;
     IVotingEscrow public ve;
 
     mapping(uint256 => uint256) internal _attachedNodeId; // token ID => node ID
@@ -118,6 +123,10 @@ contract NodeProperties {
         _nodeQualitiesOf[_tokenId].push(ve.clock(), _nodeQualityOf);
     }
 
+    function setRewards(address _rewards) external onlyGov {
+        rewards = IRewards(_rewards);
+    }
+
     function setCommittee(address _committee) external onlyGov {
         committee = _committee;
     }
@@ -158,5 +167,9 @@ contract NodeProperties {
 
     function nodeRequestingDetachment(uint256 _tokenId) external view returns (bool) {
         return _toBeRemoved[_tokenId];
+    }
+
+    function _getNodeAttachmentThreshold() internal view returns (uint256) {
+        return rewards.nodeRewardThreshold();
     }
 }

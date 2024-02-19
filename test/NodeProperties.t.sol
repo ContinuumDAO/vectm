@@ -133,6 +133,7 @@ contract TestNodeProperties is Test {
     function test_NodeAttachment() public {
         vm.prank(user);
         id1 = ve.create_lock(5000 ether, MAXTIME);
+        skip(1);
         vm.prank(gov);
         vm.expectRevert();
         nodeProperties.attachNode(id1, 1);
@@ -145,7 +146,7 @@ contract TestNodeProperties is Test {
     function test_OnlyAttachOneTokenID() public {
         vm.startPrank(user);
         id1 = ve.create_lock(5014 ether, MAXTIME);
-        vm.warp(1);
+        skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
         vm.stopPrank();
         vm.startPrank(gov);
