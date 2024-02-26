@@ -23,7 +23,9 @@ contract TestRewards is Test {
     address committee;
     address treasury;
     address user;
+    address bridge;
     uint256 CTM_TS = 100_000_000 ether;
+    uint256 USDC_TS = 100_000_000e6;
     uint256 initialBalGov = CTM_TS;
     uint256 initialBalUser = CTM_TS;
     uint256 constant MAXTIME = 4 * 365 * 86400;
@@ -44,6 +46,8 @@ contract TestRewards is Test {
         treasury = vm.addr(privKey2);
         uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
         user = vm.addr(privKey3);
+        uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
+        bridge = vm.addr(privKey4);
 
         ctm = new CTM(gov);
         usdc = new TestERC20(6);
@@ -57,16 +61,16 @@ contract TestRewards is Test {
 
         ve = IVotingEscrow(address(veProxy));
         ve.setGovernor(gov);
-        ctm.print(user, initialBalUser);
-        vm.prank(user);
-        ctm.approve(address(ve), initialBalUser);
+        ctm.print(user, CTM_TS);
+        ctm.print(bridge, CTM_TS);
+        usdc.print(bridge, USDC_TS);
         
         nodeProperties = new NodeProperties(gov, committee, address(ve), 5000 ether);
+
         vm.startPrank(gov);
         ve.setTreasury(treasury);
         ve.setNodeProperties(address(nodeProperties));
         ve.enableLiquidations();
-        vm.stopPrank();
 
         rewards = new Rewards(
             0,
@@ -78,11 +82,80 @@ contract TestRewards is Test {
             address(nodeProperties),
             address(0)
         );
+
+        rewards.setBaseEmissionRate(1 ether / 2000);
+        rewards.setNodeEmissionRate(1 ether / 1000);
+        rewards.setNodeRewardThreshold(5000 ether);
+        vm.stopPrank();
+
+        vm.startPrank(bridge);
+        ctm.approve(address(ve), CTM_TS);
+        ctm.approve(address(rewards), CTM_TS);
+        usdc.approve(address(rewards), USDC_TS);
+        vm.stopPrank();
+
+        vm.prank(user);
+        ctm.approve(address(ve), CTM_TS);
     }
 
     modifier prank(address _user) {
         vm.startPrank(_user);
         _;
         vm.stopPrank();
+    }
+
+    // utils
+    function _receive(address _token, uint256 _amount) internal prank(bridge) {
+        rewards.receiveFees(_token, _amount, 1);
+    }
+
+    function _attachTokenId(uint256 _tokenId, uint256 _nodeId) internal prank(gov) {
+        nodeProperties.attachNode(_tokenId, _nodeId);
+    }
+
+    function _setQualityOf(uint256 _tokenId, uint256 _quality) internal prank(gov) {
+        nodeProperties.setNodeQualityOf(_tokenId, _quality);
+    }
+
+    function test_SetRewardsTooHigh() public prank(gov) {
+        vm.expectRevert("Cannot set base rewards per vepower-day higher than 1%.");
+        rewards.setBaseEmissionRate(1 ether / uint256(99));
+        vm.expectRevert("Cannot set node rewards per vepower-day higher than 1%.");
+        rewards.setNodeEmissionRate(1 ether / uint256(99));
+    }
+
+    function test_RewardBaseEmissions() public {
+        _setQualityOf(1, 0);
+        _receive(address(ctm), 10000 ether);
+        vm.prank(user);
+        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        uint256 unclaimed = rewards.unclaimedRewards(tokenId);
+        skip(1 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 4); // 1 day => 4.9 CTM = 0.05%
+        skip(9 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 49); // 10 days => 49.67 CTM = 0.5%
+        skip(355 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 1591); // 365 days => 1591 CTM = 15.9%
+    }
+
+    function test_RewardNodeEmissions() public {
+        _receive(address(ctm), 10000 ether);
+        vm.prank(user);
+        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        _attachTokenId(1, 1);
+        _setQualityOf(1, 10);
+        uint256 unclaimed = rewards.unclaimedRewards(tokenId);
+        skip(1 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 14); // 1 day => 14.95 CTM = 0.15%
+        skip(9 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 149); // 10 days => 149 CTM = 1.5%
+        skip(355 days);
+        unclaimed = rewards.unclaimedRewards(tokenId);
+        assertEq(unclaimed/1e18, 4773); // 365 days => 4774 CTM = 48%
     }
 }

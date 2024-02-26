@@ -39,6 +39,7 @@ contract Rewards {
     }
 
     uint48 public constant ONE_DAY = 1 days;
+    uint256 public constant MULTIPLIER = 1 ether;
     uint48 public latestMidnight;
     uint48 public genesis;
 
@@ -109,14 +110,16 @@ contract Rewards {
 
 
     // external mutable
-    function setBaseEmissionRate(uint208 _baseEmissionRate) external onlyGov {
+    function setBaseEmissionRate(uint256 _baseEmissionRate) external onlyGov {
+        require(_baseEmissionRate <= MULTIPLIER / 100, "Cannot set base rewards per vepower-day higher than 1%.");
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
             _baseEmissionRates.push(ve.clock(), _baseEmissionRate208);
         emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
     }
 
-    function setNodeEmissionRate(uint208 _nodeEmissionRate) external onlyGov {
+    function setNodeEmissionRate(uint256 _nodeEmissionRate) external onlyGov {
+        require(_nodeEmissionRate <= MULTIPLIER / 100, "Cannot set node rewards per vepower-day higher than 1%.");
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
             _nodeEmissionRates.push(ve.clock(), _nodeEmissionRate208);
@@ -317,16 +320,21 @@ contract Rewards {
     function _calculateRewardsOf(uint256 _tokenId, uint48 _latestMidnight) internal view returns (uint256) {
         uint48 _lastClaimed = _lastClaimOf[_tokenId];
 
+        // if they have never claimed, ensure their last claim is set to a midnight timestamp
         if (_lastClaimed == 0) {
             _lastClaimed = genesis;
         }
 
+        // number of days between latest midnight and last claimed
         uint48 _daysUnclaimed = (_latestMidnight - _lastClaimed) / ONE_DAY;
+        // ensure a midnight has passed since last claim
         assert(_daysUnclaimed * ONE_DAY == (_latestMidnight - _lastClaimed));
 
         uint256 _reward;
 
-        for (uint48 i = _lastClaimed + ONE_DAY; i <= _daysUnclaimed; i += ONE_DAY) {
+        // start at the midnight following their last claim, increment by one day at a time
+        // continue until rewards counted for latest midnight
+        for (uint48 i = _lastClaimed + ONE_DAY; i <= _lastClaimed + (_daysUnclaimed * ONE_DAY); i += ONE_DAY) {
             uint256 _time = uint256(i);
             uint256 _vePower = ve.balanceOfNFTAt(_tokenId, _time);
             uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);
@@ -354,6 +362,6 @@ contract Rewards {
         uint256 _quality
     ) internal pure returns (uint256) {
         // votingPower * (baseRewards + (quality * (nodeRewards / 10)))
-        return _votingPower * (_baseRewards + _quality * _nodeRewards) / 10;
+        return _votingPower * (_baseRewards + (_quality * _nodeRewards / 10)) / MULTIPLIER;
     }
 }

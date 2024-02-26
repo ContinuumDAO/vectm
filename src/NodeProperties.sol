@@ -56,6 +56,8 @@ contract NodeProperties {
     event Detachment(uint256 indexed _tokenId, uint256 indexed _nodeId);
     event ThresholdChanged(uint256 _oldThreshold, uint256 _newThreshold);
 
+    error NodeNotAttached(uint256 _tokenId);
+
     modifier onlyGov() {
         require(msg.sender == gov);
         _;
@@ -118,9 +120,13 @@ contract NodeProperties {
         emit ThresholdChanged(attachmentThreshold, _newThreshold);
     }
 
-    function setNodeQualityOf(uint256 _tokenId, uint208 _nodeQualityOf) external onlyGov {
+    function setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external onlyGov {
         assert(_nodeQualityOf <= 10);
-        _nodeQualitiesOf[_tokenId].push(ve.clock(), _nodeQualityOf);
+        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == 0) {
+            revert NodeNotAttached(_tokenId);
+        }
+        uint208 _nodeQualityOf208 = SafeCast.toUint208(_nodeQualityOf);
+        _nodeQualitiesOf[_tokenId].push(ve.clock(), _nodeQualityOf208);
     }
 
     function setRewards(address _rewards) external onlyGov {
