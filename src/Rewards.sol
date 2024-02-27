@@ -11,6 +11,7 @@ interface IVotingEscrow {
     function balanceOfNFTAt(uint256 _tokenId, uint256 _ts) external view returns (uint256);
     function ownerOf(uint256 _tokenId) external view returns (address);
     function clock() external view returns (uint48);
+    function deposit_for(uint256 _tokenId, uint256 _value) external;
 }
 
 interface INodeProperties {
@@ -105,6 +106,7 @@ contract Rewards {
         ve = IVotingEscrow(_ve);
         nodeProperties = INodeProperties(_nodeProperties);
         WETH = _weth;
+        IERC20(_rewardToken).approve(_ve, type(uint256).max);
     }
 
 
@@ -194,31 +196,6 @@ contract Rewards {
         emit FeesReceived(_token, _amount, _fromChainId);
     }
 
-    function claimRewards(uint256 _tokenId, address _to) external {
-        require(ve.ownerOf(_tokenId) == msg.sender);
-
-        uint48 _latestMidnight = _getLatestMidnight();
-
-        if (_latestMidnight == _lastClaimOf[_tokenId]) {
-            revert NoUnclaimedRewards();
-        }
-
-        _updateLatestMidnight(_latestMidnight);
-
-        uint256 _reward = _calculateRewardsOf(_tokenId, _latestMidnight);
-
-        address _rewardToken = rewardToken;
-        uint256 _contractBalance = IERC20(_rewardToken).balanceOf(address(this));
-
-        if (_contractBalance < _reward) {
-            revert InsufficientContractBalance(_contractBalance, _reward);
-        }
-
-        require(IERC20(_rewardToken).transfer(_to, _reward));
-
-        emit Claim(_tokenId, _reward, _rewardToken);
-    }
-
     function updateLatestMidnight() external {
         uint48 _latestMidnight = _getLatestMidnight();
         _updateLatestMidnight(_latestMidnight);
@@ -252,6 +229,12 @@ contract Rewards {
         emit Swap(feeToken, rewardToken, _amountIn, _amountOut);
     }
 
+    function compoundLockRewards(uint256 _tokenId) external returns (uint256) {
+        uint256 _rewards = claimRewards(_tokenId, address(this));
+        ve.deposit_for(_tokenId, _rewards);
+        return _rewards;
+    }
+
 
 
     // external view
@@ -270,6 +253,36 @@ contract Rewards {
     function unclaimedRewards(uint256 _tokenId) external view returns (uint256) {
         uint48 _latestMidnight = _getLatestMidnight();
         return _calculateRewardsOf(_tokenId, _latestMidnight);
+    }
+
+
+
+    // public mutable
+    function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
+        require(ve.ownerOf(_tokenId) == msg.sender, "Only owner of token ID can claim rewards.");
+
+        uint48 _latestMidnight = _getLatestMidnight();
+
+        if (_latestMidnight == _lastClaimOf[_tokenId]) {
+            revert NoUnclaimedRewards();
+        }
+
+        _updateLatestMidnight(_latestMidnight);
+
+        uint256 _reward = _calculateRewardsOf(_tokenId, _latestMidnight);
+
+        address _rewardToken = rewardToken;
+        uint256 _contractBalance = IERC20(_rewardToken).balanceOf(address(this));
+
+        if (_contractBalance < _reward) {
+            revert InsufficientContractBalance(_contractBalance, _reward);
+        }
+
+        require(IERC20(_rewardToken).transfer(_to, _reward));
+
+        emit Claim(_tokenId, _reward, _rewardToken);
+
+        return _reward;
     }
 
 

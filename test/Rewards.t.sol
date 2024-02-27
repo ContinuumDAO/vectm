@@ -145,8 +145,8 @@ contract TestRewards is Test {
         _receive(address(ctm), 10000 ether);
         vm.prank(user);
         uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
-        _attachTokenId(1, 1);
-        _setQualityOf(1, 10);
+        _attachTokenId(tokenId, 1);
+        _setQualityOf(tokenId, 10);
         uint256 unclaimed = rewards.unclaimedRewards(tokenId);
         skip(1 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
@@ -157,5 +157,60 @@ contract TestRewards is Test {
         skip(355 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
         assertEq(unclaimed/1e18, 4773); // 365 days => 4774 CTM = 48%
+    }
+
+    function test_FuzzClaimBaseRewards(uint256 _lockAmount, uint256 _claimDays) public {
+        _lockAmount = bound(_lockAmount, 1, CTM_TS);
+        _claimDays = bound(_claimDays, 1, 3650);
+        uint256 _claimTime = _claimDays * 1 days;
+        _receive(address(ctm), CTM_TS);
+        vm.startPrank(user);
+        uint256 tokenId = ve.create_lock(_lockAmount, MAXTIME);
+        skip(_claimTime);
+        rewards.claimRewards(tokenId, user);
+        vm.stopPrank();
+    }
+
+    function test_FuzzClaimNodeRewards(uint256 _lockAmount, uint256 _claimDays, uint256 _quality) public {
+        vm.startPrank(gov);
+        rewards.setBaseEmissionRate(1 ether / 200000);
+        rewards.setNodeEmissionRate(1 ether / 100000);
+        vm.stopPrank();
+        _quality = bound(_quality, 0, 10);
+        _lockAmount = bound(_lockAmount, 10000000 ether, CTM_TS);
+        _claimDays = bound(_claimDays, 1, 1825);
+        uint256 _claimTime = _claimDays * 1 days;
+        _receive(address(ctm), CTM_TS);
+        vm.prank(user);
+        uint256 tokenId = ve.create_lock(_lockAmount, MAXTIME);
+        _attachTokenId(tokenId, 1);
+        _setQualityOf(tokenId, _quality);
+        skip(_claimTime);
+        vm.prank(user);
+        rewards.claimRewards(tokenId, user);
+    }
+
+    function test_OnlyOwnerClaimsRewards() public {
+        _receive(address(ctm), CTM_TS);
+        vm.prank(user);
+        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        skip(1 days);
+        vm.expectRevert("Only owner of token ID can claim rewards.");
+        rewards.claimRewards(tokenId, user);
+        vm.prank(user);
+        rewards.claimRewards(tokenId, address(this));
+    }
+
+    function test_CompoundLockRewards() public {
+        _receive(address(ctm), CTM_TS);
+        vm.prank(user);
+        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        (int128 lockedAmountBefore,) = ve.locked(tokenId);
+        skip(1 days);
+        vm.prank(user);
+        uint256 rewardsCompounded = rewards.compoundLockRewards(tokenId);
+        (int128 lockedAmountAfter,) = ve.locked(tokenId);
+        uint256 lockedDifference = uint256(int256(lockedAmountAfter) - int256(lockedAmountBefore));
+        assertEq(rewardsCompounded, lockedDifference);
     }
 }
