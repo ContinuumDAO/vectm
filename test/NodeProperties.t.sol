@@ -5,10 +5,10 @@ import "forge-std/Test.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
-import {CTM} from "../src/CTM.sol";
+import {TestERC20} from "../src/TestERC20.sol";
 
 contract TestNodeProperties is Test {
-    CTM ctm;
+    TestERC20 ctm;
     VotingEscrow veImpl;
     VotingEscrowProxy veProxy;
     IVotingEscrow ve;
@@ -41,7 +41,7 @@ contract TestNodeProperties is Test {
         uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
         user = vm.addr(privKey3);
 
-        ctm = new CTM(gov);
+        ctm = new TestERC20(18);
         veImpl = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",

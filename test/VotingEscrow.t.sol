@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
-import {CTM} from "../src/CTM.sol";
+import {TestERC20} from "../src/TestERC20.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -15,7 +15,7 @@ interface IVotingEscrowUpgradable is IVotingEscrow {
 }
 
 contract SetUp is Test {
-    CTM ctm;
+    TestERC20 ctm;
     VotingEscrow veImplV1;
     VotingEscrowProxy veProxy;
     IVotingEscrowUpgradable ve;
@@ -40,7 +40,7 @@ contract SetUp is Test {
         uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
         user = vm.addr(privKey2);
 
-        ctm = new CTM(gov);
+        ctm = new TestERC20(18);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
@@ -468,7 +468,7 @@ contract Votes is SetUp {
         uint256 mergedVotesEth = ve.getVotes(user) / 1e18;
         uint256 vePower1EthAfter = ve.balanceOfNFT(id1) / 1e18;
         uint256 vePower2EthAfter = ve.balanceOfNFT(id2) / 1e18;
-        assertEq(mergedVotesEth, individualVotesEth);
+        assertEq(mergedVotesEth, individualVotesEth + 2); // the lock time of merge got rounded up
         assertEq(vePower1EthAfter, 0);
         assertEq(vePower2EthAfter, mergedVotesEth);
     }
@@ -665,16 +665,22 @@ contract MergeSplitLiquidate is SetUp {
         (int128 _value2After128, uint256 _end2After) = ve.locked(id2);
         uint256 _value1After = SafeCast.toUint256(int256(_value1After128));
         uint256 _value2After = SafeCast.toUint256(int256(_value2After128));
+        uint256 weightedEnd = ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
+        uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
+        if (unlockTime > MAX_LOCK) {
+            unlockTime -= WEEK;
+        }
+
         assertEq(_value1After, 0);
         assertEq(_end1After, 0);
         assertEq(_value2After, _value1Before + _value2Before);
         assertEq(
             _end2After,
-            ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before)
+            unlockTime
         );
     }
 
-    function test_SplitValueOver128() public prank(user) {
+    function test_SplitValueOverMaxInt128() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         _warp1();

@@ -6,11 +6,10 @@ import {Rewards} from "../src/Rewards.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
-import {CTM} from "../src/CTM.sol";
 import {TestERC20} from "../src/TestERC20.sol";
 
 contract TestRewards is Test {
-    CTM ctm;
+    TestERC20 ctm;
     TestERC20 usdc;
     VotingEscrow veImpl;
     VotingEscrowProxy veProxy;
@@ -49,7 +48,7 @@ contract TestRewards is Test {
         uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
         bridge = vm.addr(privKey4);
 
-        ctm = new CTM(gov);
+        ctm = new TestERC20(18);
         usdc = new TestERC20(6);
         veImpl = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(

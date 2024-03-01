@@ -6,7 +6,7 @@ import {CTMDAOGovernor} from "../src/CTMDAOGovernor.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
-import {CTM} from "../src/CTM.sol";
+import {TestERC20} from "../src/TestERC20.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
@@ -16,7 +16,7 @@ interface IVotingEscrowUpgradable is IVotingEscrow {
 
 contract SetUp is Test {
     CTMDAOGovernor governor;
-    CTM ctm;
+    TestERC20 ctm;
     VotingEscrow veImplV1;
     VotingEscrowProxy veProxy;
     IVotingEscrowUpgradable ve;
@@ -48,7 +48,7 @@ contract SetUp is Test {
         uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
         user2 = vm.addr(privKey3);
 
-        ctm = new CTM(gov);
+        ctm = new TestERC20(18);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
