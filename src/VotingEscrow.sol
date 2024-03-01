@@ -2,13 +2,12 @@
 pragma solidity ^0.8.23;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
  * @title Voting Escrow
@@ -31,84 +30,6 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * 0 +--------+------> time
  *       maxtime (4 years?)
  */
-
-interface IVotingEscrow is IERC721Metadata, IVotes {
-    function version() external view returns (string memory);
-    function decimals() external view returns (uint8);
-    function token() external view returns (address);
-    function governor() external view returns (address);
-    function treasury() external view returns (address);
-    function nodeProperties() external view returns (address);
-    function epoch() external view returns (uint256);
-    function baseURI() external view returns (string memory);
-    function locked(uint256 tokenId) external view returns (int128, uint256);
-    function ownership_change(uint256 tokenId) external view returns (uint256);
-    function point_history(uint256 tokenId) external view returns (int128, int128, uint256, uint256);
-    // function user_point_history(uint256 tokenId) external view returns (VotingEscrow.Point[] memory);
-    function user_point_epoch(uint256 tokenId) external view returns (uint256);
-    function slope_changes(uint256 tokenId) external view returns (int128);
-
-    function initialize(address token_addr, string memory base_uri) external;
-    function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
-    function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function increase_amount(uint256 _tokenId, uint256 _value) external;
-    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
-    function withdraw(uint256 _tokenId) external;
-    function merge(uint256 _from, uint256 _to) external;
-    function split(uint256 _tokenId, uint256 _extracted) external returns (uint256);
-    function liquidate(uint256 _tokenId) external;
-    function deposit_for(uint256 _tokenId, uint256 _value) external;
-    function checkpoint() external;
-
-    function balanceOfNFT(uint256 _tokenId) external view returns (uint256);
-    function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256);
-    function balanceOfAtNFT(uint256 _tokenId, uint256 _block) external view returns (uint256);
-    function totalSupply() external view returns (uint256);
-    function totalPower() external view returns (uint256);
-    function totalPowerAtT(uint256 t) external view returns (uint256);
-    function totalPowerAt(uint256 _block) external view returns (uint256);
-    function isApprovedOrOwner(address _spender, uint256 _tokenId) external view returns (bool);
-    function tokenOfOwnerByIndex(address _owner, uint256 _tokenIndex) external view returns (uint256);
-    function get_last_user_slope(uint256 _tokenId) external view returns (int128);
-    function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256);
-    function locked__end(uint256 _tokenId) external view returns (uint256);
-
-    function setGovernor(address _governor) external;
-    function setTreasury(address _treasury) external;
-    function enableLiquidations() external;
-    function setNodeProperties(address _nodeProperties) external;
-
-    function nonVoting(uint256 _tokenId) external view returns (bool);
-    function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory);
-    function tokenIdsDelegatedToAt(address account, uint256 timepoint) external view returns (uint256[] memory);
-    function liquidationsEnabled() external view returns (bool);
-
-    // dummy
-    //
-
-    // ERC721 + Metadata + ERC165 + Votes
-    //
-    // name
-    // symbol
-    // transferFrom
-    // approve
-    // setApprovalForAll
-    // safeTransferFrom (w/ data)
-    // safeTransferFrom
-    // balanceOf
-    // ownerOf
-    // getApproved
-    // getApprovedForAll
-    // tokenURI
-    // supportsInterface
-    // delegate
-    // delegateBySig
-    // getVotes
-    // getPastVotes
-    // getPastTotalSupply
-    // delegates
-}
 
 
 /**
@@ -608,6 +529,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         uint256 value1 = uint256(int256(_locked1.amount));
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
+        // round down to week and then add one week to prevent rounding down exploit
+        uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
         locked[_from] = LockedBalance(0, 0);
@@ -618,8 +541,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _moveDelegateVotes(ownerFrom, address(0), _votingUnit);
         _burn(_from);
 
-        // add _from lock value to _to lock, using the value-weighted unlock time
-        _deposit_for(_to, value0, weightedEnd, _locked1, DepositType.MERGE_TYPE);
+        // add _from lock value to _to lock, using the value-weighted and rounded unlock time
+        _deposit_for(_to, value0, unlock_time, _locked1, DepositType.MERGE_TYPE);
         // we need to decrease the supply by value0 because _deposit_for adds it again, when in reality
         // _supply doesn't change in this operation
         _supply -= value0;
@@ -636,6 +559,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
+        require(block.timestamp < _locked.end);
+        // uint256 remaining_time = _locked.end - block.timestamp;
+        // require(remaining_time > WEEK, "Cannot split for lock with under one week left");
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
         require(extraction < value);
@@ -648,10 +574,12 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         uint256 extractionId;
         if (nonVoting[_tokenId]) {
             // create another non-voting lock
-            extractionId = create_nonvoting_lock_for(_extraction, _locked.end, owner);
+            // adding a week to lock duration to prevent rounding down exploit
+            extractionId = create_nonvoting_lock_for(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
         } else {
             // create another voting lock
-            extractionId = _create_lock(_extraction, _locked.end, owner);
+            // adding a week to lock duration to prevent rounding down exploit
+            extractionId = _create_lock(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
         }
 
         // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
@@ -1089,7 +1017,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         require(_value > 0); // dev: need non-zero value
         require(unlock_time > block.timestamp, "Can only lock until time in the future");
-        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
 
         ++tokenId;
         uint256 _tokenId = tokenId;
@@ -1124,6 +1051,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         LockedBalance memory locked_balance,
         DepositType deposit_type
     ) internal {
+        // if locktime is less than a week over max time then subtract one week
+        if (unlock_time > block.timestamp + MAXTIME && unlock_time - (block.timestamp + MAXTIME) <= WEEK) {
+            unlock_time -= WEEK;
+        }
+
+        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
+
         LockedBalance memory _locked = locked_balance;
         uint256 supply_before = _supply;
 
