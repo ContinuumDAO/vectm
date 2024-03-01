@@ -16,3 +16,7 @@ docs/
 # Reference source files
 refs/
 src/VotingEscrowOld.sol
+
+# Ignore directories
+ignoreSrc/
+ignoreBuild/
