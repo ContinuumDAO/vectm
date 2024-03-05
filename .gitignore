@@ -17,6 +17,3 @@ docs/
 refs/
 src/VotingEscrowOld.sol
 
-# Ignore directories
-ignoreSrc/
-ignoreBuild/
