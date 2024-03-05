@@ -6,7 +6,7 @@ pragma solidity ^0.8.23;
 // OpenZeppelin Contracts (last updated v5.0.0) (interfaces/draft-IERC1822.sol)
 
 /**
- * @dev ERC-1822: Universal Upgradeable Proxy Standard (UUPS) documents a method for upgradeability through a simplified
+ * @dev ERC1822: Universal Upgradeable Proxy Standard (UUPS) documents a method for upgradeability through a simplified
  * proxy whose upgrades are fully controlled by the current implementation.
  */
 interface IERC1822Proxiable {
@@ -205,7 +205,7 @@ library Address {
  *
  * The functions in this library return Slot structs that contain a `value` member that can be used to read or write.
  *
- * Example usage to set ERC-1967 implementation slot:
+ * Example usage to set ERC1967 implementation slot:
  * ```solidity
  * contract ERC1967 {
  *     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
@@ -329,7 +329,7 @@ library StorageSlot {
 
 /**
  * @dev This abstract contract provides getters and event emitting update functions for
- * https://eips.ethereum.org/EIPS/eip-1967[ERC-1967] slots.
+ * https://eips.ethereum.org/EIPS/eip-1967[EIP1967] slots.
  */
 library ERC1967Utils {
     // We re-declare ERC-1967 events here because they can't be used directly from IERC1967.
@@ -384,7 +384,7 @@ library ERC1967Utils {
     }
 
     /**
-     * @dev Stores a new address in the ERC-1967 implementation slot.
+     * @dev Stores a new address in the EIP1967 implementation slot.
      */
     function _setImplementation(address newImplementation) private {
         if (newImplementation.code.length == 0) {
@@ -421,7 +421,7 @@ library ERC1967Utils {
     /**
      * @dev Returns the current admin.
      *
-     * TIP: To get this value clients can read directly from the storage slot shown below (specified by ERC-1967) using
+     * TIP: To get this value clients can read directly from the storage slot shown below (specified by EIP1967) using
      * the https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`
      */
@@ -430,7 +430,7 @@ library ERC1967Utils {
     }
 
     /**
-     * @dev Stores a new address in the ERC-1967 admin slot.
+     * @dev Stores a new address in the EIP1967 admin slot.
      */
     function _setAdmin(address newAdmin) private {
         if (newAdmin == address(0)) {
@@ -464,7 +464,7 @@ library ERC1967Utils {
     }
 
     /**
-     * @dev Stores a new beacon in the ERC-1967 beacon slot.
+     * @dev Stores a new beacon in the EIP1967 beacon slot.
      */
     function _setBeacon(address newBeacon) private {
         if (newBeacon.code.length == 0) {
@@ -883,247 +883,12 @@ abstract contract UUPSUpgradeable is Initializable, IERC1822Proxiable {
     }
 }
 
-// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/extensions/IERC721Metadata.sol)
-
-// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/IERC721.sol)
-
-// OpenZeppelin Contracts (last updated v5.0.0) (utils/introspection/IERC165.sol)
-
-/**
- * @dev Interface of the ERC-165 standard, as defined in the
- * https://eips.ethereum.org/EIPS/eip-165[ERC].
- *
- * Implementers can declare support of contract interfaces, which can then be
- * queried by others ({ERC165Checker}).
- *
- * For an implementation, see {ERC165}.
- */
-interface IERC165 {
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
-}
-
-/**
- * @dev Required interface of an ERC-721 compliant contract.
- */
-interface IERC721 is IERC165 {
-    /**
-     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-
-    /**
-     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
-     */
-    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
-
-    /**
-     * @dev Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets.
-     */
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-
-    /**
-     * @dev Returns the number of tokens in ``owner``'s account.
-     */
-    function balanceOf(address owner) external view returns (uint256 balance);
-
-    /**
-     * @dev Returns the owner of the `tokenId` token.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function ownerOf(uint256 tokenId) external view returns (address owner);
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon
-     *   a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC-721 protocol to prevent tokens from being forever locked.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If the caller is not `from`, it must have been allowed to move this token by either {approve} or
-     *   {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon
-     *   a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) external;
-
-    /**
-     * @dev Transfers `tokenId` token from `from` to `to`.
-     *
-     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving ERC-721
-     * or else they may be permanently lost. Usage of {safeTransferFrom} prevents loss, though the caller must
-     * understand this adds an external call which potentially creates a reentrancy vulnerability.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
-     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(address from, address to, uint256 tokenId) external;
-
-    /**
-     * @dev Gives permission to `to` to transfer `tokenId` token to another account.
-     * The approval is cleared when the token is transferred.
-     *
-     * Only a single account can be approved at a time, so approving the zero address clears previous approvals.
-     *
-     * Requirements:
-     *
-     * - The caller must own the token or be an approved operator.
-     * - `tokenId` must exist.
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address to, uint256 tokenId) external;
-
-    /**
-     * @dev Approve or remove `operator` as an operator for the caller.
-     * Operators can call {transferFrom} or {safeTransferFrom} for any token owned by the caller.
-     *
-     * Requirements:
-     *
-     * - The `operator` cannot be the address zero.
-     *
-     * Emits an {ApprovalForAll} event.
-     */
-    function setApprovalForAll(address operator, bool approved) external;
-
-    /**
-     * @dev Returns the account approved for `tokenId` token.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function getApproved(uint256 tokenId) external view returns (address operator);
-
-    /**
-     * @dev Returns if the `operator` is allowed to manage all of the assets of `owner`.
-     *
-     * See {setApprovalForAll}
-     */
-    function isApprovedForAll(address owner, address operator) external view returns (bool);
-}
-
-/**
- * @title ERC-721 Non-Fungible Token Standard, optional metadata extension
- * @dev See https://eips.ethereum.org/EIPS/eip-721
- */
-interface IERC721Metadata is IERC721 {
-    /**
-     * @dev Returns the token collection name.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @dev Returns the token collection symbol.
-     */
-    function symbol() external view returns (string memory);
-
-    /**
-     * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
-     */
-    function tokenURI(uint256 tokenId) external view returns (string memory);
-}
-
-// OpenZeppelin Contracts (last updated v5.0.0) (governance/utils/IVotes.sol)
-
-/**
- * @dev Common interface for {ERC20Votes}, {ERC721Votes}, and other {Votes}-enabled contracts.
- */
-interface IVotes {
-    /**
-     * @dev The signature used has expired.
-     */
-    error VotesExpiredSignature(uint256 expiry);
-
-    /**
-     * @dev Emitted when an account changes their delegate.
-     */
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-
-    /**
-     * @dev Emitted when a token transfer or delegate change results in changes to a delegate's number of voting units.
-     */
-    event DelegateVotesChanged(address indexed delegate, uint256 previousVotes, uint256 newVotes);
-
-    /**
-     * @dev Returns the current amount of votes that `account` has.
-     */
-    function getVotes(address account) external view returns (uint256);
-
-    /**
-     * @dev Returns the amount of votes that `account` had at a specific moment in the past. If the `clock()` is
-     * configured to use block numbers, this will return the value at the end of the corresponding block.
-     */
-    function getPastVotes(address account, uint256 timepoint) external view returns (uint256);
-
-    /**
-     * @dev Returns the total supply of votes available at a specific moment in the past. If the `clock()` is
-     * configured to use block numbers, this will return the value at the end of the corresponding block.
-     *
-     * NOTE: This value is the sum of all available votes, which is not necessarily the sum of all delegated votes.
-     * Votes that have not been delegated are still part of total supply, even though they would not participate in a
-     * vote.
-     */
-    function getPastTotalSupply(uint256 timepoint) external view returns (uint256);
-
-    /**
-     * @dev Returns the delegate that `account` has chosen.
-     */
-    function delegates(address account) external view returns (address);
-
-    /**
-     * @dev Delegates votes from the sender to `delegatee`.
-     */
-    function delegate(address delegatee) external;
-
-    /**
-     * @dev Delegates votes from signer to `delegatee`.
-     */
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
-}
-
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/IERC721Receiver.sol)
 
 /**
- * @title ERC-721 token receiver interface
+ * @title ERC721 token receiver interface
  * @dev Interface for any contract that wants to support safeTransfers
- * from ERC-721 asset contracts.
+ * from ERC721 asset contracts.
  */
 interface IERC721Receiver {
     /**
@@ -1147,7 +912,7 @@ interface IERC721Receiver {
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/IERC20.sol)
 
 /**
- * @dev Interface of the ERC-20 standard as defined in the ERC.
+ * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
     /**
@@ -1240,9 +1005,9 @@ library Math {
     }
 
     /**
-     * @dev Returns the addition of two unsigned integers, with an success flag (no overflow).
+     * @dev Returns the addition of two unsigned integers, with an overflow flag.
      */
-    function tryAdd(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
+    function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
         unchecked {
             uint256 c = a + b;
             if (c < a) return (false, 0);
@@ -1251,9 +1016,9 @@ library Math {
     }
 
     /**
-     * @dev Returns the subtraction of two unsigned integers, with an success flag (no overflow).
+     * @dev Returns the subtraction of two unsigned integers, with an overflow flag.
      */
-    function trySub(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
+    function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
         unchecked {
             if (b > a) return (false, 0);
             return (true, a - b);
@@ -1261,9 +1026,9 @@ library Math {
     }
 
     /**
-     * @dev Returns the multiplication of two unsigned integers, with an success flag (no overflow).
+     * @dev Returns the multiplication of two unsigned integers, with an overflow flag.
      */
-    function tryMul(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
+    function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
         unchecked {
             // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
             // benefit is lost if 'b' is also tested.
@@ -1276,9 +1041,9 @@ library Math {
     }
 
     /**
-     * @dev Returns the division of two unsigned integers, with a success flag (no division by zero).
+     * @dev Returns the division of two unsigned integers, with a division by zero flag.
      */
-    function tryDiv(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
+    function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
         unchecked {
             if (b == 0) return (false, 0);
             return (true, a / b);
@@ -1286,9 +1051,9 @@ library Math {
     }
 
     /**
-     * @dev Returns the remainder of dividing two unsigned integers, with a success flag (no division by zero).
+     * @dev Returns the remainder of dividing two unsigned integers, with a division by zero flag.
      */
-    function tryMod(uint256 a, uint256 b) internal pure returns (bool success, uint256 result) {
+    function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
         unchecked {
             if (b == 0) return (false, 0);
             return (true, a % b);
@@ -1330,14 +1095,8 @@ library Math {
             return a / b;
         }
 
-        // The following calculation ensures accurate ceiling division without overflow.
-        // Since a is non-zero, (a - 1) / b will not overflow.
-        // The largest possible result occurs when (a - 1) / b is type(uint256).max,
-        // but the largest value we can obtain is type(uint256).max - 1, which happens
-        // when a = type(uint256).max and b = 1.
-        unchecked {
-            return a == 0 ? 0 : (a - 1) / b + 1;
-        }
+        // (a + b - 1) / b can overflow on addition, so we distribute.
+        return a == 0 ? 0 : (a - 1) / b + 1;
     }
 
     /**
@@ -2885,7 +2644,7 @@ library ECDSA {
     /**
      * @dev Overload of {ECDSA-tryRecover} that receives the `r` and `vs` short-signature fields separately.
      *
-     * See https://eips.ethereum.org/EIPS/eip-2098[ERC-2098 short signatures]
+     * See https://eips.ethereum.org/EIPS/eip-2098[EIP-2098 short signatures]
      */
     function tryRecover(bytes32 hash, bytes32 r, bytes32 vs) internal pure returns (address, RecoverError, bytes32) {
         unchecked {
@@ -2963,27 +2722,240 @@ library ECDSA {
     }
 }
 
+// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/extensions/IERC721Metadata.sol)
+
+// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC721/IERC721.sol)
+
+// OpenZeppelin Contracts (last updated v5.0.0) (utils/introspection/IERC165.sol)
+
 /**
- * @title Voting Escrow
- * @author Curve Finance, Solidly, w/ OpenZeppelin contracts
- * @author Modified for ContinuumDAO by @hal0177
- * @notice Votes have a weight depending on time, so that users are
- * committed to the future of (whatever they are voting for)
- * @dev Vote weight decays linearly over time. Lock time cannot be
- * more than `MAXTIME` (4 years).
- * Voting escrow to have time-weighted votes
- * Votes have a weight depending on time, so that users are committed
- * to the future of (whatever they are voting for).
- * The weight in this implementation is linear, and lock cannot be more than maxtime:
- *  w ^
- * 1 +        /
- *   |      /
- *   |    /
- *   |  /
- *   |/
- * 0 +--------+------> time
- *       maxtime (4 years?)
+ * @dev Interface of the ERC165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[EIP].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
  */
+interface IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+/**
+ * @dev Required interface of an ERC721 compliant contract.
+ */
+interface IERC721 is IERC165 {
+    /**
+     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+
+    /**
+     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
+     */
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+
+    /**
+     * @dev Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets.
+     */
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+
+    /**
+     * @dev Returns the number of tokens in ``owner``'s account.
+     */
+    function balanceOf(address owner) external view returns (uint256 balance);
+
+    /**
+     * @dev Returns the owner of the `tokenId` token.
+     *
+     * Requirements:
+     *
+     * - `tokenId` must exist.
+     */
+    function ownerOf(uint256 tokenId) external view returns (address owner);
+
+    /**
+     * @dev Safely transfers `tokenId` token from `from` to `to`.
+     *
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must exist and be owned by `from`.
+     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
+     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon
+     *   a safe transfer.
+     *
+     * Emits a {Transfer} event.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
+
+    /**
+     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
+     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
+     *
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must exist and be owned by `from`.
+     * - If the caller is not `from`, it must have been allowed to move this token by either {approve} or
+     *   {setApprovalForAll}.
+     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon
+     *   a safe transfer.
+     *
+     * Emits a {Transfer} event.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
+
+    /**
+     * @dev Transfers `tokenId` token from `from` to `to`.
+     *
+     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving ERC721
+     * or else they may be permanently lost. Usage of {safeTransferFrom} prevents loss, though the caller must
+     * understand this adds an external call which potentially creates a reentrancy vulnerability.
+     *
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must be owned by `from`.
+     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(address from, address to, uint256 tokenId) external;
+
+    /**
+     * @dev Gives permission to `to` to transfer `tokenId` token to another account.
+     * The approval is cleared when the token is transferred.
+     *
+     * Only a single account can be approved at a time, so approving the zero address clears previous approvals.
+     *
+     * Requirements:
+     *
+     * - The caller must own the token or be an approved operator.
+     * - `tokenId` must exist.
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address to, uint256 tokenId) external;
+
+    /**
+     * @dev Approve or remove `operator` as an operator for the caller.
+     * Operators can call {transferFrom} or {safeTransferFrom} for any token owned by the caller.
+     *
+     * Requirements:
+     *
+     * - The `operator` cannot be the address zero.
+     *
+     * Emits an {ApprovalForAll} event.
+     */
+    function setApprovalForAll(address operator, bool approved) external;
+
+    /**
+     * @dev Returns the account approved for `tokenId` token.
+     *
+     * Requirements:
+     *
+     * - `tokenId` must exist.
+     */
+    function getApproved(uint256 tokenId) external view returns (address operator);
+
+    /**
+     * @dev Returns if the `operator` is allowed to manage all of the assets of `owner`.
+     *
+     * See {setApprovalForAll}
+     */
+    function isApprovedForAll(address owner, address operator) external view returns (bool);
+}
+
+/**
+ * @title ERC-721 Non-Fungible Token Standard, optional metadata extension
+ * @dev See https://eips.ethereum.org/EIPS/eip-721
+ */
+interface IERC721Metadata is IERC721 {
+    /**
+     * @dev Returns the token collection name.
+     */
+    function name() external view returns (string memory);
+
+    /**
+     * @dev Returns the token collection symbol.
+     */
+    function symbol() external view returns (string memory);
+
+    /**
+     * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
+     */
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+}
+
+// OpenZeppelin Contracts (last updated v5.0.0) (governance/utils/IVotes.sol)
+
+/**
+ * @dev Common interface for {ERC20Votes}, {ERC721Votes}, and other {Votes}-enabled contracts.
+ */
+interface IVotes {
+    /**
+     * @dev The signature used has expired.
+     */
+    error VotesExpiredSignature(uint256 expiry);
+
+    /**
+     * @dev Emitted when an account changes their delegate.
+     */
+    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+
+    /**
+     * @dev Emitted when a token transfer or delegate change results in changes to a delegate's number of voting units.
+     */
+    event DelegateVotesChanged(address indexed delegate, uint256 previousVotes, uint256 newVotes);
+
+    /**
+     * @dev Returns the current amount of votes that `account` has.
+     */
+    function getVotes(address account) external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of votes that `account` had at a specific moment in the past. If the `clock()` is
+     * configured to use block numbers, this will return the value at the end of the corresponding block.
+     */
+    function getPastVotes(address account, uint256 timepoint) external view returns (uint256);
+
+    /**
+     * @dev Returns the total supply of votes available at a specific moment in the past. If the `clock()` is
+     * configured to use block numbers, this will return the value at the end of the corresponding block.
+     *
+     * NOTE: This value is the sum of all available votes, which is not necessarily the sum of all delegated votes.
+     * Votes that have not been delegated are still part of total supply, even though they would not participate in a
+     * vote.
+     */
+    function getPastTotalSupply(uint256 timepoint) external view returns (uint256);
+
+    /**
+     * @dev Returns the delegate that `account` has chosen.
+     */
+    function delegates(address account) external view returns (address);
+
+    /**
+     * @dev Delegates votes from the sender to `delegatee`.
+     */
+    function delegate(address delegatee) external;
+
+    /**
+     * @dev Delegates votes from signer to `delegatee`.
+     */
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
+}
 
 interface IVotingEscrow is IERC721Metadata, IVotes {
     function version() external view returns (string memory);
@@ -3062,6 +3034,28 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     // getPastTotalSupply
     // delegates
 }
+
+/**
+ * @title Voting Escrow
+ * @author Curve Finance, Solidly, w/ OpenZeppelin contracts
+ * @author Modified for ContinuumDAO by @hal0177
+ * @notice Votes have a weight depending on time, so that users are
+ * committed to the future of (whatever they are voting for)
+ * @dev Vote weight decays linearly over time. Lock time cannot be
+ * more than `MAXTIME` (4 years).
+ * Voting escrow to have time-weighted votes
+ * Votes have a weight depending on time, so that users are committed
+ * to the future of (whatever they are voting for).
+ * The weight in this implementation is linear, and lock cannot be more than maxtime:
+ *  w ^
+ * 1 +        /
+ *   |      /
+ *   |    /
+ *   |  /
+ *   |/
+ * 0 +--------+------> time
+ *       maxtime (4 years?)
+ */
 
 /**
  * @notice Interface for use with the Node Properties contract, where node runners can attach their veCTM to gain extra
@@ -3456,7 +3450,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
     /// @param base_uri Base URI for token ID images
-    function initialize(address token_addr, string memory base_uri) external initializer {
+    function initialize(address token_addr, string memory base_uri) external reinitializer(2) {
         token = token_addr;
         baseURI = base_uri;
         point_history[0].blk = block.number;
@@ -3558,6 +3552,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         uint256 value1 = uint256(int256(_locked1.amount));
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
+        // round down to week and then add one week to prevent rounding down exploit
+        uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
         locked[_from] = LockedBalance(0, 0);
@@ -3568,8 +3564,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _moveDelegateVotes(ownerFrom, address(0), _votingUnit);
         _burn(_from);
 
-        // add _from lock value to _to lock, using the value-weighted unlock time
-        _deposit_for(_to, value0, weightedEnd, _locked1, DepositType.MERGE_TYPE);
+        // add _from lock value to _to lock, using the value-weighted and rounded unlock time
+        _deposit_for(_to, value0, unlock_time, _locked1, DepositType.MERGE_TYPE);
         // we need to decrease the supply by value0 because _deposit_for adds it again, when in reality
         // _supply doesn't change in this operation
         _supply -= value0;
@@ -3586,6 +3582,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
+        require(block.timestamp < _locked.end);
+        // uint256 remaining_time = _locked.end - block.timestamp;
+        // require(remaining_time > WEEK, "Cannot split for lock with under one week left");
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
         require(extraction < value);
@@ -3598,10 +3597,12 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         uint256 extractionId;
         if (nonVoting[_tokenId]) {
             // create another non-voting lock
-            extractionId = create_nonvoting_lock_for(_extraction, _locked.end, owner);
+            // adding a week to lock duration to prevent rounding down exploit
+            extractionId = create_nonvoting_lock_for(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
         } else {
             // create another voting lock
-            extractionId = _create_lock(_extraction, _locked.end, owner);
+            // adding a week to lock duration to prevent rounding down exploit
+            extractionId = _create_lock(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
         }
 
         // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
@@ -4038,7 +4039,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
         require(_value > 0); // dev: need non-zero value
         require(unlock_time > block.timestamp, "Can only lock until time in the future");
-        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
 
         ++tokenId;
         uint256 _tokenId = tokenId;
@@ -4073,6 +4073,13 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         LockedBalance memory locked_balance,
         DepositType deposit_type
     ) internal {
+        // if locktime is less than a week over max time then subtract one week
+        if (unlock_time > block.timestamp + MAXTIME && unlock_time - (block.timestamp + MAXTIME) <= WEEK) {
+            unlock_time -= WEEK;
+        }
+
+        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
+
         LockedBalance memory _locked = locked_balance;
         uint256 supply_before = _supply;
 

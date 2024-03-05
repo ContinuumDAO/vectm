@@ -530,7 +530,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
-        uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
+        uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
         locked[_from] = LockedBalance(0, 0);
