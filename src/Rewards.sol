@@ -51,9 +51,8 @@ contract Rewards {
     address public rewardToken; // reward token
     address public feeToken; // eg. USDC
     address public swapRouter; // UniV3
-
-    INodeProperties public nodeProperties; // node info storage
-    IVotingEscrow public ve; // voting escrow
+    address public nodeProperties; // node info storage
+    address public ve; // voting escrow
 
     address public immutable WETH; // for middle-man in swap
 
@@ -103,8 +102,8 @@ contract Rewards {
         rewardToken = _rewardToken;
         feeToken = _feeToken;
         swapRouter = _swapRouter;
-        ve = IVotingEscrow(_ve);
-        nodeProperties = INodeProperties(_nodeProperties);
+        ve = _ve;
+        nodeProperties = _nodeProperties;
         WETH = _weth;
         IERC20(_rewardToken).approve(_ve, type(uint256).max);
     }
@@ -116,7 +115,7 @@ contract Rewards {
         require(_baseEmissionRate <= MULTIPLIER / 100, "Cannot set base rewards per vepower-day higher than 1%.");
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
-            _baseEmissionRates.push(ve.clock(), _baseEmissionRate208);
+            _baseEmissionRates.push(IVotingEscrow(ve).clock(), _baseEmissionRate208);
         emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
     }
 
@@ -124,14 +123,14 @@ contract Rewards {
         require(_nodeEmissionRate <= MULTIPLIER / 100, "Cannot set node rewards per vepower-day higher than 1%.");
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
-            _nodeEmissionRates.push(ve.clock(), _nodeEmissionRate208);
+            _nodeEmissionRates.push(IVotingEscrow(ve).clock(), _nodeEmissionRate208);
         emit NodeEmissionRateChange(_oldNodeEmissionRate, _newNodeEmissionRate);
     }
 
     function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external onlyGov {
         uint208 _nodeRewardThreshold208 = SafeCast.toUint208(_nodeRewardThreshold);
         (uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold) =
-            _nodeRewardThresholds.push(ve.clock(), _nodeRewardThreshold208);
+            _nodeRewardThresholds.push(IVotingEscrow(ve).clock(), _nodeRewardThreshold208);
         emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
     }
 
@@ -176,7 +175,7 @@ contract Rewards {
     }
 
     function setNodeProperties(address _nodeProperties) external onlyGov {
-        nodeProperties = INodeProperties(_nodeProperties);
+        nodeProperties = _nodeProperties;
     }
 
     function setSwapEnabled(bool _enabled) external onlyGov {
@@ -186,13 +185,13 @@ contract Rewards {
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
         require(_token == feeToken || _token == rewardToken);
 
-        if (_feeReceivedFromChainAt[_fromChainId][ve.clock()].amount != 0) {
+        if (_feeReceivedFromChainAt[_fromChainId][IVotingEscrow(ve).clock()].amount != 0) {
             revert FeesAlreadyReceivedFromChain();
         }
 
         require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
 
-        _feeReceivedFromChainAt[_fromChainId][ve.clock()] = Fee(_token, _amount);
+        _feeReceivedFromChainAt[_fromChainId][IVotingEscrow(ve).clock()] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
     }
 
@@ -231,7 +230,7 @@ contract Rewards {
 
     function compoundLockRewards(uint256 _tokenId) external returns (uint256) {
         uint256 _rewards = claimRewards(_tokenId, address(this));
-        ve.deposit_for(_tokenId, _rewards);
+        IVotingEscrow(ve).deposit_for(_tokenId, _rewards);
         return _rewards;
     }
 
@@ -259,7 +258,7 @@ contract Rewards {
 
     // public mutable
     function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
-        require(ve.ownerOf(_tokenId) == msg.sender, "Only owner of token ID can claim rewards.");
+        require(IVotingEscrow(ve).ownerOf(_tokenId) == msg.sender, "Only owner of token ID can claim rewards.");
 
         uint48 _latestMidnight = _getLatestMidnight();
 
@@ -316,7 +315,7 @@ contract Rewards {
     // internal view
     function _getLatestMidnight() internal view returns (uint48) {
         uint48 _latestMidnight = latestMidnight;
-        uint48 _time = ve.clock();
+        uint48 _time = IVotingEscrow(ve).clock();
 
         if ((_time - _latestMidnight) < ONE_DAY) {
             return _latestMidnight;
@@ -349,12 +348,12 @@ contract Rewards {
         // continue until rewards counted for latest midnight
         for (uint48 i = _lastClaimed + ONE_DAY; i <= _lastClaimed + (_daysUnclaimed * ONE_DAY); i += ONE_DAY) {
             uint256 _time = uint256(i);
-            uint256 _vePower = ve.balanceOfNFTAt(_tokenId, _time);
+            uint256 _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, _time);
             uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);
             uint256 _nodeQuality;
 
             if (_vePower >= _nodeRewardThreshold) {
-                _nodeQuality = nodeProperties.nodeQualityOfAt(_tokenId, _time);
+                _nodeQuality = INodeProperties(nodeProperties).nodeQualityOfAt(_tokenId, _time);
             }
 
             uint256 _baseEmissionRate = baseEmissionRateAt(i);

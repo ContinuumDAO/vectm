@@ -933,27 +933,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return _tokenId;
     }
 
-    /// @dev Set or reaffirm the approved address for an NFT. The zero address indicates there is no approved address.
-    ///      Throws unless `msg.sender` is the current NFT owner, or an authorized operator of the current owner.
-    ///      Throws if `_tokenId` is not a valid NFT. (NOTE: This is not written the EIP)
-    ///      Throws if `_approved` is the current owner. (NOTE: This is not written the EIP)
-    /// @param _approved Address to be approved for the given NFT ID.
-    /// @param _tokenId ID of the token to be approved.
-    function _approve(address _approved, uint256 _tokenId) internal {
-        address owner = idToOwner[_tokenId];
-        // Throws if `_tokenId` is not a valid NFT
-        require(owner != address(0));
-        // Throws if `_approved` is the current owner
-        require(_approved != owner);
-        // Check requirements
-        bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
-        bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
-        require(senderIsOwner || senderIsApprovedForAll);
-        // Set the approval
-        idToApprovals[_tokenId] = _approved;
-        emit Approval(owner, _approved, _tokenId);
-    }
-
     function delegateBySig(
         address delegatee,
         uint256 nonce,
@@ -1006,6 +985,27 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
     /// @notice Internal mutable
     ///
+    /// @dev Set or reaffirm the approved address for an NFT. The zero address indicates there is no approved address.
+    ///      Throws unless `msg.sender` is the current NFT owner, or an authorized operator of the current owner.
+    ///      Throws if `_tokenId` is not a valid NFT. (NOTE: This is not written the EIP)
+    ///      Throws if `_approved` is the current owner. (NOTE: This is not written the EIP)
+    /// @param _approved Address to be approved for the given NFT ID.
+    /// @param _tokenId ID of the token to be approved.
+    function _approve(address _approved, uint256 _tokenId) internal {
+        address owner = idToOwner[_tokenId];
+        // Throws if `_tokenId` is not a valid NFT
+        require(owner != address(0));
+        // Throws if `_approved` is the current owner
+        require(_approved != owner);
+        // Check requirements
+        bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
+        bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
+        require(senderIsOwner || senderIsApprovedForAll);
+        // Set the approval
+        idToApprovals[_tokenId] = _approved;
+        emit Approval(owner, _approved, _tokenId);
+    }
+
     /// @notice Deposit `_value` tokens for `_to` and lock for `_lock_duration`
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)

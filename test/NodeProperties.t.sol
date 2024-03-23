@@ -5,14 +5,17 @@ import "forge-std/Test.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
 import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
+import {Rewards} from "../src/Rewards.sol";
 import {TestERC20} from "../src/TestERC20.sol";
 
 contract TestNodeProperties is Test {
     TestERC20 ctm;
+    TestERC20 usdc;
     VotingEscrow veImpl;
     VotingEscrowProxy veProxy;
     IVotingEscrow ve;
     NodeProperties nodeProperties;
+    Rewards rewards;
     string constant MNEMONIC = "test test test test test test test test test test test junk";
     string constant BASE_URI_V1 = "veCTM V1";
     address gov;
@@ -27,9 +30,28 @@ contract TestNodeProperties is Test {
     uint256 constant WEEK = 1 weeks;
     uint256 id1;
     uint256 id2;
-    uint8 constant DEFAULT = uint8(NodeProperties.NodeValidationStatus.Default);
-    uint8 constant PENDING = uint8(NodeProperties.NodeValidationStatus.Pending);
-    uint8 constant APPROVED = uint8(NodeProperties.NodeValidationStatus.Approved);
+
+    NodeProperties.NodeInfo submittedNodeInfo = NodeProperties.NodeInfo(
+        // string forumHandle;
+        "@myhandle",
+        // string email
+        "john.doe@mail.com",
+        // uint8[4] ip;
+        [0,0,0,0],
+        // string vpsProvider;
+        "Contabo",
+        // uint256 ramInstalled;
+        16000000000,
+        // uint256 cpuCores;
+        8,
+        // string dIDType;
+        "Galxe",
+        // string dID;
+        "123457890",
+        // bytes data;
+        ""
+    );
+
 
     function setUp() public virtual {
         uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
@@ -42,6 +64,7 @@ contract TestNodeProperties is Test {
         user = vm.addr(privKey3);
 
         ctm = new TestERC20(18);
+        usdc = new TestERC20(6);
         veImpl = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
@@ -55,9 +78,22 @@ contract TestNodeProperties is Test {
         ctm.print(user, initialBalUser);
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
+
+        rewards = new Rewards(
+            0,
+            gov,
+            address(ctm),
+            address(usdc),
+            address(0),
+            address(ve),
+            address(nodeProperties),
+            address(0)
+        );
         
-        nodeProperties = new NodeProperties(gov, committee, address(ve), 5000 ether);
+        nodeProperties = new NodeProperties(gov, address(ve));
         vm.startPrank(gov);
+        nodeProperties.setRewards(address(rewards));
+        rewards.setNodeRewardThreshold(5000 ether);
         ve.setTreasury(treasury);
         ve.setNodeProperties(address(nodeProperties));
         ve.enableLiquidations();
@@ -70,91 +106,31 @@ contract TestNodeProperties is Test {
         vm.stopPrank();
     }
 
-    function _getNodeValidationStatus(uint256 _tokenId) internal view returns (uint8) {
-        return uint8(nodeProperties.nodeValidationStatus(_tokenId));
-    }
-
-    function test_SetNodeInfo() public {
+    function test_AttachNode() public {
         vm.startPrank(user);
         id1 = ve.create_lock(10000 ether, MAXTIME);
-        NodeProperties.NodeInfo memory submittedNodeInfo = NodeProperties.NodeInfo(
-            // string forumHandle;
-            "@myhandle",
-            // string enode;
-            "enode://1.2.3.4",
-            // string ip;
-            "5.6.7.8",
-            // string port;
-            "8000",
-            // string countryCode;
-            "SH",
-            // string vpsProvider;
-            "Contabo",
-            // uint256 ramInstalled;
-            16000000000,
-            // uint256 cpuCores;
-            8,
-            // string dIDType;
-            "Galxe",
-            // string dID;
-            "123457890",
-            // bytes data;
-            ""
-        );
-
-        uint8 status = _getNodeValidationStatus(id1);
-        assertEq(status, DEFAULT);
-
-        nodeProperties.setNodeInfo(id1, submittedNodeInfo);
-        vm.stopPrank();
-
-        status = _getNodeValidationStatus(id1);
-        assertEq(status, PENDING);
-
-        uint256[] memory tokenIds = new uint256[](1);
-        tokenIds[0] = id1;
-        bool[] memory validations = new bool[](1);
-        validations[0] = true;
-
-        vm.startPrank(committee);
-        nodeProperties.setNodeValidations(tokenIds, validations);
-
-        status = _getNodeValidationStatus(id1);
-        assertEq(status, APPROVED);
-
-        validations[0] = false;
-        nodeProperties.setNodeValidations(tokenIds, validations);
-
-        status = _getNodeValidationStatus(id1);
-        assertEq(status, DEFAULT);
+        nodeProperties.attachNode(id1, 1, submittedNodeInfo);
         vm.stopPrank();
     }
 
-    function test_NodeAttachment() public {
-        vm.prank(user);
+    function test_AttachNodeSufficientVePower() public prank(user) {
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
-        vm.prank(gov);
         vm.expectRevert();
-        nodeProperties.attachNode(id1, 1);
-        vm.prank(user);
+        nodeProperties.attachNode(id1, 1, submittedNodeInfo);
         ve.increase_amount(id1, 14 ether);
-        vm.prank(gov);
-        nodeProperties.attachNode(id1, 1);
+        nodeProperties.attachNode(id1, 1, submittedNodeInfo);
     }
 
-    function test_OnlyAttachOneTokenID() public {
-        vm.startPrank(user);
+    function test_OnlyAttachOneTokenID() public prank(user) {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        vm.stopPrank();
-        vm.startPrank(gov);
-        nodeProperties.attachNode(id1, 1);
+        nodeProperties.attachNode(id1, 1, submittedNodeInfo);
         vm.expectRevert();
-        nodeProperties.attachNode(id1, 2);
+        nodeProperties.attachNode(id1, 2, submittedNodeInfo);
         vm.expectRevert();
-        nodeProperties.attachNode(id2, 1);
+        nodeProperties.attachNode(id2, 1, submittedNodeInfo);
     }
 
     function test_NodeDetachment() public {
@@ -170,13 +146,11 @@ contract TestNodeProperties is Test {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        vm.stopPrank();
-        vm.prank(gov);
-        nodeProperties.attachNode(id1, 1);
+        nodeProperties.attachNode(id1, 1, submittedNodeInfo);
         skip(1);
-        vm.prank(user);
         vm.expectRevert();
         ve.liquidate(id1);
+        vm.stopPrank();
         vm.prank(gov);
         nodeProperties.detachNode(id1, 1);
         vm.prank(user);

@@ -32,9 +32,6 @@ contract TestRewards is Test {
     uint256 constant WEEK = 1 weeks;
     uint256 id1;
     uint256 id2;
-    uint8 constant DEFAULT = uint8(NodeProperties.NodeValidationStatus.Default);
-    uint8 constant PENDING = uint8(NodeProperties.NodeValidationStatus.Pending);
-    uint8 constant APPROVED = uint8(NodeProperties.NodeValidationStatus.Approved);
 
     function setUp() public virtual {
         uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
@@ -64,7 +61,7 @@ contract TestRewards is Test {
         ctm.print(bridge, CTM_TS);
         usdc.print(bridge, USDC_TS);
         
-        nodeProperties = new NodeProperties(gov, committee, address(ve), 5000 ether);
+        nodeProperties = new NodeProperties(gov, address(ve));
 
         vm.startPrank(gov);
         ve.setTreasury(treasury);
@@ -109,7 +106,30 @@ contract TestRewards is Test {
     }
 
     function _attachTokenId(uint256 _tokenId, uint256 _nodeId) internal prank(gov) {
-        nodeProperties.attachNode(_tokenId, _nodeId);
+        nodeProperties.attachNode(
+            _tokenId,
+            _nodeId,
+            NodeProperties.NodeInfo(
+                // string forumHandle;
+                "@myhandle",
+                // string email
+                "john.doe@mail.com",
+                // uint8[4] ip;
+                [0,0,0,0],
+                // string vpsProvider;
+                "Contabo",
+                // uint256 ramInstalled;
+                16000000000,
+                // uint256 cpuCores;
+                8,
+                // string dIDType;
+                "Galxe",
+                // string dID;
+                "123457890",
+                // bytes data;
+                ""
+            )
+        );
     }
 
     function _setQualityOf(uint256 _tokenId, uint256 _quality) internal prank(gov) {

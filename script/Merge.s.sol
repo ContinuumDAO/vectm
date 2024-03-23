@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import {Script} from "forge-std/Script.sol";
 import "forge-std/console.sol";
-import {IVotingEscrow} from "../ignoreSrc/src/IVotingEscrow.sol";
+import {IVotingEscrow} from "../build/VotingEscrow.sol";
 
 contract Merge is Script {
     // // address governorAddr = 0x1271D5C10663a0e34aFD1Ae5362EB9E29b1E3d97;

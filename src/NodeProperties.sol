@@ -19,10 +19,8 @@ contract NodeProperties {
 
     struct NodeInfo {
         string forumHandle;
-        string enode;
-        string ip;
-        string port;
-        string countryCode;
+        string email;
+        uint8[4] ip;
         string vpsProvider;
         uint256 ramInstalled;
         uint256 cpuCores;
@@ -31,14 +29,7 @@ contract NodeProperties {
         bytes data;
     }
 
-    enum NodeValidationStatus {
-        Default,
-        Pending,
-        Approved
-    }
-
     address public gov;
-    address public committee; // for validating nodes' KYC
     IRewards public rewards;
     IVotingEscrow public ve;
 
@@ -47,14 +38,10 @@ contract NodeProperties {
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf; // token ID => ts checkpointed quality score
     mapping(uint256 => bool) internal _nodeValidated; // token ID => dID check
     mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf; // token ID => address => node info
-    mapping(uint256 => mapping(address => NodeValidationStatus)) internal _nodeValidationStatus; // token ID => address => node validation status
     mapping(uint256 => bool) internal _toBeRemoved;
-
-    uint256 internal _attachmentThreshold;
 
     event Attachment(uint256 indexed _tokenId, uint256 indexed _nodeId);
     event Detachment(uint256 indexed _tokenId, uint256 indexed _nodeId);
-    event ThresholdChanged(uint256 _oldThreshold, uint256 _newThreshold);
 
     error NodeNotAttached(uint256 _tokenId);
 
@@ -63,50 +50,32 @@ contract NodeProperties {
         _;
     }
 
-    modifier onlyCommittee {
-        require(msg.sender == committee);
-        _;
-    }
-
-    constructor(address _gov, address _committee, address _ve, uint256 _initialThreshold) {
+    constructor(address _gov, address _ve) {
         gov = _gov;
-        committee = _committee;
         ve = IVotingEscrow(_ve);
-        _attachmentThreshold = _initialThreshold;
     }
 
-    function setNodeInfo(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
+    // user adds their veCTM to a node, requirements: caller is owner of token ID, token ID/node ID are not
+    // connected to another nodeID/token ID, veCTM voting power reaches the node reward threshold (attachment threshold)
+    function attachNode(uint256 _tokenId, uint256 _nodeId, NodeInfo memory _nodeInfo) external {
         address _account = ve.ownerOf(_tokenId);
         require(msg.sender == _account);
-        require(_attachedNodeId[_tokenId] == 0 && !_nodeValidated[_tokenId]);
-        _nodeInfoOf[_tokenId][_account] = _nodeInfo;
-        _nodeValidationStatus[_tokenId][_account] = NodeValidationStatus.Pending;
-    }
-
-    function cancelValidation(uint256 _tokenId) external {
-        address _account = ve.ownerOf(_tokenId);
-        require(msg.sender == _account);
-        _nodeValidationStatus[_tokenId][_account] = NodeValidationStatus.Default;
-    }
-
-    function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
-        require(msg.sender == ve.ownerOf(_tokenId));
-        _toBeRemoved[_tokenId] = _status;
-    }
-
-    function attachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
-        require(ve.balanceOfNFT(_tokenId) >= _attachmentThreshold);
         require(_attachedNodeId[_tokenId] == 0);
         require(_attachedTokenId[_nodeId] == 0);
+        require(ve.balanceOfNFT(_tokenId) >= rewards.nodeRewardThreshold());
         require(_nodeId != 0);
+        _nodeInfoOf[_tokenId][_account] = _nodeInfo;
         _attachedNodeId[_tokenId] = _nodeId;
         _attachedTokenId[_nodeId] = _tokenId;
         emit Attachment(_tokenId, _nodeId);
     }
 
+    // governance removes given token IDs from their respective node IDs.
     function detachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
         require(_attachedNodeId[_tokenId] != 0);
         require(_attachedTokenId[_nodeId] != 0);
+        address _account = ve.ownerOf(_tokenId);
+        _nodeInfoOf[_tokenId][_account] = NodeInfo("", "", [0,0,0,0], "", 0, 0, "", "", "");
         _attachedNodeId[_tokenId] = 0;
         _attachedTokenId[_nodeId] = 0;
         _nodeValidated[_tokenId] = false;
@@ -114,12 +83,13 @@ contract NodeProperties {
         emit Detachment(_tokenId, _nodeId);
     }
 
-    function setAttachmentThreshold(uint256 _newThreshold) external onlyGov {
-        uint256 attachmentThreshold = _attachmentThreshold;
-        _attachmentThreshold = _newThreshold;
-        emit ThresholdChanged(attachmentThreshold, _newThreshold);
+    // Set the node removal status to either true or false. This means it is flagged for detachment by governance vote.
+    function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
+        require(msg.sender == ve.ownerOf(_tokenId));
+        _toBeRemoved[_tokenId] = _status;
     }
 
+    // governance sets the quality of a node depending on a variety of performance factors.
     function setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external onlyGov {
         assert(_nodeQualityOf <= 10);
         if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == 0) {
@@ -133,21 +103,8 @@ contract NodeProperties {
         rewards = IRewards(_rewards);
     }
 
-    function setCommittee(address _committee) external onlyGov {
-        committee = _committee;
-    }
-
-    function setNodeValidations(uint256[] memory _tokenIds, bool[] memory _validation) external onlyCommittee {
-        for (uint8 i = 0; i < _tokenIds.length; i++) {
-            address _account = ve.ownerOf(_tokenIds[i]);
-            if (_nodeValidationStatus[_tokenIds[i]][_account] != NodeValidationStatus.Default) {
-                if (_validation[i]) {
-                    _nodeValidationStatus[_tokenIds[i]][_account] = NodeValidationStatus.Approved;
-                } else {
-                    _nodeValidationStatus[_tokenIds[i]][_account] = NodeValidationStatus.Default;
-                }
-            }
-        }
+    function nodeInfo(uint256 _tokenId, address _account) external view returns (NodeInfo memory) {
+        return _nodeInfoOf[_tokenId][_account];
     }
 
     function attachedNodeId(uint256 _tokenId) external view returns (uint256) {
@@ -166,16 +123,7 @@ contract NodeProperties {
         return _nodeQualitiesOf[_tokenId].upperLookupRecent(SafeCast.toUint48(_timestamp));
     }
 
-    function nodeValidationStatus(uint256 _tokenId) external view returns (NodeValidationStatus) {
-        address _account = ve.ownerOf(_tokenId);
-        return _nodeValidationStatus[_tokenId][_account];
-    }
-
     function nodeRequestingDetachment(uint256 _tokenId) external view returns (bool) {
         return _toBeRemoved[_tokenId];
-    }
-
-    function _getNodeAttachmentThreshold() internal view returns (uint256) {
-        return rewards.nodeRewardThreshold();
     }
 }
