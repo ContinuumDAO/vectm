@@ -8,7 +8,7 @@ import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
 import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
 import {TestERC20} from "../src/TestERC20.sol";
 import {NodeProperties} from "../src/NodeProperties.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+// import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 interface IVotingEscrowUpgradable is IVotingEscrow {
     function upgradeToAndCall(address newImplementation, bytes memory data) external;
@@ -48,7 +48,7 @@ contract SetUp is Test {
         uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
         user2 = vm.addr(privKey3);
 
-        ctm = new TestERC20(18);
+        ctm = new TestERC20("Continuum", "CTM", 18);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
@@ -57,17 +57,17 @@ contract SetUp is Test {
         );
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
-        governor = new CTMDAOGovernor(IVotes(address(veProxy)));
+        governor = new CTMDAOGovernor(address(veProxy));
         gov = address(governor);
 
         ve = IVotingEscrowUpgradable(address(veProxy));
-        ve.setGovernor(gov);
         ctm.print(user, initialBalUser);
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
         
         nodeProperties = new NodeProperties(gov, address(ve));
-        // ve.setNodeProperties(address(nodeProperties));
+
+        ve.setup(gov, address(nodeProperties), address(0), address(0));
     }
 
     modifier prank(address _user) {

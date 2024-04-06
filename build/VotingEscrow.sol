@@ -2999,10 +2999,8 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256);
     function locked__end(uint256 _tokenId) external view returns (uint256);
 
-    function setGovernor(address _governor) external;
-    function setTreasury(address _treasury) external;
+    function setup(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function enableLiquidations() external;
-    function setNodeProperties(address _nodeProperties) external;
 
     function nonVoting(uint256 _tokenId) external view returns (bool);
     function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory);
@@ -3319,8 +3317,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     ///
     address public token;
     address public governor;
-    address public treasury;
     address public nodeProperties;
+    address public rewards;
+    address public treasury;
     uint256 public epoch;
     string public baseURI;
     uint8 internal _entered_state;
@@ -3450,7 +3449,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
     /// @param base_uri Base URI for token ID images
-    function initialize(address token_addr, string memory base_uri) external reinitializer(2) {
+    function initialize(address token_addr, string memory base_uri) external initializer {
         token = token_addr;
         baseURI = base_uri;
         point_history[0].blk = block.number;
@@ -3553,6 +3552,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
+        // uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK; // Incorrect
         uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
@@ -3734,24 +3734,17 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
     }
 
-    /// @notice Because Voting Escrow is deployed before Governor, we need a set Governor function.
-    function setGovernor(address _governor) external {
+    /// @notice Because Voting Escrow is deployed before other contracts, we need a setup function.
+    function setup(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
         require(governor == address(0) || msg.sender == governor);
-        governor = _governor;
+        governor = _governor == address(0) ? governor : _governor;
+        nodeProperties = _nodeProperties == address(0) ? nodeProperties : _nodeProperties;
+        rewards = _rewards == address(0) ? rewards : _rewards;
+        treasury = _treasury == address(0) ? treasury : _treasury;
     }
 
     function setBaseURI(string memory _baseURI) external onlyGov {
         baseURI = _baseURI;
-    }
-
-    /// @notice Set the address of the receiver of liquidation penalties.
-    function setTreasury(address _treasury) external onlyGov {
-        treasury = _treasury;
-    }
-
-    /// @notice Set the address of contract which stores user node parameters.
-    function setNodeProperties(address _nodeProperties) external onlyGov {
-        nodeProperties = _nodeProperties;
     }
 
     /// @notice One time use flag to enable liquidations.
@@ -3956,27 +3949,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return _tokenId;
     }
 
-    /// @dev Set or reaffirm the approved address for an NFT. The zero address indicates there is no approved address.
-    ///      Throws unless `msg.sender` is the current NFT owner, or an authorized operator of the current owner.
-    ///      Throws if `_tokenId` is not a valid NFT. (NOTE: This is not written the EIP)
-    ///      Throws if `_approved` is the current owner. (NOTE: This is not written the EIP)
-    /// @param _approved Address to be approved for the given NFT ID.
-    /// @param _tokenId ID of the token to be approved.
-    function _approve(address _approved, uint256 _tokenId) internal {
-        address owner = idToOwner[_tokenId];
-        // Throws if `_tokenId` is not a valid NFT
-        require(owner != address(0));
-        // Throws if `_approved` is the current owner
-        require(_approved != owner);
-        // Check requirements
-        bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
-        bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
-        require(senderIsOwner || senderIsApprovedForAll);
-        // Set the approval
-        idToApprovals[_tokenId] = _approved;
-        emit Approval(owner, _approved, _tokenId);
-    }
-
     function delegateBySig(
         address delegatee,
         uint256 nonce,
@@ -4028,6 +4000,27 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
     /// @notice Internal mutable
     ///
+    /// @dev Set or reaffirm the approved address for an NFT. The zero address indicates there is no approved address.
+    ///      Throws unless `msg.sender` is the current NFT owner, or an authorized operator of the current owner.
+    ///      Throws if `_tokenId` is not a valid NFT. (NOTE: This is not written the EIP)
+    ///      Throws if `_approved` is the current owner. (NOTE: This is not written the EIP)
+    /// @param _approved Address to be approved for the given NFT ID.
+    /// @param _tokenId ID of the token to be approved.
+    function _approve(address _approved, uint256 _tokenId) internal {
+        address owner = idToOwner[_tokenId];
+        // Throws if `_tokenId` is not a valid NFT
+        require(owner != address(0));
+        // Throws if `_approved` is the current owner
+        require(_approved != owner);
+        // Check requirements
+        bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
+        bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
+        require(senderIsOwner || senderIsApprovedForAll);
+        // Set the approval
+        idToApprovals[_tokenId] = _approved;
+        emit Approval(owner, _approved, _tokenId);
+    }
+
     /// @notice Deposit `_value` tokens for `_to` and lock for `_lock_duration`
     /// @param _value Amount to deposit
     /// @param _lock_duration Number of seconds to lock tokens for (rounded down to nearest week)

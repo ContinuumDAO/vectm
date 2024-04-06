@@ -2189,9 +2189,9 @@ contract NodeProperties {
         bytes data;
     }
 
-    address public gov;
-    IRewards public rewards;
-    IVotingEscrow public ve;
+    address public governor;
+    address public rewards;
+    address public ve;
 
     mapping(uint256 => uint256) internal _attachedNodeId; // token ID => node ID
     mapping(uint256 => uint256) internal _attachedTokenId; // node ID => token ID
@@ -2206,23 +2206,23 @@ contract NodeProperties {
     error NodeNotAttached(uint256 _tokenId);
 
     modifier onlyGov() {
-        require(msg.sender == gov);
+        require(msg.sender == governor);
         _;
     }
 
-    constructor(address _gov, address _ve) {
-        gov = _gov;
-        ve = IVotingEscrow(_ve);
+    constructor(address _governor, address _ve) {
+        governor = _governor;
+        ve = _ve;
     }
 
     // user adds their veCTM to a node, requirements: caller is owner of token ID, token ID/node ID are not
     // connected to another nodeID/token ID, veCTM voting power reaches the node reward threshold (attachment threshold)
     function attachNode(uint256 _tokenId, uint256 _nodeId, NodeInfo memory _nodeInfo) external {
-        address _account = ve.ownerOf(_tokenId);
+        address _account = IVotingEscrow(ve).ownerOf(_tokenId);
         require(msg.sender == _account);
         require(_attachedNodeId[_tokenId] == 0);
         require(_attachedTokenId[_nodeId] == 0);
-        require(ve.balanceOfNFT(_tokenId) >= rewards.nodeRewardThreshold());
+        require(IVotingEscrow(ve).balanceOfNFT(_tokenId) >= IRewards(rewards).nodeRewardThreshold());
         require(_nodeId != 0);
         _nodeInfoOf[_tokenId][_account] = _nodeInfo;
         _attachedNodeId[_tokenId] = _nodeId;
@@ -2234,7 +2234,7 @@ contract NodeProperties {
     function detachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
         require(_attachedNodeId[_tokenId] != 0);
         require(_attachedTokenId[_nodeId] != 0);
-        address _account = ve.ownerOf(_tokenId);
+        address _account = IVotingEscrow(ve).ownerOf(_tokenId);
         _nodeInfoOf[_tokenId][_account] = NodeInfo("", "", [0,0,0,0], "", 0, 0, "", "", "");
         _attachedNodeId[_tokenId] = 0;
         _attachedTokenId[_nodeId] = 0;
@@ -2245,7 +2245,7 @@ contract NodeProperties {
 
     // Set the node removal status to either true or false. This means it is flagged for detachment by governance vote.
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
-        require(msg.sender == ve.ownerOf(_tokenId));
+        require(msg.sender == IVotingEscrow(ve).ownerOf(_tokenId));
         _toBeRemoved[_tokenId] = _status;
     }
 
@@ -2256,11 +2256,12 @@ contract NodeProperties {
             revert NodeNotAttached(_tokenId);
         }
         uint208 _nodeQualityOf208 = SafeCast.toUint208(_nodeQualityOf);
-        _nodeQualitiesOf[_tokenId].push(ve.clock(), _nodeQualityOf208);
+        _nodeQualitiesOf[_tokenId].push(IVotingEscrow(ve).clock(), _nodeQualityOf208);
     }
 
-    function setRewards(address _rewards) external onlyGov {
-        rewards = IRewards(_rewards);
+    function setRewards(address _rewards) external {
+        require(rewards == address(0) || msg.sender == governor);
+        rewards = _rewards;
     }
 
     function nodeInfo(uint256 _tokenId, address _account) external view returns (NodeInfo memory) {

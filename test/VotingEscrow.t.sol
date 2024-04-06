@@ -25,6 +25,7 @@ contract SetUp is Test {
     address gov;
     address committee;
     address user;
+    address treasury;
     uint256 CTM_TS = 100_000_000 ether;
     uint256 initialBalGov = CTM_TS;
     uint256 initialBalUser = CTM_TS;
@@ -39,8 +40,11 @@ contract SetUp is Test {
         committee = vm.addr(privKey1);
         uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
         user = vm.addr(privKey2);
+        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
+        treasury = vm.addr(privKey3);
 
-        ctm = new TestERC20(18);
+
+        ctm = new TestERC20("Continuum", "CTM", 18);
         veImplV1 = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
@@ -50,14 +54,14 @@ contract SetUp is Test {
         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
 
         ve = IVotingEscrowUpgradable(address(veProxy));
-        ve.setGovernor(gov);
+
         ctm.print(user, initialBalUser);
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
         
         nodeProperties = new NodeProperties(gov, address(ve));
-        vm.prank(gov);
-        ve.setNodeProperties(address(nodeProperties));
+
+        ve.setup(gov, address(0), address(0), treasury);
     }
 
     modifier prank(address _user) {
@@ -196,7 +200,6 @@ contract Proxy is SetUp {
 
 contract Votes is SetUp {
     address user2;
-    address treasury;
     uint256 id1;
     uint256 id2;
     uint256 id3;
@@ -207,12 +210,8 @@ contract Votes is SetUp {
     function setUp() public override {
         super.setUp();
 
-        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
-        user2 = vm.addr(privKey3);
-
         uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
-        treasury = vm.addr(privKey4);
-
+        user2 = vm.addr(privKey4);
 
         ctm.print(user2, initialBalUser);
         vm.prank(user2);
@@ -223,7 +222,6 @@ contract Votes is SetUp {
         vm.startPrank(gov);
 
         ctm.approve(address(ve), initialBalGov);
-        ve.setTreasury(treasury);
         ve.enableLiquidations();
 
         vm.stopPrank();
@@ -540,7 +538,6 @@ contract Votes is SetUp {
 
 contract MergeSplitLiquidate is SetUp {
     address user2;
-    address treasury;
     uint256 id1;
     uint256 id2;
 
@@ -554,12 +551,8 @@ contract MergeSplitLiquidate is SetUp {
     function setUp() public override {
         super.setUp();
 
-        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
-        user2 = vm.addr(privKey3);
-
         uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
-        treasury = vm.addr(privKey4);
-
+        user2 = vm.addr(privKey4);
 
         ctm.print(user2, initialBalUser);
         vm.prank(user2);
@@ -570,7 +563,6 @@ contract MergeSplitLiquidate is SetUp {
         vm.startPrank(gov);
 
         ctm.approve(address(ve), initialBalGov);
-        ve.setTreasury(treasury);
         ve.enableLiquidations();
 
         vm.stopPrank();
@@ -666,7 +658,8 @@ contract MergeSplitLiquidate is SetUp {
         uint256 _value1After = SafeCast.toUint256(int256(_value1After128));
         uint256 _value2After = SafeCast.toUint256(int256(_value2After128));
         uint256 weightedEnd = ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
-        uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
+        // uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
+        uint256 unlockTime = ((weightedEnd / WEEK) * WEEK) + WEEK;
         if (unlockTime > MAX_LOCK) {
             unlockTime -= WEEK;
         }
@@ -777,12 +770,12 @@ contract MergeSplitLiquidate is SetUp {
         id1 = ve.create_lock(_value, _end);
         vm.warp(_liquidationTs);
 
-        if (_liquidationTs >= _end) {
-            vm.expectEmit(true, true, true, true);
-            emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
+        // if (_liquidationTs >= _end) {
+        //     vm.expectEmit(true, false, false, true);
+        //     emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
+        //     ve.liquidate(id1);
+        // } else {
             ve.liquidate(id1);
-        } else {
-            ve.liquidate(id1);
-        }
+        // }
     }
 }

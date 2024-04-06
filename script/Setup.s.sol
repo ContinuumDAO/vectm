@@ -23,9 +23,9 @@ contract Deployment is Script {
 
     // Rewards
     // setBaseEmissionRate
-    uint256 baseEmissionRate = 1 ether / 2000;
+    uint256 baseEmissionRate = 1 ether / 2000; // 0.05%
     // setNodeEmissionRate
-    uint256 nodeEmissionRate = 1 ether / 1000;
+    uint256 nodeEmissionRate = 1 ether / 1000; // 0.1%
     // setNodeRewardThreshold
     uint256 nodeRewardThreshold = 5000 ether;
     // setFeePerByteFeeToken
@@ -40,8 +40,6 @@ contract Deployment is Script {
     // NodeProperties
     // setRewards
     address rewards = 0x84762a8296c968b395ba92e34a3E0243DcDed2B8;
-    // setCommittee
-    address committee = 0xb5981FADCD79992f580ccFdB981d9D850b27DC37;
 
 
     function run() external {
@@ -49,9 +47,9 @@ contract Deployment is Script {
 
         vm.startBroadcast(senderPrivateKey);
 
-        address[] memory targets = new address[](12);
-        uint256[] memory values = new uint256[](12);
-        bytes[] memory calldatas = new bytes[](12);
+        address[] memory targets = new address[](11);
+        uint256[] memory values = new uint256[](11);
+        bytes[] memory calldatas = new bytes[](11);
         string memory description = "Proposal #1: Initialize core contracts";
 
         targets[0] = ve;
@@ -67,12 +65,10 @@ contract Deployment is Script {
         targets[9] = rewards;
 
         targets[10] = nodeProperties;
-        targets[11] = nodeProperties;
 
         calldatas[0] = abi.encodeWithSignature("setTreasury(address)", treasury);
         calldatas[1] = abi.encodeWithSignature("setNodeProperties(address)", nodeProperties);
         calldatas[2] = abi.encodeWithSignature("enableLiquidations()");
-        // calldatas[2] = bytes4(keccak256(bytes("enableLiquidations()")));
 
         calldatas[3] = abi.encodeWithSignature("setBaseEmissionRate(uint256)", baseEmissionRate);
         calldatas[4] = abi.encodeWithSignature("setNodeEmissionRate(uint256)", nodeEmissionRate);
@@ -83,7 +79,6 @@ contract Deployment is Script {
         calldatas[9] = abi.encodeWithSignature("setSwapEnabled(bool)", true);
 
         calldatas[10] = abi.encodeWithSignature("setRewards(address)", rewards);
-        calldatas[11] = abi.encodeWithSignature("setCommittee(address)", committee);
 
         uint256 proposalId = governor.propose(targets, values, calldatas, description);
 

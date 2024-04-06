@@ -296,8 +296,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     ///
     address public token;
     address public governor;
-    address public treasury;
     address public nodeProperties;
+    address public rewards;
+    address public treasury;
     uint256 public epoch;
     string public baseURI;
     uint8 internal _entered_state;
@@ -530,6 +531,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
+        // uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK; // Incorrect
         uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
@@ -711,24 +713,17 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
     }
 
-    /// @notice Because Voting Escrow is deployed before Governor, we need a set Governor function.
-    function setGovernor(address _governor) external {
+    /// @notice Because Voting Escrow is deployed before other contracts, we need a setup function.
+    function setup(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
         require(governor == address(0) || msg.sender == governor);
-        governor = _governor;
+        governor = _governor == address(0) ? governor : _governor;
+        nodeProperties = _nodeProperties == address(0) ? nodeProperties : _nodeProperties;
+        rewards = _rewards == address(0) ? rewards : _rewards;
+        treasury = _treasury == address(0) ? treasury : _treasury;
     }
 
     function setBaseURI(string memory _baseURI) external onlyGov {
         baseURI = _baseURI;
-    }
-
-    /// @notice Set the address of the receiver of liquidation penalties.
-    function setTreasury(address _treasury) external onlyGov {
-        treasury = _treasury;
-    }
-
-    /// @notice Set the address of contract which stores user node parameters.
-    function setNodeProperties(address _nodeProperties) external onlyGov {
-        nodeProperties = _nodeProperties;
     }
 
     /// @notice One time use flag to enable liquidations.

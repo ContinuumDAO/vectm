@@ -2344,7 +2344,12 @@ contract Rewards {
         address _swapRouter,
         address _ve,
         address _nodeProperties,
-        address _weth
+        address _weth,
+        uint256 _baseEmissionRate,
+        uint256 _nodeEmissionRate,
+        uint256 _nodeRewardThreshold,
+        uint256 _feePerByteRewardToken,
+        uint256 _feePerByteFeeToken
     ) {
         genesis = _firstMidnight;
         gov = _gov;
@@ -2354,31 +2359,25 @@ contract Rewards {
         ve = _ve;
         nodeProperties = _nodeProperties;
         WETH = _weth;
+        _setBaseEmissionRate(_baseEmissionRate);
+        _setNodeEmissionRate(_nodeEmissionRate);
+        _setNodeRewardThreshold(_nodeRewardThreshold);
+        feePerByteRewardToken = _feePerByteRewardToken;
+        feePerByteFeeToken = _feePerByteFeeToken;
         IERC20(_rewardToken).approve(_ve, type(uint256).max);
     }
 
     // external mutable
     function setBaseEmissionRate(uint256 _baseEmissionRate) external onlyGov {
-        require(_baseEmissionRate <= MULTIPLIER / 100, "Cannot set base rewards per vepower-day higher than 1%.");
-        uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
-        (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
-            _baseEmissionRates.push(IVotingEscrow(ve).clock(), _baseEmissionRate208);
-        emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
+        _setBaseEmissionRate(_baseEmissionRate);
     }
 
     function setNodeEmissionRate(uint256 _nodeEmissionRate) external onlyGov {
-        require(_nodeEmissionRate <= MULTIPLIER / 100, "Cannot set node rewards per vepower-day higher than 1%.");
-        uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
-        (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
-            _nodeEmissionRates.push(IVotingEscrow(ve).clock(), _nodeEmissionRate208);
-        emit NodeEmissionRateChange(_oldNodeEmissionRate, _newNodeEmissionRate);
+        _setNodeEmissionRate(_nodeEmissionRate);
     }
 
     function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external onlyGov {
-        uint208 _nodeRewardThreshold208 = SafeCast.toUint208(_nodeRewardThreshold);
-        (uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold) =
-            _nodeRewardThresholds.push(IVotingEscrow(ve).clock(), _nodeRewardThreshold208);
-        emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
+        _setNodeRewardThreshold(_nodeRewardThreshold);
     }
 
     function withdrawToken(address _token, address _recipient, uint256 _amount) external onlyGov {
@@ -2520,6 +2519,8 @@ contract Rewards {
             revert InsufficientContractBalance(_contractBalance, _reward);
         }
 
+        _lastClaimOf[_tokenId] = _latestMidnight;
+
         require(IERC20(_rewardToken).transfer(_to, _reward));
 
         emit Claim(_tokenId, _reward, _rewardToken);
@@ -2547,6 +2548,29 @@ contract Rewards {
 
     function _withdrawToken(address _token, address _recipient, uint256 _amount) internal {
         require(IERC20(_token).transfer(_recipient, _amount));
+    }
+
+    function _setBaseEmissionRate(uint256 _baseEmissionRate) internal {
+        require(_baseEmissionRate <= MULTIPLIER / 100, "Cannot set base rewards per vepower-day higher than 1%.");
+        uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
+        (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
+            _baseEmissionRates.push(IVotingEscrow(ve).clock(), _baseEmissionRate208);
+        emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
+    }
+
+    function _setNodeEmissionRate(uint256 _nodeEmissionRate) internal {
+        require(_nodeEmissionRate <= MULTIPLIER / 100, "Cannot set node rewards per vepower-day higher than 1%.");
+        uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
+        (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
+            _nodeEmissionRates.push(IVotingEscrow(ve).clock(), _nodeEmissionRate208);
+        emit NodeEmissionRateChange(_oldNodeEmissionRate, _newNodeEmissionRate);
+    }
+
+    function _setNodeRewardThreshold(uint256 _nodeRewardThreshold) internal {
+        uint208 _nodeRewardThreshold208 = SafeCast.toUint208(_nodeRewardThreshold);
+        (uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold) =
+            _nodeRewardThresholds.push(IVotingEscrow(ve).clock(), _nodeRewardThreshold208);
+        emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
     }
 
     // internal view

@@ -18,10 +18,10 @@ contract CTMDAOGovernor is
     GovernorVotesQuorumFraction,
     GovernorPreventLateQuorum
 {
-    constructor(IVotes _token)
+    constructor(address _token)
         Governor("CTMDAOGovernor")
         GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
-        GovernorVotes(_token)
+        GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
         GovernorPreventLateQuorum(172800 /* 2 days */)
     {}

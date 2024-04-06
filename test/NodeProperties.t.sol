@@ -63,8 +63,8 @@ contract TestNodeProperties is Test {
         uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
         user = vm.addr(privKey3);
 
-        ctm = new TestERC20(18);
-        usdc = new TestERC20(6);
+        ctm = new TestERC20("Continuum", "CTM", 18);
+        usdc = new TestERC20("Tether USD", "USDT", 6);
         veImpl = new VotingEscrow();
         bytes memory initializerData = abi.encodeWithSignature(
             "initialize(address,string)",
@@ -74,28 +74,33 @@ contract TestNodeProperties is Test {
         veProxy = new VotingEscrowProxy(address(veImpl), initializerData);
 
         ve = IVotingEscrow(address(veProxy));
-        ve.setGovernor(gov);
+        ve.setup(gov, address(0), address(0), address(0));
         ctm.print(user, initialBalUser);
         vm.prank(user);
         ctm.approve(address(ve), initialBalUser);
 
+        nodeProperties = new NodeProperties(gov, address(ve));
+
         rewards = new Rewards(
-            0,
-            gov,
-            address(ctm),
-            address(usdc),
-            address(0),
-            address(ve),
-            address(nodeProperties),
-            address(0)
+            0, // _firstMidnight,
+            gov, // _gov
+            address(ctm), // _rewardToken
+            address(usdc), // _feeToken
+            address(0), // _swapRouter
+            address(ve), // _ve
+            address(nodeProperties), // _nodeProperties
+            address(0), // _weth
+            1 ether / 2000, // _baseEmissionRate
+            1 ether / 1000, // _nodeEmissionRate
+            5000 ether, // _nodeRewardThreshold
+            7_812_500 gwei, // _feePerByteRewardToken
+            3125 // _feePerByteFeeToken
         );
         
-        nodeProperties = new NodeProperties(gov, address(ve));
+        ve.setup(gov, address(nodeProperties), address(rewards), treasury);
+
         vm.startPrank(gov);
         nodeProperties.setRewards(address(rewards));
-        rewards.setNodeRewardThreshold(5000 ether);
-        ve.setTreasury(treasury);
-        ve.setNodeProperties(address(nodeProperties));
         ve.enableLiquidations();
         vm.stopPrank();
     }

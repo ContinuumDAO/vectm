@@ -46,10 +46,8 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function user_point_history__ts(uint256 _tokenId, uint256 _idx) external view returns (uint256);
     function locked__end(uint256 _tokenId) external view returns (uint256);
 
-    function setGovernor(address _governor) external;
-    function setTreasury(address _treasury) external;
+    function setup(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function enableLiquidations() external;
-    function setNodeProperties(address _nodeProperties) external;
 
     function nonVoting(uint256 _tokenId) external view returns (bool);
     function tokenIdsDelegatedTo(address account) external view returns (uint256[] memory);
