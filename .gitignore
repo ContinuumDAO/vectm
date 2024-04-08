@@ -2,6 +2,9 @@
 cache/
 out/
 
+# Flattened source code
+build/
+
 # Ignores development broadcast logs
 /broadcast
 /broadcast/*/31337/
@@ -17,3 +20,5 @@ docs/
 refs/
 src/VotingEscrowOld.sol
 
+# Bash scripts
+flatten.sh

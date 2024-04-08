@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20 ^0.8.23;
 
-// OpenZeppelin Contracts (last updated v5.0.0) (proxy/ERC1967/ERC1967Proxy.sol)
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/proxy/Proxy.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/Proxy.sol)
 
@@ -70,7 +70,7 @@ abstract contract Proxy {
     }
 }
 
-// OpenZeppelin Contracts (last updated v5.0.0) (proxy/ERC1967/ERC1967Utils.sol)
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/IBeacon.sol)
 
@@ -85,6 +85,8 @@ interface IBeacon {
      */
     function implementation() external view returns (address);
 }
+
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/Address.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/Address.sol)
 
@@ -243,6 +245,8 @@ library Address {
     }
 }
 
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/StorageSlot.sol
+
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/StorageSlot.sol)
 // This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
 
@@ -375,6 +379,10 @@ library StorageSlot {
         }
     }
 }
+
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Utils.sol
+
+// OpenZeppelin Contracts (last updated v5.0.0) (proxy/ERC1967/ERC1967Utils.sol)
 
 /**
  * @dev This abstract contract provides getters and event emitting update functions for
@@ -561,6 +569,10 @@ library ERC1967Utils {
     }
 }
 
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol
+
+// OpenZeppelin Contracts (last updated v5.0.0) (proxy/ERC1967/ERC1967Proxy.sol)
+
 /**
  * @dev This contract implements an upgradeable proxy. It is upgradeable because calls are delegated to an
  * implementation address that can be changed. This address is stored in storage in the location specified by
@@ -593,6 +605,8 @@ contract ERC1967Proxy is Proxy {
         return ERC1967Utils.getImplementation();
     }
 }
+
+// src/VotingEscrowProxy.sol
 
 contract VotingEscrowProxy is ERC1967Proxy {
     constructor(address implementation, bytes memory _data) ERC1967Proxy(implementation, _data) {}

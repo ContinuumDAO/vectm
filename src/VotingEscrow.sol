@@ -37,8 +37,7 @@ import {IVotingEscrow} from "./IVotingEscrow.sol";
  * rewards.
  */
 interface INodeProperties {
-    function attachedNodeId(uint256 _tokenId) external view returns (uint256);
-    function attachedTokenId(uint256 _nodeId) external view returns (uint256);
+    function attachedNodeId(uint256 _tokenId) external view returns (address);
 }
 
 
@@ -413,7 +412,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     modifier checkNotAttached(uint256 _from) {
-        require(INodeProperties(nodeProperties).attachedNodeId(_from) == 0);
+        require(INodeProperties(nodeProperties).attachedNodeId(_from) == address(0));
         _;
     }
 

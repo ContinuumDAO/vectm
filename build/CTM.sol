@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.20 ^0.8.23;
+
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/IERC20.sol)
 
 /**
- * @dev Interface of the ERC-20 standard as defined in the ERC.
+ * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
     /**
@@ -78,15 +80,15 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/utils/SafeERC20.sol)
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/extensions/IERC20Permit.sol)
 
 /**
- * @dev Interface of the ERC-20 Permit extension allowing approvals to be made via signatures, as defined in
- * https://eips.ethereum.org/EIPS/eip-2612[ERC-2612].
+ * @dev Interface of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
+ * https://eips.ethereum.org/EIPS/eip-2612[EIP-2612].
  *
- * Adds the {permit} method, which can be used to change an account's ERC-20 allowance (see {IERC20-allowance}) by
+ * Adds the {permit} method, which can be used to change an account's ERC20 allowance (see {IERC20-allowance}) by
  * presenting a message signed by the account. By not relying on {IERC20-approve}, the token holder account doesn't
  * need to send a transaction, and thus is not required to hold Ether at all.
  *
@@ -167,6 +169,8 @@ interface IERC20Permit {
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
+
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/Address.sol
 
 // OpenZeppelin Contracts (last updated v5.0.0) (utils/Address.sol)
 
@@ -325,9 +329,71 @@ library Address {
     }
 }
 
+// src/theia/TheiaERC20FeeConfig.sol
+
+contract TheiaERC20FeeConfig {
+    struct FeeConfig {
+        uint256 MaximumSwapFee; // FixFee if MaximumSwapFee == MinimumSwapFee
+        uint256 MinimumSwapFee;
+        uint256 SwapFeeRatePerMillion;
+    }
+    uint256 public constant FROM_CHAIN_PAY = 1;
+    uint256 public constant TO_CHAIN_PAY = 2;
+
+    mapping(uint256 => FeeConfig) public _fromFeeConfigs; // key is fromChainID
+    mapping(uint256 => FeeConfig) public _toFeeConfigs; // key is toChainID
+
+    function _setFeeConfig(
+        uint256 srcChainID,
+        uint256 dstChainID,
+        uint256 maxFee,
+        uint256 minFee,
+        uint256 feeRate,
+        uint256 payFrom // 1:from 2:to 0:free
+    ) internal returns (bool) {
+        require(
+            payFrom == FROM_CHAIN_PAY || payFrom == TO_CHAIN_PAY,
+            "FeeConfig: Invalid payFrom"
+        );
+        FeeConfig memory fee = FeeConfig(maxFee, minFee, feeRate);
+        if (payFrom == FROM_CHAIN_PAY) {
+            _toFeeConfigs[dstChainID] = fee;
+        } else {
+            _fromFeeConfigs[srcChainID] = fee;
+        }
+        return true;
+    }
+
+    function getSwapInFeeConfig(
+        uint256 fromChainID
+    ) public view returns (uint256, uint256, uint256) {
+        FeeConfig memory fee = _fromFeeConfigs[fromChainID];
+        return (
+            fee.MaximumSwapFee,
+            fee.MinimumSwapFee,
+            fee.SwapFeeRatePerMillion
+        );
+    }
+
+    function getSwapOutFeeConfig(
+        uint256 toChainID
+    ) public view returns (uint256, uint256, uint256) {
+        FeeConfig memory fee = _toFeeConfigs[toChainID];
+        return (
+            fee.MaximumSwapFee,
+            fee.MinimumSwapFee,
+            fee.SwapFeeRatePerMillion
+        );
+    }
+}
+
+// lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol
+
+// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/utils/SafeERC20.sol)
+
 /**
  * @title SafeERC20
- * @dev Wrappers around ERC-20 operations that throw on failure (when the token
+ * @dev Wrappers around ERC20 operations that throw on failure (when the token
  * contract returns false). Tokens that return no value (and instead revert or
  * throw on failure) are also supported, non-reverting calls are assumed to be
  * successful.
@@ -338,7 +404,7 @@ library SafeERC20 {
     using Address for address;
 
     /**
-     * @dev An operation with an ERC-20 token failed.
+     * @dev An operation with an ERC20 token failed.
      */
     error SafeERC20FailedOperation(address token);
 
@@ -435,61 +501,7 @@ library SafeERC20 {
     }
 }
 
-contract TheiaERC20FeeConfig {
-    struct FeeConfig {
-        uint256 MaximumSwapFee; // FixFee if MaximumSwapFee == MinimumSwapFee
-        uint256 MinimumSwapFee;
-        uint256 SwapFeeRatePerMillion;
-    }
-    uint256 public constant FROM_CHAIN_PAY = 1;
-    uint256 public constant TO_CHAIN_PAY = 2;
-
-    mapping(uint256 => FeeConfig) public _fromFeeConfigs; // key is fromChainID
-    mapping(uint256 => FeeConfig) public _toFeeConfigs; // key is toChainID
-
-    function _setFeeConfig(
-        uint256 srcChainID,
-        uint256 dstChainID,
-        uint256 maxFee,
-        uint256 minFee,
-        uint256 feeRate,
-        uint256 payFrom // 1:from 2:to 0:free
-    ) internal returns (bool) {
-        require(
-            payFrom == FROM_CHAIN_PAY || payFrom == TO_CHAIN_PAY,
-            "FeeConfig: Invalid payFrom"
-        );
-        FeeConfig memory fee = FeeConfig(maxFee, minFee, feeRate);
-        if (payFrom == FROM_CHAIN_PAY) {
-            _toFeeConfigs[dstChainID] = fee;
-        } else {
-            _fromFeeConfigs[srcChainID] = fee;
-        }
-        return true;
-    }
-
-    function getSwapInFeeConfig(
-        uint256 fromChainID
-    ) public view returns (uint256, uint256, uint256) {
-        FeeConfig memory fee = _fromFeeConfigs[fromChainID];
-        return (
-            fee.MaximumSwapFee,
-            fee.MinimumSwapFee,
-            fee.SwapFeeRatePerMillion
-        );
-    }
-
-    function getSwapOutFeeConfig(
-        uint256 toChainID
-    ) public view returns (uint256, uint256, uint256) {
-        FeeConfig memory fee = _toFeeConfigs[toChainID];
-        return (
-            fee.MaximumSwapFee,
-            fee.MinimumSwapFee,
-            fee.SwapFeeRatePerMillion
-        );
-    }
-}
+// src/theia/TheiaERC20.sol
 
 contract TheiaERC20 is IERC20, TheiaERC20FeeConfig {
     using SafeERC20 for IERC20;
@@ -807,6 +819,8 @@ contract TheiaERC20 is IERC20, TheiaERC20FeeConfig {
         }
     }
 }
+
+// src/CTM.sol
 
 contract CTM is TheiaERC20 {
     constructor(address _admin) TheiaERC20("Continuum", "CTM", 18, address(0), _admin) {

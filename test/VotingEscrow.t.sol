@@ -61,7 +61,7 @@ contract SetUp is Test {
         
         nodeProperties = new NodeProperties(gov, address(ve));
 
-        ve.setup(gov, address(0), address(0), treasury);
+        ve.setup(gov, address(nodeProperties), address(0), treasury);
     }
 
     modifier prank(address _user) {
@@ -227,12 +227,12 @@ contract Votes is SetUp {
         vm.stopPrank();
     }
 
-    function _warp1() internal {
+    function skip() internal {
         vm.warp(block.timestamp + 1);
     }
 
-    function _weekTsInXYears(uint256 _years) internal view returns (uint256) {
-        return (block.timestamp + (_years * ONE_YEAR)) / WEEK * WEEK;
+    function _weekTsInXYears(uint256 _years) internal pure returns (uint256) {
+        return (_years * ONE_YEAR) / WEEK * WEEK;
     }
 
     // TESTS
@@ -271,7 +271,7 @@ contract Votes is SetUp {
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 vePowerBefore = ve.balanceOfNFT(id1);
         uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user).length;
-        _warp1();
+        skip(1);
         id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
         uint256 vePowerAfter = ve.balanceOfNFTAt(id1, block.timestamp - 1);
         uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user).length;
@@ -287,14 +287,14 @@ contract Votes is SetUp {
         uint256[] memory user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 0);
-        _warp1();
+        skip(1);
 
         console.log("Create token 1: User should have one delegated (1), one owned (1)");
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
         assertEq(userDelegatedIDs.length, 1);
         assertEq(userDelegatedIDs[0], id1);
-        _warp1();
+        skip(1);
 
         console.log("Create token 2: User should have two delegated (1,2), two owned (1,2)");
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
@@ -302,7 +302,7 @@ contract Votes is SetUp {
         assertEq(userDelegatedIDs.length, 2);
         assertEq(userDelegatedIDs[0], id1);
         assertEq(userDelegatedIDs[1], id2);
-        _warp1();
+        skip(1);
 
         console.log("Delegate user => user2: User should have zero delegated, two owned (1,2) and user2 should have two delegated (1,2)");
         ve.delegate(user2);
@@ -314,7 +314,7 @@ contract Votes is SetUp {
         assertEq(user2DelegatedIDs[1], id2);
         assertEq(ve.ownerOf(id1), user);
         assertEq(ve.ownerOf(id2), user);
-        _warp1();
+        skip(1);
 
         console.log("Create token 3: User should have zero delegated, three owned (1,2,3) and user2 should have three delegated (1,2,3)");
         id3 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
@@ -328,7 +328,7 @@ contract Votes is SetUp {
         assertEq(ve.ownerOf(id1), user);
         assertEq(ve.ownerOf(id2), user);
         assertEq(ve.ownerOf(id3), user);
-        _warp1();
+        skip(1);
 
         console.log("Transfer token 2: User should have zero delegated, two owned (1,3) and user2 should have two delegated (1,3), one owned (2)");
         ve.transferFrom(user, user2, id2);
@@ -341,7 +341,7 @@ contract Votes is SetUp {
         assertEq(ve.ownerOf(id1), user);
         assertEq(ve.ownerOf(id2), user2);
         assertEq(ve.ownerOf(id3), user);
-        _warp1();
+        skip(1);
 
         vm.stopPrank();
         vm.startPrank(user2);
@@ -358,7 +358,7 @@ contract Votes is SetUp {
         assertEq(ve.ownerOf(id1), user);
         assertEq(ve.ownerOf(id2), user2);
         assertEq(ve.ownerOf(id3), user);
-        _warp1();
+        skip(1);
 
         console.log("Create token 4: User should have zero delegated, two owned (1,3) and user2 should have four delegated (1,3,2,4), two owned (2,4)");
         id4 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
@@ -374,7 +374,7 @@ contract Votes is SetUp {
         assertEq(ve.ownerOf(id2), user2);
         assertEq(ve.ownerOf(id3), user);
         assertEq(ve.ownerOf(id4), user2);
-        _warp1();
+        skip(1);
 
         console.log("Delegate user2 => user: User should have two delegated, two owned (1,3) and user2 should have two delegated (1,3), two owned (2,4)");
         ve.delegate(user);
@@ -402,7 +402,7 @@ contract Votes is SetUp {
         uint256 vePower2Start = ve.balanceOfNFT(id2);
         uint256 votesUserStart = ve.getVotes(user);
         uint256 votesUser2Start = ve.getVotes(user2);
-        _warp1();
+        skip(1);
         uint256 totalSupplyStart = ve.getPastTotalSupply(1);
         assertEq(totalSupplyStart, vePower1Start + vePower2Start);
         assertEq(votesUserStart, vePower1Start);
@@ -428,7 +428,7 @@ contract Votes is SetUp {
     function test_GetPastVotes() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        _warp1();
+        skip(1);
         id2 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 votesUserStart = ve.getVotes(user);
         uint256 votesUser2Start = ve.getVotes(user2);
@@ -455,13 +455,13 @@ contract Votes is SetUp {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         uint256 WEEK_2_YEARS = _weekTsInXYears(2);
         id1 = ve.create_lock(500 ether, WEEK_4_YEARS);
-        _warp1();
+        skip(1);
         id2 = ve.create_lock(1000 ether, WEEK_2_YEARS);
         uint256 individualVotesEth = ve.getVotes(user) / 1e18;
         uint256 vePower1EthBefore = ve.balanceOfNFT(id1) / 1e18;
         uint256 vePower2EthBefore = ve.balanceOfNFT(id2) / 1e18;
         assertEq(vePower1EthBefore, vePower2EthBefore);
-        _warp1();
+        skip(1);
         ve.merge(id1, id2);
         uint256 mergedVotesEth = ve.getVotes(user) / 1e18;
         uint256 vePower1EthAfter = ve.balanceOfNFT(id1) / 1e18;
@@ -476,7 +476,7 @@ contract Votes is SetUp {
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 votesBeforeEth = ve.getVotes(user) / 1e18;
         (,uint256 _endBefore) = ve.locked(id1);
-        _warp1();
+        skip(1);
         id2 = ve.split(id1, 980 ether);
         (int128 _value1, uint256 _end1) = ve.locked(id1);
         (int128 _value2, uint256 _end2) = ve.locked(id2);
@@ -494,7 +494,7 @@ contract Votes is SetUp {
         uint256 lengthBefore = ve.tokenIdsDelegatedTo(user).length;
         uint256 balanceUserBeforeEth = ctm.balanceOf(user) / 1e18;
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
-        _warp1();
+        skip(1);
         ve.liquidate(id1);
         uint256 lengthAfter = ve.tokenIdsDelegatedTo(user).length;
         uint256 votesAfterEth = ve.getVotes(user) / 1e18;
@@ -568,25 +568,25 @@ contract MergeSplitLiquidate is SetUp {
         vm.stopPrank();
     }
 
-    function _warp1() internal {
+    function skip() internal {
         vm.warp(block.timestamp + 1);
     }
 
-    function _weekTsInXYears(uint256 _years) internal view returns (uint256) {
-        return (block.timestamp + (_years * ONE_YEAR)) / WEEK * WEEK;
+    function _weekTsInXYears(uint256 _years) internal pure returns (uint256) {
+        return (_years * ONE_YEAR) / WEEK * WEEK;
     }
 
-    function _weekTsInXWeeks(uint256 _weeks) internal view returns (uint256) {
-        return (block.timestamp + (_weeks * WEEK)) / WEEK * WEEK;
+    function _weekTsInXWeeks(uint256 _weeks) internal pure returns (uint256) {
+        return (_weeks * WEEK) / WEEK * WEEK;
     }
 
     // TESTS
     function test_ApprovedMerge() public approveUser2 prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
         ve.merge(id1, id2);
         uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
@@ -598,9 +598,9 @@ contract MergeSplitLiquidate is SetUp {
     function test_NotApprovedMerge() public prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -618,9 +618,9 @@ contract MergeSplitLiquidate is SetUp {
     function test_MergeWithTwoNonVoting() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         ve.merge(id1, id2);
         uint256 votes = ve.getVotes(user);
         assertEq(votes, 0);
@@ -629,9 +629,9 @@ contract MergeSplitLiquidate is SetUp {
     function test_CannotMergeVotingWithNonVoting() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        _warp1();
+        skip(1);
         id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
         ve.merge(id1, id2);
     }
@@ -647,11 +647,11 @@ contract MergeSplitLiquidate is SetUp {
         id1 = ve.create_lock(_value1, _end1);
         (int128 _value1Before128, uint256 _end1Before) = ve.locked(id1);
         uint256 _value1Before = SafeCast.toUint256(int256(_value1Before128));
-        _warp1();
+        skip(1);
         id2 = ve.create_lock(_value2, _end2);
         (int128 _value2Before128, uint256 _end2Before) = ve.locked(id2);
         uint256 _value2Before = SafeCast.toUint256(int256(_value2Before128));
-        _warp1();
+        skip(1);
         ve.merge(id1, id2);
         (int128 _value1After128, uint256 _end1After) = ve.locked(id1);
         (int128 _value2After128, uint256 _end2After) = ve.locked(id2);
@@ -676,7 +676,7 @@ contract MergeSplitLiquidate is SetUp {
     function test_SplitValueOverMaxInt128() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        _warp1();
+        skip(1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 SafeCast.SafeCastOverflowedIntDowncast.selector,
@@ -690,7 +690,7 @@ contract MergeSplitLiquidate is SetUp {
     function test_ApprovedSplit() public approveUser2 prank(user2) { 
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
         ve.split(id1, 500 ether);
         uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
@@ -702,7 +702,7 @@ contract MergeSplitLiquidate is SetUp {
     function test_NotApprovedSplit() public prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -719,7 +719,7 @@ contract MergeSplitLiquidate is SetUp {
     function test_SplitNonVoting() public prank(user) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
-        _warp1();
+        skip(1);
         id2 = ve.split(id1, 500 ether);
         uint256 votes = ve.getVotes(user);
         bool id1NonVoting = ve.nonVoting(id1);
@@ -739,7 +739,7 @@ contract MergeSplitLiquidate is SetUp {
         id1 = ve.create_lock(_initialValue, _initialEnd);
         (int128 _value1Before128,) = ve.locked(id1);
         uint256 _value1Before = uint256(int256(_value1Before128));
-        _warp1();
+        skip(1);
         id2 = ve.split(id1, _extractedValue);
         (int128 _value1After128,) = ve.locked(id1);
         (int128 _value2After128,) = ve.locked(id2);

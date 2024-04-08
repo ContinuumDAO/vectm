@@ -33,15 +33,15 @@ contract NodeProperties {
     address public rewards;
     address public ve;
 
-    mapping(uint256 => uint256) internal _attachedNodeId; // token ID => node ID
-    mapping(uint256 => uint256) internal _attachedTokenId; // node ID => token ID
+    mapping(uint256 => address) internal _attachedNodeId; // token ID => node ID
+    mapping(address => uint256) internal _attachedTokenId; // node ID => token ID
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf; // token ID => ts checkpointed quality score
     mapping(uint256 => bool) internal _nodeValidated; // token ID => dID check
     mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf; // token ID => address => node info
     mapping(uint256 => bool) internal _toBeRemoved;
 
-    event Attachment(uint256 indexed _tokenId, uint256 indexed _nodeId);
-    event Detachment(uint256 indexed _tokenId, uint256 indexed _nodeId);
+    event Attachment(uint256 indexed _tokenId, address indexed _nodeId);
+    event Detachment(uint256 indexed _tokenId, address indexed _nodeId);
 
     error NodeNotAttached(uint256 _tokenId);
 
@@ -57,13 +57,13 @@ contract NodeProperties {
 
     // user adds their veCTM to a node, requirements: caller is owner of token ID, token ID/node ID are not
     // connected to another nodeID/token ID, veCTM voting power reaches the node reward threshold (attachment threshold)
-    function attachNode(uint256 _tokenId, uint256 _nodeId, NodeInfo memory _nodeInfo) external {
+    function attachNode(uint256 _tokenId, address _nodeId, NodeInfo memory _nodeInfo) external {
         address _account = IVotingEscrow(ve).ownerOf(_tokenId);
         require(msg.sender == _account);
-        require(_attachedNodeId[_tokenId] == 0);
+        require(_attachedNodeId[_tokenId] == address(0));
         require(_attachedTokenId[_nodeId] == 0);
         require(IVotingEscrow(ve).balanceOfNFT(_tokenId) >= IRewards(rewards).nodeRewardThreshold());
-        require(_nodeId != 0);
+        require(_nodeId != address(0));
         _nodeInfoOf[_tokenId][_account] = _nodeInfo;
         _attachedNodeId[_tokenId] = _nodeId;
         _attachedTokenId[_nodeId] = _tokenId;
@@ -71,12 +71,12 @@ contract NodeProperties {
     }
 
     // governance removes given token IDs from their respective node IDs.
-    function detachNode(uint256 _tokenId, uint256 _nodeId) external onlyGov {
-        require(_attachedNodeId[_tokenId] != 0);
+    function detachNode(uint256 _tokenId, address _nodeId) external onlyGov {
+        require(_attachedNodeId[_tokenId] != address(0));
         require(_attachedTokenId[_nodeId] != 0);
         address _account = IVotingEscrow(ve).ownerOf(_tokenId);
         _nodeInfoOf[_tokenId][_account] = NodeInfo("", "", [0,0,0,0], "", 0, 0, "", "", "");
-        _attachedNodeId[_tokenId] = 0;
+        _attachedNodeId[_tokenId] = address(0);
         _attachedTokenId[_nodeId] = 0;
         _nodeValidated[_tokenId] = false;
         _toBeRemoved[_tokenId] = false;
@@ -92,7 +92,7 @@ contract NodeProperties {
     // governance sets the quality of a node depending on a variety of performance factors.
     function setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external onlyGov {
         assert(_nodeQualityOf <= 10);
-        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == 0) {
+        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == address(0)) {
             revert NodeNotAttached(_tokenId);
         }
         uint208 _nodeQualityOf208 = SafeCast.toUint208(_nodeQualityOf);
@@ -108,11 +108,11 @@ contract NodeProperties {
         return _nodeInfoOf[_tokenId][_account];
     }
 
-    function attachedNodeId(uint256 _tokenId) external view returns (uint256) {
+    function attachedNodeId(uint256 _tokenId) external view returns (address) {
         return _attachedNodeId[_tokenId];
     }
 
-    function attachedTokenId(uint256 _nodeId) external view returns (uint256) {
+    function attachedTokenId(address _nodeId) external view returns (uint256) {
         return _attachedTokenId[_nodeId];
     }
 

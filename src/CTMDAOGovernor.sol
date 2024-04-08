@@ -18,12 +18,19 @@ contract CTMDAOGovernor is
     GovernorVotesQuorumFraction,
     GovernorPreventLateQuorum
 {
+
+    // Governor("CTMDAOGovernor")
+    // GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
+    // GovernorVotes(IVotes(_token))
+    // GovernorVotesQuorumFraction(20)
+    // GovernorPreventLateQuorum(172800 /* 2 days */)
+
     constructor(address _token)
         Governor("CTMDAOGovernor")
-        GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
+        GovernorSettings(300 /* 5 minutes */, 43200 /* 12 hours */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
-        GovernorPreventLateQuorum(172800 /* 2 days */)
+        GovernorPreventLateQuorum(7200 /* 2 hours */)
     {}
 
     // The following functions are overrides required by Solidity.

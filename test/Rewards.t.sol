@@ -111,7 +111,7 @@ contract TestRewards is Test {
         rewards.receiveFees(_token, _amount, 1);
     }
 
-    function _attachTokenId(uint256 _tokenId, uint256 _nodeId) internal prank(user) {
+    function _attachTokenId(uint256 _tokenId, address _nodeId) internal prank(user) {
         nodeProperties.attachNode(
             _tokenId,
             _nodeId,
@@ -170,7 +170,7 @@ contract TestRewards is Test {
         _receive(address(ctm), 10000 ether);
         vm.prank(user);
         uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
-        _attachTokenId(tokenId, 1);
+        _attachTokenId(tokenId, address(1));
         _setQualityOf(tokenId, 10);
         uint256 unclaimed = rewards.unclaimedRewards(tokenId);
         skip(1 days);
@@ -211,7 +211,7 @@ contract TestRewards is Test {
         _receive(address(ctm), CTM_TS);
         vm.prank(user);
         uint256 tokenId = ve.create_lock(_lockAmount, MAXTIME);
-        _attachTokenId(tokenId, 1);
+        _attachTokenId(tokenId, address(1));
         _setQualityOf(tokenId, _quality);
         skip(_claimTime);
         uint256 unclaimedBefore = rewards.unclaimedRewards(tokenId);

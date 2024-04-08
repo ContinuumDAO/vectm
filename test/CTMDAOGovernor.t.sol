@@ -92,8 +92,16 @@ contract GovernorBasic is SetUp {
     function setUp() public override {
         super.setUp();
         vm.prank(user);
-        tokenId = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        vm.warp(100);
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        // skip(1 days);
+        // ve.checkpoint();
+        // skip(WEEK);
+        ve.create_lock(1 ether, WEEK_4_YEARS);
+        skip(2 * WEEK);
+    }
+
+    function _weekTsInXYears(uint256 _years) internal pure returns (uint256) {
+        return (_years * ONE_YEAR) / WEEK * WEEK;
     }
 
     function _proposeVote(
@@ -106,7 +114,7 @@ contract GovernorBasic is SetUp {
     }
 
     function _castVote(uint256 _proposalId, uint8 support) internal returns (uint256) {
-        vm.warp(block.timestamp + 5 days + 1);
+        skip(5 days + 1);
         uint256 weight = governor.castVote(_proposalId, support);
         return weight;
     }
@@ -117,7 +125,7 @@ contract GovernorBasic is SetUp {
         bytes[] memory _calldatas,
         string memory description
     ) internal returns (uint256) {
-        // vm.warp(block.timestamp + 10 days + 1);
+        skip(10 days + 1);
         uint256 _proposalId = governor.queue(_targets, _values, _calldatas, keccak256(bytes(description)));
         return _proposalId;
     }
@@ -128,13 +136,13 @@ contract GovernorBasic is SetUp {
         bytes[] memory _calldatas,
         string memory description
     ) internal returns (uint256) {
-        vm.warp(block.timestamp + 10 days + 1);
+        skip(10 days + 1);
         uint256 _proposalId = governor.execute(_targets, _values, _calldatas, keccak256(bytes(description)));
         return _proposalId;
     }
 
     function test_InitialSettings() public prank(user) {
-        vm.warp(block.timestamp + 1);
+        skip(1);
         uint256 totalPower = ve.getPastTotalSupply(block.timestamp - 1);
         uint256 votingDelay = governor.votingDelay();
         uint256 votingPeriod = governor.votingPeriod();
@@ -147,15 +155,19 @@ contract GovernorBasic is SetUp {
     }
 
     function test_VoteCallContractFunction() public prank(user) {
-        address[] memory _targets = new address[](3);
+        address[] memory _targets = new address[](2);
         _targets[0] = address(ve);
         _targets[1] = address(ve);
-        _targets[2] = address(ve);
-        uint256[] memory _values = new uint256[](3);
-        bytes[] memory _calldatas = new bytes[](3);
-        _calldatas[0] = abi.encodeWithSignature("setNodeProperties(address)", address(nodeProperties));
-        _calldatas[1] = abi.encodeWithSignature("setTreasury(address)", address(user2));
-        _calldatas[2] = abi.encodeWithSignature("enableLiquidations()");
+        uint256[] memory _values = new uint256[](2);
+        bytes[] memory _calldatas = new bytes[](2);
+        _calldatas[0] = abi.encodeWithSignature(
+            "setup(address,address,address,address)",
+            gov,
+            address(nodeProperties),
+            address(0),
+            user2
+        );
+        _calldatas[1] = abi.encodeWithSignature("enableLiquidations()");
         string memory _description = "Proposal #1: Set node properties address.";
 
         _proposeVote(_targets, _values, _calldatas, _description);
@@ -178,8 +190,12 @@ contract GovernorBasic is SetUp {
     function test_ProposalThresholdChanges() public prank(user) {
         uint256 totalVotePowerBefore = ve.getPastTotalSupply(block.timestamp - 1);
         uint256 thresholdBefore = governor.proposalThreshold();
-        ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        vm.warp(block.timestamp + 1);
+        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        console.log(totalVotePowerBefore);
+        ve.create_lock(1 ether, WEEK_4_YEARS);
+        skip(4 weeks);
+        ve.checkpoint();
+        skip(4 weeks);
         uint256 totalVotePowerAfter = ve.getPastTotalSupply(block.timestamp - 1);
         uint256 thresholdAfter = governor.proposalThreshold();
         assertEq(thresholdBefore, totalVotePowerBefore / 100);

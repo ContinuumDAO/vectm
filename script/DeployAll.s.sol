@@ -62,8 +62,8 @@ contract DeployAll is Script {
         Rewards rewards = new Rewards(
             firstMidnight,
             address(gov),
-            address(usdt),
             address(ctm),
+            address(usdt),
             router,
             address(ve),
             address(nodeProperties),
@@ -77,6 +77,7 @@ contract DeployAll is Script {
 
         // 7
         ve.setup(address(gov), address(nodeProperties), address(rewards), deployer);
+        nodeProperties.setRewards(address(rewards));
 
         vm.stopBroadcast();
 
