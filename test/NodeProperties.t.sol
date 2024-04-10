@@ -36,6 +36,8 @@ contract TestNodeProperties is Test {
         "@myhandle",
         // string email
         "john.doe@mail.com",
+        // bytes32 nodeId
+        keccak256(abi.encode("Example Node ID")),
         // uint8[4] ip;
         [0,0,0,0],
         // string vpsProvider;
@@ -113,7 +115,7 @@ contract TestNodeProperties is Test {
     function test_AttachNode() public {
         vm.startPrank(user);
         id1 = ve.create_lock(10000 ether, MAXTIME);
-        nodeProperties.attachNode(id1, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.stopPrank();
     }
 
@@ -121,20 +123,20 @@ contract TestNodeProperties is Test {
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
         vm.expectRevert();
-        nodeProperties.attachNode(id1, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
         ve.increase_amount(id1, 14 ether);
-        nodeProperties.attachNode(id1, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
     }
 
     function test_OnlyAttachOneTokenID() public prank(user) {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        nodeProperties.attachNode(id1, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.expectRevert();
-        nodeProperties.attachNode(id1, address(2), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.expectRevert();
-        nodeProperties.attachNode(id2, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id2, submittedNodeInfo);
     }
 
     function test_NodeDetachment() public {
@@ -142,7 +144,7 @@ contract TestNodeProperties is Test {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         vm.prank(gov);
         vm.expectRevert();
-        nodeProperties.detachNode(id1, address(1));
+        nodeProperties.detachNode(id1);
     }
 
     function test_AttachingDisablesInteractions() public {
@@ -150,13 +152,13 @@ contract TestNodeProperties is Test {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        nodeProperties.attachNode(id1, address(1), submittedNodeInfo);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
         skip(1);
         vm.expectRevert();
         ve.liquidate(id1);
         vm.stopPrank();
         vm.prank(gov);
-        nodeProperties.detachNode(id1, address(1));
+        nodeProperties.detachNode(id1);
         vm.prank(user);
         ve.liquidate(id1);
     }

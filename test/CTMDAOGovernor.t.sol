@@ -93,9 +93,6 @@ contract GovernorBasic is SetUp {
         super.setUp();
         vm.prank(user);
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        // skip(1 days);
-        // ve.checkpoint();
-        // skip(WEEK);
         ve.create_lock(1 ether, WEEK_4_YEARS);
         skip(2 * WEEK);
     }
@@ -115,6 +112,7 @@ contract GovernorBasic is SetUp {
 
     function _castVote(uint256 _proposalId, uint8 support) internal returns (uint256) {
         skip(5 days + 1);
+        // skip(5 minutes + 1);
         uint256 weight = governor.castVote(_proposalId, support);
         return weight;
     }
@@ -125,7 +123,7 @@ contract GovernorBasic is SetUp {
         bytes[] memory _calldatas,
         string memory description
     ) internal returns (uint256) {
-        skip(10 days + 1);
+        // skip(12 hours + 1);
         uint256 _proposalId = governor.queue(_targets, _values, _calldatas, keccak256(bytes(description)));
         return _proposalId;
     }
@@ -168,7 +166,7 @@ contract GovernorBasic is SetUp {
             user2
         );
         _calldatas[1] = abi.encodeWithSignature("enableLiquidations()");
-        string memory _description = "Proposal #1: Set node properties address.";
+        string memory _description = "Proposal #1: Setup addresses in veCTM.";
 
         _proposeVote(_targets, _values, _calldatas, _description);
 
