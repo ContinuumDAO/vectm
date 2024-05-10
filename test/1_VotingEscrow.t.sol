@@ -20,7 +20,6 @@ contract SetUp is Test {
     VotingEscrowProxy veProxy;
     IVotingEscrowUpgradable ve;
     NodeProperties nodeProperties;
-    string constant MNEMONIC = "test test test test test test test test test test test junk";
     string constant BASE_URI_V1 = "veCTM V1";
     address gov;
     address committee;
@@ -34,15 +33,10 @@ contract SetUp is Test {
     uint256 constant WEEK = 1 weeks;
 
     function setUp() public virtual {
-        uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
-        gov = vm.addr(privKey0);
-        uint256 privKey1 = vm.deriveKey(MNEMONIC, 1);
-        committee = vm.addr(privKey1);
-        uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
-        user = vm.addr(privKey2);
-        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
-        treasury = vm.addr(privKey3);
-
+        gov = makeAddr("gov");
+        committee = makeAddr("committee");
+        user = makeAddr("user");
+        treasury = makeAddr("treasury");
 
         ctm = new TestERC20("Continuum", "CTM", 18);
         veImplV1 = new VotingEscrow();
@@ -61,7 +55,7 @@ contract SetUp is Test {
         
         nodeProperties = new NodeProperties(gov, address(ve));
 
-        ve.setup(gov, address(nodeProperties), address(0), treasury);
+        ve.setUp(gov, address(nodeProperties), address(0), treasury);
     }
 
     modifier prank(address _user) {
@@ -210,8 +204,7 @@ contract Votes is SetUp {
     function setUp() public override {
         super.setUp();
 
-        uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
-        user2 = vm.addr(privKey4);
+        user2 = makeAddr("user");
 
         ctm.print(user2, initialBalUser);
         vm.prank(user2);
@@ -551,8 +544,7 @@ contract MergeSplitLiquidate is SetUp {
     function setUp() public override {
         super.setUp();
 
-        uint256 privKey4 = vm.deriveKey(MNEMONIC, 4);
-        user2 = vm.addr(privKey4);
+        user2 = makeAddr("user2");
 
         ctm.print(user2, initialBalUser);
         vm.prank(user2);

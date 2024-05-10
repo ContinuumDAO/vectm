@@ -3,9 +3,14 @@ pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+/**
+ * @notice Modified version of OpenZeppelin's Checkpoints library that tracks arrays instead of single values.
+ * @dev While the original library contained some assembly which allows `_unsafeAccess` of a checkpoint array, here it
+ * is removed because it causes problems when the checkpoints contain dynamic sized arrays.
+ */
 library ArrayCheckpoints {
     /**
-     * @dev A value was attempted to be inserted on a past checkpoint.
+     * @dev An array was attempted to be inserted on a past checkpoint.
      */
     error CheckpointUnorderedInsertion();
 
@@ -197,15 +202,19 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
+     * @notice Access the member of an array `self` at position `pos`.
+     * @dev Due to modifications on the original Checkpoints library (which checkpoints single values
+     *      as opposed to dynamic-sized arrays), the assembly outlined here does not work, nor is required.
+     *      It now does a high level array read and is no longer unsafe.
      */
     function _unsafeAccess(
         CheckpointArray[] storage self,
         uint256 pos
-    ) private pure returns (CheckpointArray storage result) {
-        assembly {
-            mstore(0, self.slot)
-            result.slot := add(keccak256(0, 0x20), pos)
-        }
+    ) private view returns (CheckpointArray storage result) {
+        // assembly {
+        //     mstore(0, self.slot)
+        //     result.slot := add(keccak256(0, 0x20), pos)
+        // }
+        return self[pos];
     }
 }

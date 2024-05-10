@@ -21,7 +21,6 @@ contract SetUp is Test {
     VotingEscrowProxy veProxy;
     IVotingEscrowUpgradable ve;
     NodeProperties nodeProperties;
-    string constant MNEMONIC = "test test test test test test test test test test test junk";
     string constant BASE_URI_V1 = "veCTM V1";
     address gov;
     address committee;
@@ -41,12 +40,9 @@ contract SetUp is Test {
     }
 
     function setUp() public virtual {
-        uint256 privKey1 = vm.deriveKey(MNEMONIC, 1);
-        committee = vm.addr(privKey1);
-        uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
-        user = vm.addr(privKey2);
-        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
-        user2 = vm.addr(privKey3);
+        committee = makeAddr("committee");
+        user = makeAddr("user");
+        user2 = makeAddr("user2");
 
         ctm = new TestERC20("Continuum", "CTM", 18);
         veImplV1 = new VotingEscrow();
@@ -67,7 +63,7 @@ contract SetUp is Test {
         
         nodeProperties = new NodeProperties(gov, address(ve));
 
-        ve.setup(gov, address(nodeProperties), address(0), address(0));
+        ve.setUp(gov, address(nodeProperties), address(0), address(0));
     }
 
     modifier prank(address _user) {

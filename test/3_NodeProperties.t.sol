@@ -16,7 +16,6 @@ contract TestNodeProperties is Test {
     IVotingEscrow ve;
     NodeProperties nodeProperties;
     Rewards rewards;
-    string constant MNEMONIC = "test test test test test test test test test test test junk";
     string constant BASE_URI_V1 = "veCTM V1";
     address gov;
     address committee;
@@ -56,14 +55,10 @@ contract TestNodeProperties is Test {
 
 
     function setUp() public virtual {
-        uint256 privKey0 = vm.deriveKey(MNEMONIC, 0);
-        gov = vm.addr(privKey0);
-        uint256 privKey1 = vm.deriveKey(MNEMONIC, 1);
-        committee = vm.addr(privKey1);
-        uint256 privKey2 = vm.deriveKey(MNEMONIC, 2);
-        treasury = vm.addr(privKey2);
-        uint256 privKey3 = vm.deriveKey(MNEMONIC, 3);
-        user = vm.addr(privKey3);
+        gov = makeAddr("gov");
+        committee = makeAddr("committee");
+        treasury = makeAddr("treasury");
+        user = makeAddr("user");
 
         ctm = new TestERC20("Continuum", "CTM", 18);
         usdc = new TestERC20("Tether USD", "USDT", 6);
@@ -98,7 +93,7 @@ contract TestNodeProperties is Test {
             3125 // _feePerByteFeeToken
         );
         
-        ve.setup(gov, address(nodeProperties), address(rewards), treasury);
+        ve.setUp(gov, address(nodeProperties), address(rewards), treasury);
 
         vm.startPrank(gov);
         nodeProperties.setRewards(address(rewards));

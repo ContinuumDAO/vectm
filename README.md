@@ -1,3 +1,10 @@
+```
+             _____ ______ __  ___
+ _  __ ___  / ___//_  __//  |/  /
+| |/ // -_)/ /__   / /  / /|_/ / 
+|___/ \__/ \___/  /_/  /_/  /_/  
+```
+
 ### Voting Escrow - How does it work?
 
 Users can create a lock - a position which locks an amount of CTM tokens $a$ for a specified amount of time $t_l$ (rounded by week) and weighs voting power $P$ based on $t_l$ and maximum lockable time $t_{max}$ (equal to 4 years).

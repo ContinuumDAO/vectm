@@ -89,11 +89,11 @@ contract Rewards {
 
     constructor(
         uint48 _firstMidnight,
+        address _ve,
         address _gov,
         address _rewardToken,
         address _feeToken,
         address _swapRouter,
-        address _ve,
         address _nodeProperties,
         address _weth,
         uint256 _baseEmissionRate,
@@ -103,11 +103,11 @@ contract Rewards {
         uint256 _feePerByteFeeToken
     ) {
         genesis = _firstMidnight;
+        ve = _ve;
         gov = _gov;
         rewardToken = _rewardToken;
         feeToken = _feeToken;
         swapRouter = _swapRouter;
-        ve = _ve;
         nodeProperties = _nodeProperties;
         WETH = _weth;
         _setBaseEmissionRate(_baseEmissionRate);
@@ -367,12 +367,23 @@ contract Rewards {
         assert(_daysUnclaimed * ONE_DAY == (_latestMidnight - _lastClaimed));
 
         uint256 _reward;
+        uint256 _prevDayVePower;
 
         // start at the midnight following their last claim, increment by one day at a time
         // continue until rewards counted for latest midnight
         for (uint48 i = _lastClaimed + ONE_DAY; i <= _lastClaimed + (_daysUnclaimed * ONE_DAY); i += ONE_DAY) {
             uint256 _time = uint256(i);
             uint256 _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, _time);
+
+            // check if ve power is zero (meaning the token ID didn't exist at this time).
+            // previous day ve power is the ve power of the previous iteration of this loop, if it is zero then
+            // the midnight in question is less than a day since the token ID was created. This means they don't
+            // get rewards for this day, and their rewards instead start at the following midnight.
+            if (_vePower == 0 || _prevDayVePower == 0) {
+                _prevDayVePower = _vePower;
+                continue;
+            }
+
             uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);
             uint256 _nodeQuality;
 
@@ -382,6 +393,7 @@ contract Rewards {
 
             uint256 _baseEmissionRate = baseEmissionRateAt(i);
             uint256 _nodeEmissionRate = nodeEmissionRateAt(i);
+
             _reward += _calculateRewards(_vePower, _baseEmissionRate, _nodeEmissionRate, _nodeQuality);
         }
 

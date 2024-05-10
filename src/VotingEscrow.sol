@@ -1,13 +1,16 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
+import {INodeProperties} from "./interfaces/INodeProperties.sol";
+import {IRewards} from "./interfaces/IRewards.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ArrayCheckpoints} from "./libraries/ArrayCheckpoints.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
  * @title Voting Escrow
@@ -15,6 +18,7 @@ import {IVotingEscrow} from "./IVotingEscrow.sol";
  * @author Modified for ContinuumDAO by @hal0177
  * @notice Votes have a weight depending on time, so that users are
  * committed to the future of (whatever they are voting for)
+ * @notice Compatible with UUPS proxy pattern, OpenZeppelin Governor Votes
  * @dev Vote weight decays linearly over time. Lock time cannot be
  * more than `MAXTIME` (4 years).
  * Voting escrow to have time-weighted votes
@@ -29,237 +33,6 @@ import {IVotingEscrow} from "./IVotingEscrow.sol";
  *   |/
  * 0 +--------+------> time
  *       maxtime (4 years?)
- */
-
-
-/**
- * @notice Interface for use with the Node Properties contract, where node runners can attach their veCTM to gain extra
- * rewards.
- */
-interface INodeProperties {
-    function attachedNodeId(uint256 _tokenId) external view returns (bytes32);
-}
-
-
-/**
- * @notice Modified version of OpenZeppelin's Checkpoints library that tracks arrays instead of single values.
- * @dev While the original library contained some assembly which allows `_unsafeAccess` of a checkpoint array, here it
- * is removed because it causes problems when the checkpoints contain dynamic sized arrays.
- */
-library ArrayCheckpoints {
-    /**
-     * @dev An array was attempted to be inserted on a past checkpoint.
-     */
-    error CheckpointUnorderedInsertion();
-
-    /**
-     * @dev Trace where checkpoints can be stored.
-     */
-    struct TraceArray {
-        CheckpointArray[] _checkpoints;
-    }
-
-    /**
-     * @dev Checkpoint that tracks a `_key` which is associated with an array of `_values`.
-     */
-    struct CheckpointArray {
-        uint256 _key;
-        uint256[] _values;
-    }
-
-    /**
-     * @dev Pushes a (`key`, `values`) pair into a Trace so that it is stored as the checkpoint.
-     *
-     * Returns previous values array length and new values array length.
-     *
-     * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint256).max` key set will disable the
-     * library.
-     */
-    function push(TraceArray storage self, uint256 key, uint256[] memory values) internal returns (uint256, uint256) {
-        return _insert(self._checkpoints, key, values);
-    }
-
-    /**
-     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or an
-     * empty array if there is none.
-     */
-    function lowerLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
-        uint256 len = self._checkpoints.length;
-        uint256 pos = _lowerBinaryLookup(self._checkpoints, key, 0, len);
-        return pos == len ? new uint256[](0) : _unsafeAccess(self._checkpoints, pos)._values;
-    }
-
-    /**
-     * @dev Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
-     * if there is none.
-     */
-    function upperLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
-        uint256 len = self._checkpoints.length;
-        uint256 pos = _upperBinaryLookup(self._checkpoints, key, 0, len);
-        return pos == 0 ? new uint256[](0) : _unsafeAccess(self._checkpoints, pos - 1)._values;
-    }
-
-    /**
-     * @dev Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
-     * if there is none.
-     *
-     * NOTE: This is a variant of {upperLookup} that is optimised to find "recent" checkpoint (checkpoints with high
-     * keys).
-     */
-    function upperLookupRecent(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
-        uint256 len = self._checkpoints.length;
-
-        uint256 low = 0;
-        uint256 high = len;
-
-        if (len > 5) {
-            uint256 mid = len - Math.sqrt(len);
-            if (key < _unsafeAccess(self._checkpoints, mid)._key) {
-                high = mid;
-            } else {
-                low = mid + 1;
-            }
-        }
-
-        uint256 pos = _upperBinaryLookup(self._checkpoints, key, low, high);
-
-        return pos == 0 ? new uint256[](0) : _unsafeAccess(self._checkpoints, pos - 1)._values;
-    }
-
-    /**
-     * @dev Returns the value in the most recent checkpoint, or zero if there are no checkpoints.
-     */
-    function latest(TraceArray storage self) internal view returns (uint256[] memory) {
-        uint256 pos = self._checkpoints.length;
-        return pos == 0 ? new uint256[](0) : _unsafeAccess(self._checkpoints, pos - 1)._values;
-    }
-
-    /**
-     * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
-     * in the most recent checkpoint.
-     */
-    function latestCheckpoint(TraceArray storage self) internal view returns (bool exists, uint256 _key, uint256[] memory _values) {
-        uint256 pos = self._checkpoints.length;
-        if (pos == 0) {
-            return (false, 0, new uint256[](0));
-        } else {
-            CheckpointArray memory ckpt = _unsafeAccess(self._checkpoints, pos - 1);
-            return (true, ckpt._key, ckpt._values);
-        }
-    }
-
-    /**
-     * @dev Returns the number of checkpoints.
-     */
-    function length(TraceArray storage self) internal view returns (uint256) {
-        return self._checkpoints.length;
-    }
-
-    /**
-     * @dev Returns checkpoint at given position.
-     */
-    function at(TraceArray storage self, uint32 pos) internal view returns (CheckpointArray memory) {
-        return self._checkpoints[pos];
-    }
-
-    /**
-     * @dev Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
-     * or by updating the last one.
-     */
-    function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values) private returns (uint256, uint256) {
-        uint256 pos = self.length;
-
-        if (pos > 0) {
-            // Copying to memory is important here.
-            CheckpointArray memory last = _unsafeAccess(self, pos - 1);
-
-            // Checkpoint keys must be non-decreasing.
-            if (last._key > key) {
-                revert CheckpointUnorderedInsertion();
-            }
-
-            // Update or push new checkpoint
-            if (last._key == key) {
-                _unsafeAccess(self, pos - 1)._values = values;
-            } else {
-                self.push(CheckpointArray({_key: key, _values: values}));
-            }
-            return (last._values.length, values.length);
-        } else {
-            self.push(CheckpointArray({_key: key, _values: values}));
-            return (0, values.length);
-        }
-    }
-
-    /**
-     * @dev Return the index of the last (most recent) checkpoint with key lower or equal than the search key, or `high`
-     * if there is none. `low` and `high` define a section where to do the search, with inclusive `low` and exclusive
-     * `high`.
-     *
-     * WARNING: `high` should not be greater than the array's length.
-     */
-    function _upperBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
-        while (low < high) {
-            uint256 mid = Math.average(low, high);
-            if (_unsafeAccess(self, mid)._key > key) {
-                high = mid;
-            } else {
-                low = mid + 1;
-            }
-        }
-        return high;
-    }
-
-    /**
-     * @dev Return the index of the first (oldest) checkpoint with key is greater or equal than the search key, or
-     * `high` if there is none. `low` and `high` define a section where to do the search, with inclusive `low` and
-     * exclusive `high`.
-     *
-     * WARNING: `high` should not be greater than the array's length.
-     */
-    function _lowerBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
-        while (low < high) {
-            uint256 mid = Math.average(low, high);
-            if (_unsafeAccess(self, mid)._key < key) {
-                low = mid + 1;
-            } else {
-                high = mid;
-            }
-        }
-        return high;
-    }
-
-    /**
-     * @notice Access the member of an array `self` at position `pos`.
-     * @dev Due to modifications on the original Checkpoints library (which checkpoints single values
-     *      as opposed to dynamic-sized arrays), the assembly outlined here does not work, nor is required.
-     *      It now does a high level array read and is no longer unsafe.
-     */
-    function _unsafeAccess(
-        CheckpointArray[] storage self,
-        uint256 pos
-    ) private view returns (CheckpointArray storage result) {
-        // assembly {
-        //     mstore(0, self.slot)
-        //     result.slot := add(keccak256(0, 0x20), pos)
-        // }
-        return self[pos];
-    }
-}
-
-
-/**
- * @notice Compatible with UUPS proxy pattern, OpenZeppelin Governor Votes
  */
 contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
@@ -302,55 +75,44 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     string public baseURI;
     uint8 internal _entered_state;
     uint256 internal _supply;
-    // current count of token
-    uint256 internal tokenId;
-    // total # of NFTs
-    uint256 internal _totalSupply;
+    uint256 internal tokenId; // current count of token
+    uint256 internal _totalSupply; // total # of NFTs
 
     mapping(uint256 => LockedBalance) public locked;
-    // prevent flash NFT
-    mapping(uint256 => uint256) public ownership_change;
-    // epoch -> unsigned point
-    mapping(uint256 => Point) public point_history;
-    // user -> Point[user_epoch]
-    mapping(uint256 => Point[1000000000]) public user_point_history;
+    mapping(uint256 => uint256) public ownership_change; // prevent flash NFT
+    mapping(uint256 => Point) public point_history; // epoch -> unsigned point
+    mapping(uint256 => Point[1_000_000_000]) public user_point_history; // user -> Point[user_epoch]
     mapping(uint256 => uint256) public user_point_epoch;
-    // time -> signed slope change
-    mapping(uint256 => int128) public slope_changes;
-    // mapping from NFT ID to the address that owns it.
-    mapping(uint256 => address) internal idToOwner;
-    // mapping from NFT ID to approved address.
-    mapping(uint256 => address) internal idToApprovals;
-    // mapping from owner address to count of his tokens.
-    mapping(address => uint256) internal ownerToNFTokenCount;
-    // mapping from owner address to mapping of index to tokenIds
-    mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList;
-    // mapping from NFT ID to index of owner
-    mapping(uint256 => uint256) internal tokenToOwnerIndex;
-    // mapping from owner address to mapping of operator addresses.
-    mapping(address => mapping(address => bool)) internal ownerToOperators;
-    // mapping of interface id to bool about whether or not it's supported
-    mapping(bytes4 => bool) internal supportedInterfaces;
-    mapping(uint256 => bool) public nonVoting;
+    mapping(uint256 => int128) public slope_changes; // time -> signed slope change
+    mapping(uint256 => address) internal idToOwner; // mapping from NFT ID to the address that owns it.
+    mapping(uint256 => address) internal idToApprovals; // mapping from NFT ID to approved address.
+    mapping(address => uint256) internal ownerToNFTokenCount; // mapping from owner address to count of his tokens.
+    mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList; // mapping from owner address to mapping of index to tokenIds
+    mapping(uint256 => uint256) internal tokenToOwnerIndex; // mapping from NFT ID to index of owner
+    mapping(address => mapping(address => bool)) internal ownerToOperators; // mapping from owner address to mapping of operator addresses.
+    mapping(bytes4 => bool) internal supportedInterfaces; // mapping of interface id to bool about whether or not it's supported
+    mapping(uint256 => bool) public nonVoting; // token ID -> whether the veCTM is voting or non-voting
  
-    // delegated addresses
-    mapping(address => address) internal _delegatee;
-    // address delegatee => [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
-    mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints;
-    // tracking a signature's account nonce, incremented when delegateBySig is called
-    mapping(address => uint256) internal _nonces;
+    mapping(address => address) internal _delegatee; // delegated addresses
+    /** 
+        Example of delegated checkpoints of an address
+        [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
+    */ 
+    mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints; // address delegatee -> array checkpoints
+    mapping(address => uint256) internal _nonces; // tracking a signature's account nonce, incremented when delegateBySig is called
 
     string public constant name = "Voting Escrow Continuum";
     string public constant symbol = "veCTM";
     string public constant version = "1.0.0";
     uint8 public constant decimals = 18;
     bytes16 internal constant HEX_DIGITS = "0123456789abcdef";
-    uint256 internal constant WEEK = 1 weeks;
+    uint256 internal constant WEEK = 7 * 86400;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
-    uint256 internal constant MULTIPLIER = 1 ether;
+    uint256 internal constant MULTIPLIER = 1e18;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
-    // penalty for liquidating veCTM before maturity date. 50,000 / 100,000  =  50%
-    uint256 public constant LIQUIDATION_PENALTY = 50000;
+
+    uint256 public constant LIQ_PENALTY_NUM = 50_000; // penalty for liquidating veCTM before maturity date. 50,000 / 100,000  =  50%
+    uint256 public constant LIQ_PENALTY_DEN = 100_000;
     bool public liquidationsEnabled;
 
     // ERC165 interface ID of ERC165
@@ -376,15 +138,15 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Events
     ///
     event Deposit(
-        address indexed provider,
-        uint256 tokenId,
-        uint256 value,
-        uint256 indexed locktime,
-        DepositType deposit_type,
-        uint256 ts
+        address indexed _provider,
+        uint256 _tokenId,
+        uint256 _value,
+        uint256 indexed _locktime,
+        DepositType _deposit_type,
+        uint256 _ts
     );
-    event Withdraw(address indexed provider, uint256 tokenId, uint256 value, uint256 ts);
-    event Supply(uint256 prevSupply, uint256 supply);
+    event Withdraw(address indexed _provider, uint256 _tokenId, uint256 _value, uint256 _ts);
+    event Supply(uint256 _prevSupply, uint256 _supply);
     event Merge(uint256 indexed _fromId, uint256 indexed _toId);
     event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
@@ -392,8 +154,8 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Errors
     ///
     error ERC6372InconsistentClock();
-    error ERC5805FutureLookup(uint256 timepoint, uint48 clock);
-    error InvalidAccountNonce(address account, uint256 currentNonce);
+    error ERC5805FutureLookup(uint256 _timepoint, uint48 _clock);
+    error InvalidAccountNonce(address _account, uint256 _currentNonce);
     error SameTimestamp();
     error NotApproved(address _spender, uint256 _tokenId);
 
@@ -411,8 +173,16 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         _;
     }
 
-    modifier checkNotAttached(uint256 _from) {
-        require(INodeProperties(nodeProperties).attachedNodeId(_from) == bytes32(""));
+    modifier checkNotAttached(uint256 _tokenId) {
+        require(
+            INodeProperties(nodeProperties).attachedNodeId(_tokenId) == bytes32(""),
+            "Detach node before interacting with token ID."
+        );
+        _;
+    }
+
+    modifier checkNoRewards(uint256 _tokenId) {
+        require(IRewards(rewards).unclaimedRewards(_tokenId) == 0, "Claim rewards before interacting with token ID.");
         _;
     }
 
@@ -428,6 +198,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @param token_addr `ERC20CRV` token address
     /// @param base_uri Base URI for token ID images
     function initialize(address token_addr, string memory base_uri) external initializer {
+        __UUPSUpgradeable_init();
         token = token_addr;
         baseURI = base_uri;
         point_history[0].blk = block.number;
@@ -496,7 +267,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
 
     /// @notice Withdraw all tokens for `_tokenId`
     /// @dev Only possible if the lock has expired
-    function withdraw(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) {
+    function withdraw(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
         _withdraw(_tokenId);
     }
 
@@ -504,7 +275,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @dev End timestamp of merge is value-weighted based on composite tokens.
     /// @param _from The token ID that gets burned.
     /// @param _to The token ID that burned token gets merged into.
-    function merge(uint256 _from, uint256 _to) external checkNotAttached(_from) checkNotAttached(_to) {
+    function merge(uint256 _from, uint256 _to) external checkNotAttached(_from) checkNotAttached(_to) checkNoRewards(_from) checkNoRewards(_to) {
         require(
             (!nonVoting[_from] && !nonVoting[_to]) || (nonVoting[_from] && nonVoting[_to]),
             "veCTM: Merging between voting and non-voting token ID not allowed"
@@ -555,7 +326,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @notice Split into two NFTs, with a new one created with an extracted value.
     /// @param _tokenId The token ID to be split.
     /// @param _extraction The underlying value to be used to make a new NFT.
-    function split(uint256 _tokenId, uint256 _extraction) external checkNotAttached(_tokenId) returns (uint256) {
+    function split(uint256 _tokenId, uint256 _extraction) external checkNotAttached(_tokenId) checkNoRewards(_tokenId) returns (uint256) {
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         address owner = idToOwner[_tokenId];
@@ -602,7 +373,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     ///      Unlock on/after end => user is not penalized.
     /// @dev Minimum value to withdraw is 100 gwei, to prevent liquidation of low voting power, as this can
     ///      potentially lead to zero penalty.
-    function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) {
+    function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
         require(liquidationsEnabled);
         _checkApprovedOrOwner(msg.sender, _tokenId);
         address owner = idToOwner[_tokenId];
@@ -614,7 +385,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         uint256 value = uint256(int256(_locked.amount));
         require(value > 100 gwei);
         uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
-        uint256 penalty = vePower * LIQUIDATION_PENALTY / 100000;
+        uint256 penalty = vePower * LIQ_PENALTY_NUM / LIQ_PENALTY_DEN;
         assert(penalty != 0);
 
         locked[_tokenId] = LockedBalance(0, 0);
@@ -713,7 +484,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     }
 
     /// @notice Because Voting Escrow is deployed before other contracts, we need a setup function.
-    function setup(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
+    function setUp(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
         require(governor == address(0) || msg.sender == governor);
         governor = _governor == address(0) ? governor : _governor;
         nodeProperties = _nodeProperties == address(0) ? nodeProperties : _nodeProperties;
@@ -759,7 +530,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return idToOwner[_tokenId];
     }
 
-    /// @notice Return the total number of NFTs
+    /// @notice Return the total number of NFTs.
     function totalSupply() external view returns (uint256) {
         return _totalSupply;
     }
@@ -820,6 +591,15 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     /// @dev Get token by index
     function tokenOfOwnerByIndex(address _owner, uint256 _tokenIndex) external view returns (uint256) {
         return ownerToNFTokenIdList[_owner][_tokenIndex];
+    }
+
+    /// @dev Get token as a global index
+    function tokenByIndex(uint256 _index) external view returns (uint256) {
+        if (_index < _totalSupply) {
+            return _index + 1;
+        } else {
+            return 0;
+        }
     }
 
     /// @notice Governor compliant method for counting current voting power of an address.
@@ -908,10 +688,11 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         return supportedInterfaces[_interfaceID];
     }
 
-    /// @notice Get the checkpoint (including timestamp and list of delegated token IDs) at position `pos` in the
+    /// @notice Get the checkpoint (including timestamp and list of delegated token IDs) at position `_index` in the
     ///         delegated checkpoint array of address `account`.
-    function checkpoints(address account, uint32 pos) external view returns (ArrayCheckpoints.CheckpointArray memory) {
-        return _delegateCheckpoints[account].at(pos);
+    function checkpoints(address _account, uint256 _index) external view returns (ArrayCheckpoints.CheckpointArray memory) {
+        uint32 _index32 = SafeCast.toUint32(_index);
+        return _delegateCheckpoints[_account].at(_index32);
     }
 
     /// @notice Public mutable
