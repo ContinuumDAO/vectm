@@ -109,7 +109,7 @@ interface IVotingEscrow {
     function user_point_history__ts(uint256 _tokenid, uint256 _idx) external view returns (uint256);
     function locked__end(uint256 _tokenid) external view returns (uint256);
 
-    // VotingEscrow CTMDAO Mods
+    // ContinuumDAO Modifications
     function merge(uint256 _from, uint256 _to) external;
     function split(uint256 _tokenId, uint256 _extracted) external returns (uint256);
     function liquidate(uint256 _tokenId) external;
