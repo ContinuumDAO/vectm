@@ -15,9 +15,9 @@ contract DeployAll is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
-        uint48 firstMidnight = 1712102400; // 2024/03/03 00:00:00Z
-        address router = 0x101F443B4d1b059569D643917553c771E1b9663E; // ARB Sepolia
-        address weth = 0x980B62Da83eFf3D4576C647993b0c1D7faf17c73; // ARB Sepolia
+        uint48 firstMidnight = 1719792000; // 2024/07/01 00:00:00Z
+        address router = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E; // ETH Sepolia
+        address weth = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14; // ETH Sepolia
             
         uint256 baseEmissionRate = 1 ether / 2000; // 0.05%
         uint256 nodeEmissionRate = 1 ether / 1000; // 0.1%

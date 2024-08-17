@@ -12,38 +12,60 @@ interface IVotingEscrow {
 
 
 contract TallyERC20 {
-    IVotingEscrow ve = IVotingEscrow(0xAF0D3b20ac92e6825014549bB3FA937b3BF5731A);
+    address ve = 0xD1E59F3ba753947bae4A9D261a353D86734FA53d; // VotingEscrow on ETH Sepolia
 
-    function getVotes(address account) external view returns (uint256) {
-        return ve.getVotes(account);
+    function getVotes(address account) external  returns (uint256) {
+        bytes memory callHash = abi.encodeWithSignature("getVotes(address)",account);
+        (bool success, bytes memory result) = ve.call(callHash);
+        (uint256 _getVotesRes) = abi.decode(result, (uint256));
+        return _getVotesRes;
     }
 
-    function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
-        return ve.getPastVotes(account, timepoint - 1);
+    function getPastVotes(address account, uint256 timepoint) external  returns (uint256) {
+        bytes memory callHash = abi.encodeWithSignature("getPastVotes(address)",account);
+        (bool success, bytes memory result) = ve.call(callHash);
+        (uint256 _getPastVotesRes) = abi.decode(result, (uint256));
+        return _getPastVotesRes;
     }
 
-    function delegates(address account) external view returns (address) {
-        return ve.delegates(account);
+    function delegates(address account) external  returns (address) {
+        bytes memory callHash = abi.encodeWithSignature("delegates(address)",account);
+        (bool success, bytes memory result) = ve.call(callHash);
+        (address _delegatesRes) = abi.decode(result, (address));
+        return _delegatesRes;
     }
 
-    function name() public view returns (string memory) {
-        return ve.name();
+    function name() public  returns (string memory) {
+        bytes memory callHash = abi.encodeWithSignature("name()");
+        (bool success, bytes memory result) = ve.call(callHash);
+        (string memory _nameRes) = abi.decode(result, (string));
+        return _nameRes;
     }
 
-    function symbol() public view returns (string memory) {
-        return ve.symbol();
+    function symbol() public  returns (string memory) {
+        bytes memory callHash = abi.encodeWithSignature("symbol()");
+        (bool success, bytes memory result) = ve.call(callHash);
+        (string memory _symbolRes) = abi.decode(result, (string));
+        return _symbolRes;
+
     }
 
-    function decimals() public view returns (uint8) {
+    function decimals() public  returns (uint8) {
         return 18;
     }
 
-    function totalSupply() public view returns (uint256) {
-        return ve.getPastTotalSupply(block.timestamp - 1);
+    function totalSupply() public  returns (uint256) {
+        bytes memory callHash = abi.encodeWithSignature("getPastTotalSupply(uint256)", block.timestamp - 1);
+        (bool success, bytes memory result) = ve.call(callHash);
+        (uint256 _totalSupplyRes) = abi.decode(result, (uint256));
+        return _totalSupplyRes;
     }
 
-    function balanceOf(address _owner) public view returns (uint256 balance) {
-        return ve.getVotes(_owner);
+    function balanceOf(address _owner) public  returns (uint256 balance) {
+        bytes memory callHash = abi.encodeWithSignature("getVotes(address)", _owner);
+        (bool success, bytes memory result) = ve.call(callHash);
+        (uint256 _balanceOfRes) = abi.decode(result, (uint256));
+        return _balanceOfRes;
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {

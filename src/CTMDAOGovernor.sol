@@ -3,21 +3,31 @@ pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import "./GovernorCountingAdvanced.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorStorage.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorPreventLateQuorum.sol";
 
+
+
 contract CTMDAOGovernor is 
     Governor, 
     GovernorSettings, 
-    GovernorCountingSimple, 
+    GovernorCountingAdvanced,
     GovernorStorage, 
     GovernorVotes,
     GovernorVotesQuorumFraction,
     GovernorPreventLateQuorum
 {
+    struct Proposal {
+        address[] targets;
+        uint256[] values;
+        bytes[] calldatas;
+        string description;
+    }
+
+    error GroupExceedsSizeLimit();
 
     // Governor("CTMDAOGovernor")
     // GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
@@ -99,5 +109,42 @@ contract CTMDAOGovernor is
         uint256 proposalId
     ) public view virtual override(Governor, GovernorPreventLateQuorum) returns (uint256) {
         return super.proposalDeadline(proposalId);
+    }
+
+    function proposeAdvanced(
+        GovernorCountingAdvanced.ProposalType proposalType,
+        Proposal[] memory proposals,
+        string memory description
+    ) public returns (uint256[] memory proposalIds) {
+        address proposer = _msgSender();
+
+        if (proposals.length > 256) {
+            revert GroupExceedsSizeLimit();
+        }
+
+        uint256 groupId = uint256(keccak256(abi.encode(proposals, description)));
+
+        // check description restriction
+        for (uint8 i = 0; i < proposals.length; i++) {
+            Proposal memory p = proposals[i];
+            if (!_isValidDescriptionForProposer(proposer, p.description)) {
+                revert GovernorRestrictedProposer(proposer);
+            }
+
+            // check proposal threshold
+            uint256 proposerVotes = getVotes(proposer, clock() - 1);
+            uint256 votesThreshold = proposalThreshold();
+            if (proposerVotes < votesThreshold) {
+                revert GovernorInsufficientProposerVotes(proposer, proposerVotes, votesThreshold);
+            }
+
+            uint256 proposalId = _propose(p.targets, p.values, p.calldatas, p.description, proposer);
+            GovernorCountingAdvanced._proposalGroupId[proposalId] = groupId;
+            GovernorCountingAdvanced._groupProposals[groupId].push(proposalId);
+
+            proposalIds[i] = proposalId;
+        }
+        
+        GovernorCountingAdvanced._groupType[groupId] = proposalType;
     }
 }
