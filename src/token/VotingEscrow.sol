@@ -1,21 +1,26 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
+// SPDX-License-Identifier: BSL-1.1
+
+pragma solidity 0.8.27;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
-import {INodeProperties} from "./interfaces/INodeProperties.sol";
-import {IRewards} from "./interfaces/IRewards.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ArrayCheckpoints} from "./libraries/ArrayCheckpoints.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+import {INodeProperties} from "../node/INodeProperties.sol";
+import {IRewards} from "../node/IRewards.sol";
+import {IVotingEscrow} from "./IVotingEscrow.sol";
+import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
 
 /**
  * @title Voting Escrow
  * @author Curve Finance, Solidly, w/ OpenZeppelin contracts
- * @author Modified for ContinuumDAO by @hal0177
+ * @author Modified for ContinuumDAO by @patrickcure
  * @notice Votes have a weight depending on time, so that users are
  * committed to the future of (whatever they are voting for)
  * @notice Compatible with UUPS proxy pattern, OpenZeppelin Governor Votes
@@ -34,35 +39,8 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * 0 +--------+------> time
  *       maxtime (4 years?)
  */
-contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
+contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVotes, UUPSUpgradeable {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
-
-    /// @notice Type declarations
-    ///
-    struct Point {
-        int128 bias;
-        int128 slope; // # -dweight / dt
-        uint256 ts;
-        uint256 blk; // block
-    }
-    /*
-     * We cannot really do block numbers per se b/c slope is per time, not per block
-     * and per block could be fairly bad b/c Ethereum changes blocktimes.
-     * What we can do is to extrapolate ***At functions
-     */
-
-    struct LockedBalance {
-        int128 amount;
-        uint256 end;
-    }
-
-    enum DepositType {
-        DEPOSIT_FOR_TYPE,
-        CREATE_LOCK_TYPE,
-        INCREASE_LOCK_AMOUNT,
-        INCREASE_UNLOCK_TIME,
-        MERGE_TYPE
-    }
 
     /// @notice State variables
     ///
@@ -81,7 +59,7 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
     mapping(uint256 => LockedBalance) public locked;
     mapping(uint256 => uint256) public ownership_change; // prevent flash NFT
     mapping(uint256 => Point) public point_history; // epoch -> unsigned point
-    mapping(uint256 => Point[1_000_000_000]) public user_point_history; // user -> Point[user_epoch]
+    mapping(uint256 => Point[1_000_000_000]) private user_point_history; // user -> Point[user_epoch]
     mapping(uint256 => uint256) public user_point_epoch;
     mapping(uint256 => int128) public slope_changes; // time -> signed slope change
     mapping(uint256 => address) internal idToOwner; // mapping from NFT ID to the address that owns it.
@@ -134,30 +112,6 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant DELEGATION_TYPEHASH =
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
-
-    /// @notice Events
-    ///
-    event Deposit(
-        address indexed _provider,
-        uint256 _tokenId,
-        uint256 _value,
-        uint256 indexed _locktime,
-        DepositType _deposit_type,
-        uint256 _ts
-    );
-    event Withdraw(address indexed _provider, uint256 _tokenId, uint256 _value, uint256 _ts);
-    event Supply(uint256 _prevSupply, uint256 _supply);
-    event Merge(uint256 indexed _fromId, uint256 indexed _toId);
-    event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
-    event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
-
-    /// @notice Errors
-    ///
-    error ERC6372InconsistentClock();
-    error ERC5805FutureLookup(uint256 _timepoint, uint48 _clock);
-    error InvalidAccountNonce(address _account, uint256 _currentNonce);
-    error SameTimestamp();
-    error NotApproved(address _spender, uint256 _tokenId);
 
     /// @notice Modifiers
     ///
@@ -1531,5 +1485,9 @@ contract VotingEscrow is UUPSUpgradeable, IVotingEscrow {
         }
         (uint256 oldLength, uint256 newLength) = store.push(uint256(clock()), op(store.latest(), deltaTokenIDs));
         return (oldLength, newLength);
+    }
+
+    function onERC721Received(address, address, uint256, bytes memory) public pure returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }

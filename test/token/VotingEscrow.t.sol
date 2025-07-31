@@ -1,61 +1,79 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
 
-import "forge-std/Test.sol";
-import {IVotingEscrow, VotingEscrow} from "../src/VotingEscrow.sol";
-import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
-import {VotingEscrowV2} from "../src/VotingEscrowV2.sol";
-import {TestERC20} from "../src/TestERC20.sol";
-import {NodeProperties} from "../src/NodeProperties.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+pragma solidity 0.8.27;
+
+import {console} from "forge-std/console.sol";
+
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
-interface IVotingEscrowUpgradable is IVotingEscrow {
-    function upgradeToAndCall(address newImplementation, bytes memory data) external;
-}
+import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
-contract SetUp is Test {
-    TestERC20 ctm;
-    VotingEscrow veImplV1;
-    VotingEscrowProxy veProxy;
-    IVotingEscrowUpgradable ve;
-    NodeProperties nodeProperties;
-    string constant BASE_URI_V1 = "veCTM V1";
-    address gov;
-    address committee;
-    address user;
-    address treasury;
-    uint256 CTM_TS = 100_000_000 ether;
-    uint256 initialBalGov = CTM_TS;
-    uint256 initialBalUser = CTM_TS;
+// contract SetUp is Test {
+//     TestERC20 ctm;
+//     VotingEscrow veImplV1;
+//     VotingEscrowProxy veProxy;
+//     NodeProperties nodeProperties;
+//     string constant BASE_URI_V1 = "veCTM V1";
+//     address gov;
+//     address committee;
+//     address user;
+//     address treasury;
+//     uint256 CTM_TS = 100_000_000 ether;
+//     uint256 initialBalGov = CTM_TS;
+//     uint256 initialBalUser = CTM_TS;
+//     uint256 constant ONE_YEAR = 365 * 86400;
+//     uint256 constant WEEK = 1 weeks;
+// 
+//     function setUp() public virtual {
+//         gov = makeAddr("gov");
+//         committee = makeAddr("committee");
+//         user = makeAddr("user");
+//         treasury = makeAddr("treasury");
+// 
+//         ctm = new TestERC20("Continuum", "CTM", 18);
+//         veImplV1 = new VotingEscrow();
+//         bytes memory initializerData = abi.encodeWithSignature(
+//             "initialize(address,string)",
+//             address(ctm),
+//             BASE_URI_V1
+//         );
+//         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
+// 
+//         ve = IVotingEscrowUpgradable(address(veProxy));
+// 
+//         ctm.print(user, initialBalUser);
+//         vm.prank(user);
+//         ctm.approve(address(ve), initialBalUser);
+// 
+//         nodeProperties = new NodeProperties(gov, address(ve));
+// 
+//         ve.setUp(gov, address(nodeProperties), address(0), treasury);
+//     }
+// 
+//     modifier prank(address _user) {
+//         vm.startPrank(_user);
+//         _;
+//         vm.stopPrank();
+//     }
+// }
+
+
+contract TestVotingEscrow is Helpers {
+    uint256 id1;
+    uint256 id2;
+    uint256 id3;
+    uint256 id4;
+
     uint256 constant MAXTIME = 4 * 365 * 86400;
     uint256 constant ONE_YEAR = 365 * 86400;
-    uint256 constant WEEK = 1 weeks;
+    uint256 tokenId;
 
-    function setUp() public virtual {
-        gov = makeAddr("gov");
-        committee = makeAddr("committee");
-        user = makeAddr("user");
-        treasury = makeAddr("treasury");
-
-        ctm = new TestERC20("Continuum", "CTM", 18);
-        veImplV1 = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature(
-            "initialize(address,string)",
-            address(ctm),
-            BASE_URI_V1
-        );
-        veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
-
-        ve = IVotingEscrowUpgradable(address(veProxy));
-
-        ctm.print(user, initialBalUser);
-        vm.prank(user);
-        ctm.approve(address(ve), initialBalUser);
-        
-        nodeProperties = new NodeProperties(gov, address(ve));
-
-        ve.setUp(gov, address(nodeProperties), address(0), treasury);
+    // UTILS
+    modifier approveUser2() {
+        vm.prank(user1);
+        ve.setApprovalForAll(user2, true);
+        _;
     }
 
     modifier prank(address _user) {
@@ -63,11 +81,6 @@ contract SetUp is Test {
         _;
         vm.stopPrank();
     }
-}
-
-
-contract CreateLock is SetUp {
-    uint256 tokenId;
 
     // UTILS
     function setUp() public override {
@@ -75,22 +88,22 @@ contract CreateLock is SetUp {
     }
 
     // TESTS
-    function testFuzz_CreateLockBasic(uint256 amount, uint256 endpoint) public prank(user) {
-        amount = bound(amount, 1, initialBalUser);
+    function testFuzz_CreateLockBasic(uint256 amount, uint256 endpoint) public prank(user1) {
+        amount = bound(amount, 1, _100_000);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
     }
 
-    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prank(user) {
-        amount = bound(amount, 1, initialBalUser - 1);
+    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prank(user1) {
+        amount = bound(amount, 1, _100_000 - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
-        amountIncrease = bound(amountIncrease, 1, initialBalUser - amount);
+        amountIncrease = bound(amountIncrease, 1, _100_000 - amount);
         tokenId = ve.create_lock(amount, endpoint);
         ve.increase_amount(tokenId, amountIncrease);
     }
 
-    function testFuzz_IncreaseLockTime(uint256 amount, uint256 endpoint, uint256 increasedTime) public prank(user) {
-        amount = bound(amount, 1, initialBalUser);
+    function testFuzz_IncreaseLockTime(uint256 amount, uint256 endpoint, uint256 increasedTime) public prank(user1) {
+        amount = bound(amount, 1, _100_000);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
         increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
@@ -102,18 +115,18 @@ contract CreateLock is SetUp {
         uint256 endpoint,
         uint256 amountIncrease,
         uint256 increasedTime
-    ) public prank(user) {
-        amount = bound(amount, 1, initialBalUser - 1);
+    ) public prank(user1) {
+        amount = bound(amount, 1, _100_000 - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME - 1 weeks);
-        amountIncrease = bound(amountIncrease, 1, initialBalUser - amount);
+        amountIncrease = bound(amountIncrease, 1, _100_000 - amount);
         increasedTime = bound(increasedTime, endpoint + 1 weeks, block.timestamp + MAXTIME);
         tokenId = ve.create_lock(amount, endpoint);
         ve.increase_amount(tokenId, amountIncrease);
         ve.increase_unlock_time(tokenId, increasedTime);
     }
 
-    function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prank(user) {
-        amount = bound(amount, 1, initialBalUser);
+    function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prank(user1) {
+        amount = bound(amount, 1, _100_000);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         vm.assume(removalTime >= endpoint);
         vm.assume(removalTime <= type(uint48).max);
@@ -122,7 +135,7 @@ contract CreateLock is SetUp {
         ve.withdraw(tokenId);
     }
 
-    function test_LockValueOverInt128() public prank(user) {
+    function test_LockValueOverInt128() public prank(user1) {
         vm.expectRevert(
             abi.encodeWithSelector(
                 SafeCast.SafeCastOverflowedIntDowncast.selector,
@@ -132,110 +145,81 @@ contract CreateLock is SetUp {
         );
         tokenId = ve.create_lock(uint256(int256(type(int128).max)) + 1, block.timestamp + MAXTIME);
     }
-}
 
 
-contract Proxy is SetUp {
-    VotingEscrowV2 veImplV2;
-    bytes initializerDataV2;
-    string constant BASE_URI_V2 = "veCTM V2";
+// contract Proxy is SetUp {
+//     VotingEscrowV2 veImplV2;
+//     bytes initializerDataV2;
+//     string constant BASE_URI_V2 = "veCTM V2";
+// 
+//     // UTILS
+// 
+//     function setUp() public override {
+//         super.setUp();
+// 
+//         veImplV2 = new VotingEscrowV2();
+//         initializerDataV2 = abi.encodeWithSignature(
+//             "initialize(address,string)",
+//             address(ctm),
+//             BASE_URI_V2
+//         );
+// 
+//         ctm.print(gov, initialBalGov);
+//         vm.prank(gov);
+//         ctm.approve(address(ve), initialBalGov);
+//     }
+// 
+//     // TESTS
+//     function test_InitializedStateEqualToInput() public {
+//         string memory baseURI = ve.baseURI();
+//         assertEq(baseURI, BASE_URI_V1);
+//     }
+// 
+//     function test_CannotInitializeTwice() public {
+//         vm.expectRevert(Initializable.InvalidInitialization.selector);
+//         ve.initialize(address(ctm), BASE_URI_V1);
+//     }
+// 
+//     function test_ValidUpgrade() public prank(gov) {
+//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+//         string memory baseURI = ve.baseURI();
+//         assertEq(baseURI, BASE_URI_V2);
+//     }
+// 
+//     function test_UnauthorizedUpgrade() public {
+//         vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
+//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+//         string memory baseURI = ve.baseURI();
+//         assertEq(baseURI, BASE_URI_V1);
+//     }
+// 
+//     function test_CannotUpgradeToSameVersion() public prank(gov) {
+//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+//         string memory baseURI = ve.baseURI();
+//         assertEq(baseURI, BASE_URI_V2);
+//         veImplV2 = new VotingEscrowV2();
+//         vm.expectRevert(Initializable.InvalidInitialization.selector);
+//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+//     }
+// }
 
-    // UTILS
-
-    function setUp() public override {
-        super.setUp();
-
-        veImplV2 = new VotingEscrowV2();
-        initializerDataV2 = abi.encodeWithSignature(
-            "initialize(address,string)",
-            address(ctm),
-            BASE_URI_V2
-        );
-
-        ctm.print(gov, initialBalGov);
-        vm.prank(gov);
-        ctm.approve(address(ve), initialBalGov);
-    }
-
-    // TESTS
-    function test_InitializedStateEqualToInput() public {
-        string memory baseURI = ve.baseURI();
-        assertEq(baseURI, BASE_URI_V1);
-    }
-
-    function test_CannotInitializeTwice() public {
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
-        ve.initialize(address(ctm), BASE_URI_V1);
-    }
-
-    function test_ValidUpgrade() public prank(gov) {
-        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-        string memory baseURI = ve.baseURI();
-        assertEq(baseURI, BASE_URI_V2);
-    }
-
-    function test_UnauthorizedUpgrade() public {
-        vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
-        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-        string memory baseURI = ve.baseURI();
-        assertEq(baseURI, BASE_URI_V1);
-    }
-
-    function test_CannotUpgradeToSameVersion() public prank(gov) {
-        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-        string memory baseURI = ve.baseURI();
-        assertEq(baseURI, BASE_URI_V2);
-        veImplV2 = new VotingEscrowV2();
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
-        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-    }
-}
-
-
-contract Votes is SetUp {
-    address user2;
-    uint256 id1;
-    uint256 id2;
-    uint256 id3;
-    uint256 id4;
-
-    // UTILS
-
-    function setUp() public override {
-        super.setUp();
-
-        user2 = makeAddr("user");
-
-        ctm.print(user2, initialBalUser);
-        vm.prank(user2);
-        ctm.approve(address(ve), initialBalUser);
-
-        ctm.print(gov, initialBalGov);
-
-        vm.startPrank(gov);
-
-        ctm.approve(address(ve), initialBalGov);
-        ve.enableLiquidations();
-
-        vm.stopPrank();
-    }
 
     function skip() internal {
         vm.warp(block.timestamp + 1);
     }
 
     function _weekTsInXYears(uint256 _years) internal pure returns (uint256) {
-        return (_years * ONE_YEAR) / WEEK * WEEK;
+        return (_years * ONE_YEAR) / 1 weeks * 1 weeks;
     }
 
     // TESTS
-    function test_FailSameTimestamp() public prank(user) {
+    function test_FailSameTimestamp() public prank(user1) {
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        vm.expectRevert(VotingEscrow.SameTimestamp.selector);
+        vm.expectRevert(IVotingEscrow.SameTimestamp.selector);
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
     }
 
-    function test_GetVePower() public prank(user) {
+    function test_GetVePower() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 vepowerStartEth = ve.balanceOfNFT(id1) / 1e18;
@@ -253,30 +237,30 @@ contract Votes is SetUp {
         uint256 vepowerEndEth = ve.balanceOfNFT(id1) / 1e18;
         assertEq(vepowerEndEth, 0);
 
-        uint256 balBefore = ctm.balanceOf(user);
+        uint256 balBefore = ctm.balanceOf(user1);
         ve.withdraw(id1);
-        uint256 balAfter = ctm.balanceOf(user);
+        uint256 balAfter = ctm.balanceOf(user1);
         assertEq(balAfter, balBefore + uint256(int256(_value)));
     }
 
-    function test_OnlyVotingTokensCount() public prank(user) {
+    function test_OnlyVotingTokensCount() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 vePowerBefore = ve.balanceOfNFT(id1);
-        uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user).length;
+        uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user1).length;
         skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         uint256 vePowerAfter = ve.balanceOfNFTAt(id1, block.timestamp - 1);
-        uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user).length;
+        uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user1).length;
         assertEq(idLengthAfter, idLengthBefore + 1);
         assertEq(vePowerAfter, vePowerBefore);
     }
 
-    function test_DelegateTokens() public {
-        vm.startPrank(user);
+    function test_DelegateTokens() public prank(user1) {
+        vm.startPrank(user1);
 
         console.log("Pre-check: User and user2 should have no delegated tokens");
-        uint256[] memory userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         uint256[] memory user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 0);
@@ -284,14 +268,14 @@ contract Votes is SetUp {
 
         console.log("Create token 1: User should have one delegated (1), one owned (1)");
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDs.length, 1);
         assertEq(userDelegatedIDs[0], id1);
         skip(1);
 
         console.log("Create token 2: User should have two delegated (1,2), two owned (1,2)");
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDs.length, 2);
         assertEq(userDelegatedIDs[0], id1);
         assertEq(userDelegatedIDs[1], id2);
@@ -299,41 +283,41 @@ contract Votes is SetUp {
 
         console.log("Delegate user => user2: User should have zero delegated, two owned (1,2) and user2 should have two delegated (1,2)");
         ve.delegate(user2);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 2);
         assertEq(user2DelegatedIDs[0], id1);
         assertEq(user2DelegatedIDs[1], id2);
-        assertEq(ve.ownerOf(id1), user);
-        assertEq(ve.ownerOf(id2), user);
+        assertEq(ve.ownerOf(id1), user1);
+        assertEq(ve.ownerOf(id2), user1);
         skip(1);
 
         console.log("Create token 3: User should have zero delegated, three owned (1,2,3) and user2 should have three delegated (1,2,3)");
         id3 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 3);
         assertEq(user2DelegatedIDs[0], id1);
         assertEq(user2DelegatedIDs[1], id2);
         assertEq(user2DelegatedIDs[2], id3);
-        assertEq(ve.ownerOf(id1), user);
-        assertEq(ve.ownerOf(id2), user);
-        assertEq(ve.ownerOf(id3), user);
+        assertEq(ve.ownerOf(id1), user1);
+        assertEq(ve.ownerOf(id2), user1);
+        assertEq(ve.ownerOf(id3), user1);
         skip(1);
 
         console.log("Transfer token 2: User should have zero delegated, two owned (1,3) and user2 should have two delegated (1,3), one owned (2)");
-        ve.transferFrom(user, user2, id2);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        ve.transferFrom(user1, user2, id2);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 2);
         assertEq(user2DelegatedIDs[0], id1);
         assertEq(user2DelegatedIDs[1], id3);
-        assertEq(ve.ownerOf(id1), user);
+        assertEq(ve.ownerOf(id1), user1);
         assertEq(ve.ownerOf(id2), user2);
-        assertEq(ve.ownerOf(id3), user);
+        assertEq(ve.ownerOf(id3), user1);
         skip(1);
 
         vm.stopPrank();
@@ -341,21 +325,21 @@ contract Votes is SetUp {
 
         console.log("Delegate user2 => user2: User should have zero delegated, two owned (1,3) and user2 should have three delegated (1,3,2), one owned (2)");
         ve.delegate(user2);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 3);
         assertEq(user2DelegatedIDs[0], id1);
         assertEq(user2DelegatedIDs[1], id3);
         assertEq(user2DelegatedIDs[2], id2);
-        assertEq(ve.ownerOf(id1), user);
+        assertEq(ve.ownerOf(id1), user1);
         assertEq(ve.ownerOf(id2), user2);
-        assertEq(ve.ownerOf(id3), user);
+        assertEq(ve.ownerOf(id3), user1);
         skip(1);
 
         console.log("Create token 4: User should have zero delegated, two owned (1,3) and user2 should have four delegated (1,3,2,4), two owned (2,4)");
         id4 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 4);
@@ -363,15 +347,15 @@ contract Votes is SetUp {
         assertEq(user2DelegatedIDs[1], id3);
         assertEq(user2DelegatedIDs[2], id2);
         assertEq(user2DelegatedIDs[3], id4);
-        assertEq(ve.ownerOf(id1), user);
+        assertEq(ve.ownerOf(id1), user1);
         assertEq(ve.ownerOf(id2), user2);
-        assertEq(ve.ownerOf(id3), user);
+        assertEq(ve.ownerOf(id3), user1);
         assertEq(ve.ownerOf(id4), user2);
         skip(1);
 
         console.log("Delegate user2 => user: User should have two delegated, two owned (1,3) and user2 should have two delegated (1,3), two owned (2,4)");
-        ve.delegate(user);
-        userDelegatedIDs = ve.tokenIdsDelegatedTo(user);
+        ve.delegate(user1);
+        userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
         assertEq(userDelegatedIDs.length, 2);
         assertEq(user2DelegatedIDs.length, 2);
@@ -379,21 +363,21 @@ contract Votes is SetUp {
         assertEq(userDelegatedIDs[1], id4);
         assertEq(user2DelegatedIDs[0], id1);
         assertEq(user2DelegatedIDs[1], id3);
-        assertEq(ve.ownerOf(id1), user);
+        assertEq(ve.ownerOf(id1), user1);
         assertEq(ve.ownerOf(id2), user2);
-        assertEq(ve.ownerOf(id3), user);
+        assertEq(ve.ownerOf(id3), user1);
         assertEq(ve.ownerOf(id4), user2);
 
         vm.stopPrank();
     }
 
-    function test_GetVotes() public prank(user) {
+    function test_GetVotes() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user2);
         uint256 vePower1Start = ve.balanceOfNFT(id1);
         uint256 vePower2Start = ve.balanceOfNFT(id2);
-        uint256 votesUserStart = ve.getVotes(user);
+        uint256 votesUserStart = ve.getVotes(user1);
         uint256 votesUser2Start = ve.getVotes(user2);
         skip(1);
         uint256 totalSupplyStart = ve.getPastTotalSupply(1);
@@ -403,7 +387,7 @@ contract Votes is SetUp {
         ve.delegate(user2);
         vePower1Start = ve.balanceOfNFT(id1);
         vePower2Start = ve.balanceOfNFT(id2);
-        uint256 votesUserDelegated = ve.getVotes(user);
+        uint256 votesUserDelegated = ve.getVotes(user1);
         uint256 votesUser2Delegated = ve.getVotes(user2);
         assertEq(votesUserDelegated, 0);
         assertEq(votesUser2Delegated, vePower1Start + vePower2Start);
@@ -412,51 +396,51 @@ contract Votes is SetUp {
         vm.warp(WEEK_2_YEARS);
         uint256 vePower1Halfway = ve.balanceOfNFT(id1);
         uint256 vePower2Halfway = ve.balanceOfNFT(id2);
-        uint256 votesUser1Halfway = ve.getVotes(user);
+        uint256 votesUser1Halfway = ve.getVotes(user1);
         uint256 votesUser2Halfway = ve.getVotes(user2);
         assertEq(votesUser1Halfway, 0);
         assertEq(votesUser2Halfway, vePower1Halfway + vePower2Halfway);
     }
 
-    function test_GetPastVotes() public prank(user) {
+    function test_GetPastVotes() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         skip(1);
         id2 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        uint256 votesUserStart = ve.getVotes(user);
+        uint256 votesUserStart = ve.getVotes(user1);
         uint256 votesUser2Start = ve.getVotes(user2);
 
         uint256 WEEK_2_YEARS = _weekTsInXYears(2);
         vm.warp(WEEK_2_YEARS);
         ve.delegate(user2);
-        uint256 pastVotesUserStart = ve.getPastVotes(user, 2);
+        uint256 pastVotesUserStart = ve.getPastVotes(user1, 2);
         uint256 pastVotesUser2Start = ve.getPastVotes(user2, 2);
         assertEq(pastVotesUserStart, votesUserStart);
         assertEq(pastVotesUser2Start, votesUser2Start);
-        uint256 votesUserHalfway = ve.getVotes(user);
+        uint256 votesUserHalfway = ve.getVotes(user1);
         uint256 votesUser2Halfway = ve.getVotes(user2);
 
         vm.warp(WEEK_4_YEARS);
-        ve.delegate(user);
-        uint256 pastVotesUserHalfway = ve.getPastVotes(user, WEEK_2_YEARS);
+        ve.delegate(user1);
+        uint256 pastVotesUserHalfway = ve.getPastVotes(user1, WEEK_2_YEARS);
         uint256 pastVotesUser2Halfway = ve.getPastVotes(user2, WEEK_2_YEARS);
         assertEq(pastVotesUserHalfway, votesUserHalfway);
         assertEq(pastVotesUser2Halfway, votesUser2Halfway);
     }
 
-    function test_MergeCombinesVotes() public prank(user) {
+    function test_MergeCombinesVotes() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         uint256 WEEK_2_YEARS = _weekTsInXYears(2);
         id1 = ve.create_lock(500 ether, WEEK_4_YEARS);
         skip(1);
         id2 = ve.create_lock(1000 ether, WEEK_2_YEARS);
-        uint256 individualVotesEth = ve.getVotes(user) / 1e18;
+        uint256 individualVotesEth = ve.getVotes(user1) / 1e18;
         uint256 vePower1EthBefore = ve.balanceOfNFT(id1) / 1e18;
         uint256 vePower2EthBefore = ve.balanceOfNFT(id2) / 1e18;
         assertEq(vePower1EthBefore, vePower2EthBefore);
         skip(1);
         ve.merge(id1, id2);
-        uint256 mergedVotesEth = ve.getVotes(user) / 1e18;
+        uint256 mergedVotesEth = ve.getVotes(user1) / 1e18;
         uint256 vePower1EthAfter = ve.balanceOfNFT(id1) / 1e18;
         uint256 vePower2EthAfter = ve.balanceOfNFT(id2) / 1e18;
         assertEq(mergedVotesEth, individualVotesEth + 2); // the lock time of merge got rounded up
@@ -464,16 +448,16 @@ contract Votes is SetUp {
         assertEq(vePower2EthAfter, mergedVotesEth);
     }
 
-    function test_SplitSeparatesVotes() public prank(user) {
+    function test_SplitSeparatesVotes() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        uint256 votesBeforeEth = ve.getVotes(user) / 1e18;
+        uint256 votesBeforeEth = ve.getVotes(user1) / 1e18;
         (,uint256 _endBefore) = ve.locked(id1);
         skip(1);
         id2 = ve.split(id1, 980 ether);
         (int128 _value1, uint256 _end1) = ve.locked(id1);
         (int128 _value2, uint256 _end2) = ve.locked(id2);
-        uint256 votesAfterEth = ve.getVotes(user) / 1e18;
+        uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
         assertEq(votesAfterEth, votesBeforeEth);
         assertEq(_value1, 20 ether);
         assertEq(_value2, 980 ether);
@@ -481,17 +465,17 @@ contract Votes is SetUp {
         assertEq(_end2, _endBefore);
     }
 
-    function test_LiquidateInvalidatesVotes() public prank(user) {
+    function test_LiquidateInvalidatesVotes() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
-        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user).length;
-        uint256 balanceUserBeforeEth = ctm.balanceOf(user) / 1e18;
+        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user1).length;
+        uint256 balanceUserBeforeEth = ctm.balanceOf(user1) / 1e18;
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
         skip(1);
         ve.liquidate(id1);
-        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user).length;
-        uint256 votesAfterEth = ve.getVotes(user) / 1e18;
-        uint256 balanceUserAfterEth = ctm.balanceOf(user) / 1e18;
+        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user1).length;
+        uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
+        uint256 balanceUserAfterEth = ctm.balanceOf(user1) / 1e18;
         uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
         assertEq(lengthAfter, lengthBefore - 1);
         assertEq(votesAfterEth, 0);
@@ -499,89 +483,48 @@ contract Votes is SetUp {
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 49);
     }
 
-    function test_Liquidate1YearBefore() public prank(user) {
+    function test_Liquidate1YearBefore() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         uint256 WEEK_3_YEARS = _weekTsInXYears(3);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
-        uint256 balanceUserBeforeEth = ctm.balanceOf(user) / 1e18;
+        uint256 balanceUserBeforeEth = ctm.balanceOf(user1) / 1e18;
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
         vm.warp(WEEK_3_YEARS);
         ve.liquidate(id1);
-        uint256 votesAfterEth = ve.getVotes(user) / 1e18;
-        uint256 balanceUserAfterEth = ctm.balanceOf(user) / 1e18;
+        uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
+        uint256 balanceUserAfterEth = ctm.balanceOf(user1) / 1e18;
         uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
         assertEq(votesAfterEth, 0);
         assertEq(balanceUserAfterEth, balanceUserBeforeEth + 87); // should be 5/8s of original lock = 87.5 (truncation)
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5 (truncation)
     }
 
-    function test_LiquidateAfter4Years() public prank(user) {
+    function test_LiquidateAfter4Years() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury);
         vm.warp(WEEK_4_YEARS);
         ve.liquidate(id1);
-        uint256 balanceUserAfterEth = ctm.balanceOf(user);
+        uint256 balanceUserAfterEth = ctm.balanceOf(user1);
         uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury);
-        assertEq(balanceUserAfterEth, initialBalUser);
+        assertEq(balanceUserAfterEth, _100_000);
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth);
-    }
-}
-
-
-contract MergeSplitLiquidate is SetUp {
-    address user2;
-    uint256 id1;
-    uint256 id2;
-
-    // UTILS
-    modifier approveUser2() {
-        vm.prank(user);
-        ve.setApprovalForAll(user2, true);
-        _;
-    }
-
-    function setUp() public override {
-        super.setUp();
-
-        user2 = makeAddr("user2");
-
-        ctm.print(user2, initialBalUser);
-        vm.prank(user2);
-        ctm.approve(address(ve), initialBalUser);
-
-        ctm.print(gov, initialBalGov);
-
-        vm.startPrank(gov);
-
-        ctm.approve(address(ve), initialBalGov);
-        ve.enableLiquidations();
-
-        vm.stopPrank();
-    }
-
-    function skip() internal {
-        vm.warp(block.timestamp + 1);
-    }
-
-    function _weekTsInXYears(uint256 _years) internal pure returns (uint256) {
-        return (_years * ONE_YEAR) / WEEK * WEEK;
     }
 
     function _weekTsInXWeeks(uint256 _weeks) internal pure returns (uint256) {
-        return (_weeks * WEEK) / WEEK * WEEK;
+        return (_weeks * 1 weeks) / 1 weeks * 1 weeks;
     }
 
     // TESTS
     function test_ApprovedMerge() public approveUser2 prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         ve.merge(id1, id2);
-        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDsBefore[0], 1);
         assertEq(userDelegatedIDsBefore[1], 2);
         assertEq(userDelegatedIDsAfter[0], 2);
@@ -589,52 +532,52 @@ contract MergeSplitLiquidate is SetUp {
 
     function test_NotApprovedMerge() public prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id2 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                VotingEscrow.NotApproved.selector,
+                IVotingEscrow.NotApproved.selector,
                 user2,
                 id1
             )
         );
         ve.merge(id1, id2);
-        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDsAfter[0], userDelegatedIDsBefore[0]);
         assertEq(userDelegatedIDsAfter[1], userDelegatedIDsBefore[1]);
     }
 
-    function test_MergeWithTwoNonVoting() public prank(user) {
+    function test_MergeWithTwoNonVoting() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
         ve.merge(id1, id2);
-        uint256 votes = ve.getVotes(user);
+        uint256 votes = ve.getVotes(user1);
         assertEq(votes, 0);
     }
 
-    function test_CannotMergeVotingWithNonVoting() public prank(user) {
+    function test_CannotMergeVotingWithNonVoting() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
         vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
         ve.merge(id1, id2);
     }
 
-    function testFuzz_Merge(uint256 _value1, uint256 _value2, uint256 _end1, uint256 _end2) public prank(user) {
+    function testFuzz_Merge(uint256 _value1, uint256 _value2, uint256 _end1, uint256 _end2) public prank(user1) {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
         uint256 MAX_LOCK = _weekTsInXYears(4);
         _end1 = bound(_end1, MIN_LOCK, MAX_LOCK);
         _end2 = bound(_end2, MIN_LOCK, MAX_LOCK);
-        _value1 = bound(_value1, 1, initialBalUser / 2);
-        _value2 = bound(_value2, 1, initialBalUser / 2);
+        _value1 = bound(_value1, 1, _100_000 / 2);
+        _value2 = bound(_value2, 1, _100_000 / 2);
 
         id1 = ve.create_lock(_value1, _end1);
         (int128 _value1Before128, uint256 _end1Before) = ve.locked(id1);
@@ -651,9 +594,9 @@ contract MergeSplitLiquidate is SetUp {
         uint256 _value2After = SafeCast.toUint256(int256(_value2After128));
         uint256 weightedEnd = ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
         // uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
-        uint256 unlockTime = ((weightedEnd / WEEK) * WEEK) + WEEK;
+        uint256 unlockTime = ((weightedEnd / 1 weeks) * 1 weeks) + 1 weeks;
         if (unlockTime > MAX_LOCK) {
-            unlockTime -= WEEK;
+            unlockTime -= 1 weeks;
         }
 
         assertEq(_value1After, 0);
@@ -665,7 +608,7 @@ contract MergeSplitLiquidate is SetUp {
         );
     }
 
-    function test_SplitValueOverMaxInt128() public prank(user) {
+    function test_SplitValueOverMaxInt128() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         skip(1);
@@ -681,11 +624,11 @@ contract MergeSplitLiquidate is SetUp {
 
     function test_ApprovedSplit() public approveUser2 prank(user2) { 
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         ve.split(id1, 500 ether);
-        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDsBefore[0], 1);
         assertEq(userDelegatedIDsAfter[0], 1);
         assertEq(userDelegatedIDsAfter[1], 2);
@@ -693,27 +636,27 @@ contract MergeSplitLiquidate is SetUp {
 
     function test_NotApprovedSplit() public prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                VotingEscrow.NotApproved.selector,
+                IVotingEscrow.NotApproved.selector,
                 user2,
                 id1
             )
         );
         ve.split(id1, 500 ether);
-        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user);
+        uint256[] memory userDelegatedIDsAfter = ve.tokenIdsDelegatedTo(user1);
         assertEq(userDelegatedIDsAfter[0], userDelegatedIDsBefore[0]);
     }
 
-    function test_SplitNonVoting() public prank(user) {
+    function test_SplitNonVoting() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user);
+        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
         id2 = ve.split(id1, 500 ether);
-        uint256 votes = ve.getVotes(user);
+        uint256 votes = ve.getVotes(user1);
         bool id1NonVoting = ve.nonVoting(id1);
         bool id2NonVoting = ve.nonVoting(id2);
         assertEq(id1NonVoting, true);
@@ -721,11 +664,11 @@ contract MergeSplitLiquidate is SetUp {
         assertEq(votes, 0);
     }
 
-    function testFuzz_Split(uint256 _initialValue, uint256 _extractedValue, uint256 _initialEnd) public prank(user) {
+    function testFuzz_Split(uint256 _initialValue, uint256 _extractedValue, uint256 _initialEnd) public prank(user1) {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
         uint256 MAX_LOCK = _weekTsInXYears(4);
         _initialEnd = bound(_initialEnd, MIN_LOCK, MAX_LOCK);
-        _initialValue = bound(_initialValue, 2, initialBalUser / 2);
+        _initialValue = bound(_initialValue, 2, _100_000 / 2);
         _extractedValue = bound(_extractedValue, 1, _initialValue - 1);
 
         id1 = ve.create_lock(_initialValue, _initialEnd);
@@ -744,18 +687,18 @@ contract MergeSplitLiquidate is SetUp {
 
     function test_ApprovedLiquidation() public approveUser2 prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user);
-        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user).length;
+        id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
+        uint256 lengthBefore = ve.tokenIdsDelegatedTo(user1).length;
         vm.warp(WEEK_4_YEARS);
         ve.liquidate(id1);
-        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user).length;
+        uint256 lengthAfter = ve.tokenIdsDelegatedTo(user1).length;
         assertEq(lengthAfter, lengthBefore - 1);
     }
 
-    function testFuzz_Liquidate(uint256 _value, uint256 _end, uint256 _liquidationTs) public prank(user) {
+    function testFuzz_Liquidate(uint256 _value, uint256 _end, uint256 _liquidationTs) public prank(user1) {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
         uint256 MAX_LOCK = _weekTsInXYears(4);
-        _value = bound(_value, 101 gwei, initialBalUser);
+        _value = bound(_value, 101 gwei, _100_000);
         _end = bound(_end, MIN_LOCK, MAX_LOCK);
         _liquidationTs = bound(_liquidationTs, MIN_LOCK + 1, MAX_LOCK + 1);
 

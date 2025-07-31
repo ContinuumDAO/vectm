@@ -1,9 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
+// SPDX-License-Identifier: MIT
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+pragma solidity 0.8.27;
 
-contract TestERC20 is ERC20 {
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ITestERC20} from "./ITestERC20.sol";
+
+contract TestERC20 is ERC20, ITestERC20 {
     uint8 _decimals;
     address public admin;
 
@@ -12,23 +14,21 @@ contract TestERC20 is ERC20 {
         _decimals = decimals_;
     }
 
-    function decimals() public view override returns (uint8) {
+    function decimals() public view override(ERC20, ITestERC20) returns (uint8) {
         return _decimals;
     }
 
-    // testing only
     function print(address to, uint256 amount) external {
         _mint(to, amount);
     }
 
-    function mint(address to, uint256 amount) external {
+    function mint(address to, uint256 amount) external override {
         require(msg.sender == admin);
         _mint(to, amount);
     }
 
-    function burn(address from) external {
+    function burn(address from) external override {
         require(msg.sender == admin);
         _burn(from, balanceOf(from));
     }
-
 }

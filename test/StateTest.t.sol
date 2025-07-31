@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
 
-import "forge-std/Test.sol";
-import {TestERC20} from "../src/TestERC20.sol";
-import {VotingEscrow} from "../src/VotingEscrow.sol";
-import {VotingEscrowProxy} from "../src/VotingEscrowProxy.sol";
-import {CTMDAOGovernor} from "../src/CTMDAOGovernor.sol";
-import {NodeProperties} from "../src/NodeProperties.sol";
-import {Rewards} from "../src/Rewards.sol";
+pragma solidity 0.8.27;
+
+import {Test} from "forge-std/Test.sol";
+
+import {TestERC20} from "../src/mocks/TestERC20.sol";
+import {VotingEscrow} from "../src/token/VotingEscrow.sol";
+import {VotingEscrowProxy} from "../src/utils/VotingEscrowProxy.sol";
+import {CTMDAOGovernor} from "../src/gov/CTMDAOGovernor.sol";
+import {NodeProperties} from "../src/node/NodeProperties.sol";
+import {Rewards} from "../src/node/Rewards.sol";
 
 contract StateTest is Test {
     TestERC20 ctm;

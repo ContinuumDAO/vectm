@@ -1,18 +1,14 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.23;
+// SPDX-License-Identifier: BSL-1.1
 
-import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+pragma solidity 0.8.27;
 
-interface IVotingEscrow {
-    function ownerOf(uint256 _tokenId) external view returns (address);
-    function balanceOfNFT(uint256 _tokenId) external view returns (uint256);
-    function clock() external view returns (uint48);
-}
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 
-interface IRewards {
-    function nodeRewardThreshold() external view returns (uint256);
-}
+import {IVotingEscrow} from "../token/IVotingEscrow.sol";
+import {IRewards} from "./IRewards.sol";
 
 contract NodeProperties {
     using Checkpoints for Checkpoints.Trace208;
@@ -59,7 +55,7 @@ contract NodeProperties {
     // user adds their veCTM to a node, requirements: caller is owner of token ID, token ID/node ID are not
     // connected to another nodeID/token ID, veCTM voting power reaches the node reward threshold (attachment threshold)
     function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
-        address _owner = IVotingEscrow(ve).ownerOf(_tokenId);
+        address _owner = IERC721(ve).ownerOf(_tokenId);
         bytes32 _nodeId = _nodeInfo.nodeId;
         require(msg.sender == _owner);
         require(_attachedNodeId[_tokenId] == bytes32(""));
@@ -76,7 +72,7 @@ contract NodeProperties {
     function detachNode(uint256 _tokenId) external onlyGov {
         bytes32 _nodeId = _attachedNodeId[_tokenId];
         require(_nodeId != bytes32(""));
-        address _account = IVotingEscrow(ve).ownerOf(_tokenId);
+        address _account = IERC721(ve).ownerOf(_tokenId);
         _nodeInfoOf[_tokenId][_account] = NodeInfo("", "", bytes32(""), [0,0,0,0], "", 0, 0, "", "", "");
         _attachedNodeId[_tokenId] = bytes32("");
         _attachedTokenId[_nodeId] = 0;
@@ -87,7 +83,7 @@ contract NodeProperties {
 
     // Set the node removal status to either true or false. This means it is flagged for detachment by governance vote.
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
-        require(msg.sender == IVotingEscrow(ve).ownerOf(_tokenId));
+        require(msg.sender == IERC721(ve).ownerOf(_tokenId));
         _toBeRemoved[_tokenId] = _status;
     }
 
@@ -98,7 +94,7 @@ contract NodeProperties {
             revert NodeNotAttached(_tokenId);
         }
         uint208 _nodeQualityOf208 = SafeCast.toUint208(_nodeQualityOf);
-        _nodeQualitiesOf[_tokenId].push(IVotingEscrow(ve).clock(), _nodeQualityOf208);
+        _nodeQualitiesOf[_tokenId].push(IERC6372(ve).clock(), _nodeQualityOf208);
     }
 
     function setRewards(address _rewards) external {
