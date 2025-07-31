@@ -2,12 +2,12 @@
 pragma solidity ^0.8.23;
 
 import {Script} from "forge-std/Script.sol";
-import "forge-std/console.sol";
-import {IVotingEscrow} from "../build/VotingEscrow.sol";
+import {console} from "forge-std/console.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 contract Read is Script {
     address veAddr = 0xAF0D3b20ac92e6825014549bB3FA937b3BF5731A;
-    IVotingEscrow ve = IVotingEscrow(veAddr);
+    IVotes ve = IVotes(veAddr);
 
     function run() external {
         // address account = vm.addr(vm.envUint("PRIVATE_KEY"));

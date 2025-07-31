@@ -11,8 +11,10 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IVotingEscrow} from "../token/IVotingEscrow.sol";
 import {INodeProperties} from "./INodeProperties.sol";
 import {ISwapRouter} from "./ISwapRouter.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import {IRewards} from "./IRewards.sol";
 
-contract Rewards {
+contract Rewards is IRewards {
     using Checkpoints for Checkpoints.Trace208;
 
     struct Fee {
@@ -46,25 +48,8 @@ contract Rewards {
     mapping(uint256 => uint48) internal _lastClaimOf; // token ID => midnight ts starting last day they claimed
     mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
-    // events
-    event BaseEmissionRateChange(uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate);
-    event NodeEmissionRateChange(uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate);
-    event NodeRewardThresholdChange(uint256 _oldMinimumThreshold, uint256 _newMinimumThreshold);
-    event RewardTokenChange(address indexed _oldRewardToken, address indexed _newRewardToken);
-    event FeeTokenChange(address indexed _oldFeeToken, address indexed _newFeeToken);
-    event Claim(uint256 indexed _tokenId, uint256 _claimedReward, address indexed _rewardToken);
-    event Withdrawal(address indexed _token, address indexed _recipient, uint256 _amount);
-    event FeesReceived(address indexed _token, uint256 _amount, uint256 indexed _fromChainId);
-    event Swap(address indexed _feeToken, address indexed _rewardToken, uint256 _amountIn, uint256 _amountOut);
-
-    // errors
-    error ERC6372InconsistentClock();
-    error NoUnclaimedRewards();
-    error InsufficientContractBalance(uint256 _balance, uint256 _required);
-    error FeesAlreadyReceivedFromChain();
-
     modifier onlyGov() {
-        require(msg.sender == gov);
+        if (msg.sender != gov) revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
         _;
     }
 
@@ -163,13 +148,13 @@ contract Rewards {
     }
 
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
-        require(_token == feeToken || _token == rewardToken);
+        if (_token != feeToken && _token != rewardToken) revert Rewards_InvalidToken(_token);
 
         if (_feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()].amount != 0) {
-            revert FeesAlreadyReceivedFromChain();
+            revert Rewards_FeesAlreadyReceivedFromChain();
         }
 
-        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
+        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert Rewards_TransferFailed();
 
         _feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
@@ -186,7 +171,8 @@ contract Rewards {
         uint256 _uniFeeWETH,
         uint256 _uniFeeReward
     ) external returns (uint256 _amountOut) {
-        require(_swapEnabled);
+        if (!_swapEnabled) revert Rewards_SwapDisabled();
+
         uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
 
         if (_amountIn > _contractBalance) {
@@ -238,12 +224,12 @@ contract Rewards {
 
     // public mutable
     function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
-        require(IERC721(ve).ownerOf(_tokenId) == msg.sender, "Only owner of token ID can claim rewards.");
+        if (msg.sender != IERC721(ve).ownerOf(_tokenId)) revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
 
         uint48 _latestMidnight = _getLatestMidnight();
 
         if (_latestMidnight == _lastClaimOf[_tokenId]) {
-            revert NoUnclaimedRewards();
+            revert Rewards_NoUnclaimedRewards();
         }
 
         _updateLatestMidnight(_latestMidnight);
@@ -254,12 +240,12 @@ contract Rewards {
         uint256 _contractBalance = IERC20(_rewardToken).balanceOf(address(this));
 
         if (_contractBalance < _reward) {
-            revert InsufficientContractBalance(_contractBalance, _reward);
+            revert Rewards_InsufficientContractBalance(_contractBalance, _reward);
         }
 
         _lastClaimOf[_tokenId] = _latestMidnight;
 
-        require(IERC20(_rewardToken).transfer(_to, _reward));
+        if (!IERC20(_rewardToken).transfer(_to, _reward)) revert Rewards_TransferFailed();
 
         emit Claim(_tokenId, _reward, _rewardToken);
 
@@ -289,11 +275,11 @@ contract Rewards {
     }
 
     function _withdrawToken(address _token, address _recipient, uint256 _amount) internal {
-        require(IERC20(_token).transfer(_recipient, _amount));
+        if (!IERC20(_token).transfer(_recipient, _amount)) revert Rewards_TransferFailed();
     }
 
     function _setBaseEmissionRate(uint256 _baseEmissionRate) internal {
-        require(_baseEmissionRate <= MULTIPLIER / 100, "Cannot set base rewards per vepower-day higher than 1%.");
+        if (_baseEmissionRate > MULTIPLIER / 100) revert Rewards_EmissionRateChangeTooHigh();
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
             _baseEmissionRates.push(IERC6372(ve).clock(), _baseEmissionRate208);
@@ -301,7 +287,7 @@ contract Rewards {
     }
 
     function _setNodeEmissionRate(uint256 _nodeEmissionRate) internal {
-        require(_nodeEmissionRate <= MULTIPLIER / 100, "Cannot set node rewards per vepower-day higher than 1%.");
+        if (_nodeEmissionRate > MULTIPLIER / 100) revert Rewards_EmissionRateChangeTooHigh();
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
             _nodeEmissionRates.push(IERC6372(ve).clock(), _nodeEmissionRate208);

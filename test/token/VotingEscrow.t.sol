@@ -9,56 +9,6 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {Helpers} from "../helpers/Helpers.sol";
 
-// contract SetUp is Test {
-//     TestERC20 ctm;
-//     VotingEscrow veImplV1;
-//     VotingEscrowProxy veProxy;
-//     NodeProperties nodeProperties;
-//     string constant BASE_URI_V1 = "veCTM V1";
-//     address gov;
-//     address committee;
-//     address user;
-//     address treasury;
-//     uint256 CTM_TS = 100_000_000 ether;
-//     uint256 initialBalGov = CTM_TS;
-//     uint256 initialBalUser = CTM_TS;
-//     uint256 constant ONE_YEAR = 365 * 86400;
-//     uint256 constant WEEK = 1 weeks;
-// 
-//     function setUp() public virtual {
-//         gov = makeAddr("gov");
-//         committee = makeAddr("committee");
-//         user = makeAddr("user");
-//         treasury = makeAddr("treasury");
-// 
-//         ctm = new TestERC20("Continuum", "CTM", 18);
-//         veImplV1 = new VotingEscrow();
-//         bytes memory initializerData = abi.encodeWithSignature(
-//             "initialize(address,string)",
-//             address(ctm),
-//             BASE_URI_V1
-//         );
-//         veProxy = new VotingEscrowProxy(address(veImplV1), initializerData);
-// 
-//         ve = IVotingEscrowUpgradable(address(veProxy));
-// 
-//         ctm.print(user, initialBalUser);
-//         vm.prank(user);
-//         ctm.approve(address(ve), initialBalUser);
-// 
-//         nodeProperties = new NodeProperties(gov, address(ve));
-// 
-//         ve.setUp(gov, address(nodeProperties), address(0), treasury);
-//     }
-// 
-//     modifier prank(address _user) {
-//         vm.startPrank(_user);
-//         _;
-//         vm.stopPrank();
-//     }
-// }
-
-
 contract TestVotingEscrow is Helpers {
     uint256 id1;
     uint256 id2;
@@ -215,7 +165,7 @@ contract TestVotingEscrow is Helpers {
     // TESTS
     function test_FailSameTimestamp() public prank(user1) {
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        vm.expectRevert(IVotingEscrow.SameTimestamp.selector);
+        vm.expectRevert(IVotingEscrow.VotingEscrow_SameTimestamp.selector);
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
     }
 
@@ -539,7 +489,7 @@ contract TestVotingEscrow is Helpers {
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IVotingEscrow.NotApproved.selector,
+                IVotingEscrow.VotingEscrow_OnlyAuthorized.selector,
                 user2,
                 id1
             )
@@ -641,7 +591,7 @@ contract TestVotingEscrow is Helpers {
         uint256[] memory userDelegatedIDsBefore = ve.tokenIdsDelegatedTo(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IVotingEscrow.NotApproved.selector,
+                IVotingEscrow.VotingEscrow_OnlyAuthorized.selector,
                 user2,
                 id1
             )

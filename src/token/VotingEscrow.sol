@@ -7,7 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -16,6 +16,7 @@ import {INodeProperties} from "../node/INodeProperties.sol";
 import {IRewards} from "../node/IRewards.sol";
 import {IVotingEscrow} from "./IVotingEscrow.sol";
 import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 /**
  * @title Voting Escrow
@@ -39,7 +40,7 @@ import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
  * 0 +--------+------> time
  *       maxtime (4 years?)
  */
-contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVotes, UUPSUpgradeable {
+contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPSUpgradeable {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
 
     /// @notice State variables
@@ -116,27 +117,24 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     /// @notice Modifiers
     ///
     modifier nonreentrant() {
-        require(_entered_state == NOT_ENTERED);
+        if (_entered_state != NOT_ENTERED) revert VotingEscrow_Reentrant();
         _entered_state = ENTERED;
         _;
         _entered_state = NOT_ENTERED;
     }
 
     modifier onlyGov() {
-        require(msg.sender == governor, "ContinuumDAO: Only Governor can perform this operation.");
+        if (msg.sender != governor) revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
         _;
     }
 
     modifier checkNotAttached(uint256 _tokenId) {
-        require(
-            INodeProperties(nodeProperties).attachedNodeId(_tokenId) == bytes32(""),
-            "Detach node before interacting with token ID."
-        );
+        if (INodeProperties(nodeProperties).attachedNodeId(_tokenId) != bytes32("")) revert VotingEscrow_NodeAttached(_tokenId);
         _;
     }
 
     modifier checkNoRewards(uint256 _tokenId) {
-        require(IRewards(rewards).unclaimedRewards(_tokenId) == 0, "Claim rewards before interacting with token ID.");
+        if (IRewards(rewards).unclaimedRewards(_tokenId) != 0) revert VotingEscrow_UnclaimedRewards(_tokenId);
         _;
     }
 
@@ -196,9 +194,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
         LockedBalance memory _locked = locked[_tokenId];
 
-        require(_value > 0); // dev: need non-zero value
-        require(_locked.amount > 0, "No existing lock found");
-        require(_locked.end > block.timestamp, "Cannot add to expired lock. Withdraw");
+        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
+        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
 
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.INCREASE_LOCK_AMOUNT);
     }
@@ -211,10 +209,10 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
         LockedBalance memory _locked = locked[_tokenId];
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
-        require(_locked.end > block.timestamp, "Lock expired");
-        require(_locked.amount > 0, "Nothing is locked");
-        require(unlock_time > _locked.end, "Can only increase lock duration");
-        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
+        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
+        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
+        if (unlock_time <= _locked.end) revert VotingEscrow_InvalidUnlockTime(unlock_time, _locked.end);
+        if (unlock_time > block.timestamp + MAXTIME) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
 
         _deposit_for(_tokenId, 0, unlock_time, _locked, DepositType.INCREASE_UNLOCK_TIME);
     }
@@ -230,22 +228,19 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     /// @param _from The token ID that gets burned.
     /// @param _to The token ID that burned token gets merged into.
     function merge(uint256 _from, uint256 _to) external checkNotAttached(_from) checkNotAttached(_to) checkNoRewards(_from) checkNoRewards(_to) {
-        require(
-            (!nonVoting[_from] && !nonVoting[_to]) || (nonVoting[_from] && nonVoting[_to]),
-            "veCTM: Merging between voting and non-voting token ID not allowed"
-        );
+        if (nonVoting[_from] != nonVoting[_to]) revert VotingEscrow_VotingAndNonVotingMerge(_from, _to);
 
-        require(_from != _to);
+        if (_from == _to) revert VotingEscrow_SameToken(_from, _to);
         _checkApprovedOrOwner(msg.sender, _from);
         _checkApprovedOrOwner(msg.sender, _to);
 
         if (ownership_change[_from] == clock() || ownership_change[_to] == clock()) {
-            revert SameTimestamp();
+            revert VotingEscrow_SameTimestamp();
         }
 
         address ownerFrom = idToOwner[_from];
         address ownerTo = idToOwner[_from];
-        require(ownerFrom == ownerTo);
+        if (ownerFrom != ownerTo) revert VotingEscrow_DifferentOwners(_from, _to);
 
         uint256 supply_before = _supply;
         LockedBalance memory _locked0 = locked[_from];
@@ -285,13 +280,11 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
-        require(block.timestamp < _locked.end);
-        // uint256 remaining_time = _locked.end - block.timestamp;
-        // require(remaining_time > WEEK, "Cannot split for lock with under one week left");
+        if (block.timestamp >= _locked.end) revert VotingEscrow_LockExpired(_locked.end);
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
-        require(extraction < value);
         int128 remainder = value - extraction;
+        assert(extraction + remainder <= value);
         uint256 supply_before = _supply;
 
         locked[_tokenId] = LockedBalance(remainder, _locked.end);
@@ -328,7 +321,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     /// @dev Minimum value to withdraw is 100 gwei, to prevent liquidation of low voting power, as this can
     ///      potentially lead to zero penalty.
     function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
-        require(liquidationsEnabled);
+        if (!liquidationsEnabled) revert VotingEscrow_LiquidationsDisabled();
         _checkApprovedOrOwner(msg.sender, _tokenId);
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
@@ -337,7 +330,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
             return;
         }
         uint256 value = uint256(int256(_locked.amount));
-        require(value > 100 gwei);
+        if (value <= 100 gwei) revert VotingEscrow_InvalidValue();
         uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
         uint256 penalty = vePower * LIQ_PENALTY_NUM / LIQ_PENALTY_DEN;
         assert(penalty != 0);
@@ -348,8 +341,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
         _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
-        assert(IERC20(token).transfer(owner, value - penalty));
-        assert(IERC20(token).transfer(treasury, penalty));
+        if (!IERC20(token).transfer(owner, value - penalty)) revert VotingEscrow_TransferFailed();
+        if (!IERC20(token).transfer(treasury, penalty)) revert VotingEscrow_TransferFailed();
 
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
@@ -370,9 +363,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     function deposit_for(uint256 _tokenId, uint256 _value) external nonreentrant {
         LockedBalance memory _locked = locked[_tokenId];
 
-        require(_value > 0); // dev: need non-zero value
-        require(_locked.amount > 0, "No existing lock found");
-        require(_locked.end > block.timestamp, "Cannot add to expired lock. Withdraw");
+        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
+        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.DEPOSIT_FOR_TYPE);
     }
 
@@ -438,8 +431,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     }
 
     /// @notice Because Voting Escrow is deployed before other contracts, we need a setup function.
-    function setUp(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
-        require(governor == address(0) || msg.sender == governor);
+    function setUp(address _governor, address _nodeProperties, address _rewards, address _treasury) external onlyGov {
         governor = _governor == address(0) ? governor : _governor;
         nodeProperties = _nodeProperties == address(0) ? nodeProperties : _nodeProperties;
         rewards = _rewards == address(0) ? rewards : _rewards;
@@ -452,7 +444,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
     /// @notice One time use flag to enable liquidations.
     function enableLiquidations() external onlyGov {
-        require(treasury != address(0));
+        if (treasury == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
         liquidationsEnabled = true;
     }
 
@@ -571,7 +563,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
         uint48 timepoint48 = SafeCast.toUint48(timepoint);
         uint48 currentTimepoint = clock();
         if (timepoint48 >= currentTimepoint) {
-            revert ERC5805FutureLookup(timepoint, currentTimepoint);
+            revert VotingEscrow_FutureLookup(timepoint, currentTimepoint);
         }
         uint256[] memory delegateTokenIdsAt = _delegateCheckpoints[account].upperLookupRecent(timepoint48);
         return _calculateCumulativeVotingPower(delegateTokenIdsAt, timepoint48);
@@ -586,7 +578,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
         uint48 timepoint48 = SafeCast.toUint48(timepoint);
         uint48 currentTimepoint = clock();
         if (timepoint48 >= currentTimepoint) {
-            revert ERC5805FutureLookup(timepoint, currentTimepoint);
+            revert VotingEscrow_FutureLookup(timepoint, currentTimepoint);
         }
         return _totalPowerAtT(timepoint);
     }
@@ -632,7 +624,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     /// @dev Returns current token URI metadata
     /// @param _tokenId Token ID to fetch URI for.
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        require(idToOwner[_tokenId] != address(0), "Query for nonexistent token");
+        if (idToOwner[_tokenId] == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
         string memory _baseURI = baseURI;
         return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
     }
@@ -690,7 +682,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
         unchecked {
             uint256 current = _nonces[signer]++;
-            if (nonce != current) revert InvalidAccountNonce(signer, current);
+            if (nonce != current) revert VotingEscrow_InvalidAccountNonce(signer, current);
         }
 
         _delegate(signer, delegatee);
@@ -705,10 +697,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     }
 
     /// @notice ERC6372
-    function CLOCK_MODE() public view returns (string memory) {
-        if (clock() != uint48(block.timestamp)) {
-            revert ERC6372InconsistentClock();
-        }
+    function CLOCK_MODE() public pure returns (string memory) {
         return "mode=timestamp";
     }
 
@@ -723,13 +712,13 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     function _approve(address _approved, uint256 _tokenId) internal {
         address owner = idToOwner[_tokenId];
         // Throws if `_tokenId` is not a valid NFT
-        require(owner != address(0));
+        if (owner == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
         // Throws if `_approved` is the current owner
-        require(_approved != owner);
+        if (_approved == owner) revert VotingEscrow_Unauthorized(VotingEscrowErrorParam.Approved, VotingEscrowErrorParam.Owner);
         // Check requirements
         bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
         bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
-        require(senderIsOwner || senderIsApprovedForAll);
+        if (!senderIsOwner && !senderIsApprovedForAll) revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.ApprovedOrOwner);
         // Set the approval
         idToApprovals[_tokenId] = _approved;
         emit Approval(owner, _approved, _tokenId);
@@ -744,8 +733,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
-        require(_value > 0); // dev: need non-zero value
-        require(unlock_time > block.timestamp, "Can only lock until time in the future");
+        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        if (unlock_time <= block.timestamp) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp);
 
         ++tokenId;
         uint256 _tokenId = tokenId;
@@ -785,7 +774,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
             unlock_time -= WEEK;
         }
 
-        require(unlock_time <= block.timestamp + MAXTIME, "Voting lock can be 4 years max");
+        if (unlock_time > block.timestamp + MAXTIME) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
 
         LockedBalance memory _locked = locked_balance;
         uint256 supply_before = _supply;
@@ -868,7 +857,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
         if (ownership_change[_tokenId] == clock()) {
-            revert SameTimestamp();
+            revert VotingEscrow_SameTimestamp();
         }
         _moveDelegateVotes(_delegatee[_from], _delegatee[_to], _votingUnit);
 
@@ -888,7 +877,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
-        require(block.timestamp >= _locked.end, "The lock didn't expire");
+        if (block.timestamp < _locked.end) revert VotingEscrow_LockNotExpired(_locked.end);
         uint256 value = uint256(int256(_locked.amount));
         address owner = idToOwner[_tokenId];
 
@@ -1325,13 +1314,13 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
 
     function _checkApprovedOrOwner(address _spender, uint256 _tokenId) internal view {
         if (!_isApprovedOrOwner(_spender, _tokenId)) {
-            revert NotApproved(_spender, _tokenId);
+            revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.ApprovedOrOwner);
         }
     }
 
     /// @notice Conditions for upgrading the implementation.
     function _authorizeUpgrade(address newImplementation) internal view override onlyGov {
-        require(newImplementation != address(0), "New implementation cannot be zero address");
+        if (newImplementation == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Implementation);
     }
 
     /// @notice Binary search to estimate timestamp for block number
@@ -1481,7 +1470,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC6372, IERC721Receiver, IVot
     ) private returns (uint256, uint256) {
         (, uint256 _key,) = store.latestCheckpoint();
         if (_key == block.timestamp) {
-            revert SameTimestamp();
+            revert VotingEscrow_SameTimestamp();
         }
         (uint256 oldLength, uint256 newLength) = store.push(uint256(clock()), op(store.latest(), deltaTokenIDs));
         return (oldLength, newLength);

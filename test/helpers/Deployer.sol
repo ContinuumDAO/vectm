@@ -15,6 +15,7 @@ import { WETH } from "../../src/mocks/WETH.sol";
 import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
 
 import { Utils } from "./Utils.sol";
+import { MockSwapRouter } from "./mocks/MockSwapRouter.sol";
 
 contract Deployer is Utils {
     C3UUIDKeeper c3UUIDKeeper;
@@ -25,7 +26,7 @@ contract Deployer is Utils {
     NodeProperties nodeProperties;
     Rewards rewards;
     WETH weth;
-    address swapRouter;
+    MockSwapRouter swapRouter;
 
     function _deployCTM(address _admin) internal {
         ctm = new CTM(_admin);
@@ -60,6 +61,7 @@ contract Deployer is Utils {
     }
 
     function _deployRewards(address _usdc, address _treasury, address _admin) internal {
+        swapRouter = new MockSwapRouter();
         rewards = new Rewards(
             uint48(0), // _firstMidnight,
             address(ve), // _ve
@@ -69,11 +71,11 @@ contract Deployer is Utils {
             address(swapRouter), // _swapRouter
             address(nodeProperties), // _nodeProperties
             address(weth), // _weth
-            1000000000000000000, // _baseEmissionRate
-            1000000000000000000, // _nodeEmissionRate
-            1000000000000000000, // _nodeRewardThreshold
-            1000000000000000000, // _feePerByteRewardToken
-            1000000000000000000 // _feePerByteFeeToken
+            0, // _baseEmissionRate
+            1 ether, // _nodeEmissionRate
+            1 ether, // _nodeRewardThreshold
+            1 ether, // _feePerByteRewardToken
+            1 ether // _feePerByteFeeToken
         );
         nodeProperties.setRewards(address(rewards));
         ve.setUp(_admin, address(nodeProperties), address(rewards), _treasury);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.23;
 
-import "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {TestERC20} from "build/TestERC20.sol";
 import {VotingEscrow, IVotingEscrow} from "build/VotingEscrow.sol";

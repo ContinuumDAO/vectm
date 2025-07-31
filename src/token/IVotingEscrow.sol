@@ -3,6 +3,7 @@
 pragma solidity 0.8.27;
 
 import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 interface IVotingEscrow {
     /// @notice Type declarations
@@ -42,11 +43,27 @@ interface IVotingEscrow {
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
 
     /// @notice Errors
-    error ERC6372InconsistentClock();
-    error ERC5805FutureLookup(uint256 _timepoint, uint48 _clock);
-    error InvalidAccountNonce(address _account, uint256 _currentNonce);
-    error SameTimestamp();
-    error NotApproved(address _spender, uint256 _tokenId);
+    error VotingEscrow_Reentrant();
+    error VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
+    error VotingEscrow_NodeAttached(uint256 _tokenId);
+    error VotingEscrow_UnclaimedRewards(uint256 _tokenId);
+    error VotingEscrow_NoExistingLock();
+    error VotingEscrow_InvalidUnlockTime(uint256 _unlockTime, uint256 _maxTime);
+    error VotingEscrow_LockExpired(uint256 _end);
+    error VotingEscrow_InvalidMerge(uint256 _from, uint256 _to);
+    error VotingEscrow_VotingAndNonVotingMerge(uint256 _from, uint256 _to);
+    error VotingEscrow_SameToken(uint256 _from, uint256 _to);
+    error VotingEscrow_DifferentOwners(uint256 _from, uint256 _to);
+    error VotingEscrow_SameTimestamp();
+    error VotingEscrow_InvalidValue();
+    error VotingEscrow_TransferFailed();
+    error VotingEscrow_LiquidationsDisabled();
+    error VotingEscrow_LockNotExpired(uint256 _end);
+    error VotingEscrow_IsZero(VotingEscrowErrorParam _account);
+    error VotingEscrow_Unauthorized(VotingEscrowErrorParam _account, VotingEscrowErrorParam _authorized);
+    error VotingEscrow_IsZeroAddress(VotingEscrowErrorParam _account);
+    error VotingEscrow_FutureLookup(uint256 _timepoint, uint256 _currentTimepoint);
+    error VotingEscrow_InvalidAccountNonce(address _account, uint256 _currentNonce);
 
     /// @notice Storage
     function token() external view returns (address);

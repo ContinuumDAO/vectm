@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ITestERC20} from "./ITestERC20.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 contract TestERC20 is ERC20, ITestERC20 {
     uint8 _decimals;
@@ -29,6 +30,7 @@ contract TestERC20 is ERC20, ITestERC20 {
 
     function burn(address from) external override {
         require(msg.sender == admin);
+        if (msg.sender != admin) revert OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Admin);
         _burn(from, balanceOf(from));
     }
 }

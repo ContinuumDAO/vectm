@@ -9,8 +9,10 @@ import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 
 import {IVotingEscrow} from "../token/IVotingEscrow.sol";
 import {IRewards} from "./IRewards.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import {INodeProperties} from "./INodeProperties.sol";
 
-contract NodeProperties {
+contract NodeProperties is INodeProperties {
     using Checkpoints for Checkpoints.Trace208;
 
     struct NodeInfo {
@@ -37,13 +39,8 @@ contract NodeProperties {
     mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf; // token ID => address => node info
     mapping(uint256 => bool) internal _toBeRemoved;
 
-    event Attachment(uint256 indexed _tokenId, bytes32 indexed _nodeId);
-    event Detachment(uint256 indexed _tokenId, bytes32 indexed _nodeId);
-
-    error NodeNotAttached(uint256 _tokenId);
-
     modifier onlyGov() {
-        require(msg.sender == governor);
+        if (msg.sender != governor) revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
         _;
     }
 
@@ -57,11 +54,11 @@ contract NodeProperties {
     function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
         address _owner = IERC721(ve).ownerOf(_tokenId);
         bytes32 _nodeId = _nodeInfo.nodeId;
-        require(msg.sender == _owner);
-        require(_attachedNodeId[_tokenId] == bytes32(""));
-        require(_attachedTokenId[_nodeId] == 0);
-        require(IVotingEscrow(ve).balanceOfNFT(_tokenId) >= IRewards(rewards).nodeRewardThreshold());
-        require(_nodeId != bytes32(""));
+        if (msg.sender != _owner) revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
+        if (_attachedNodeId[_tokenId] != bytes32("")) revert NodeProperties_TokenIDAlreadyAttached(_tokenId);
+        if (_attachedTokenId[_nodeId] != 0) revert NodeProperties_NodeIDAlreadyAttached(_nodeId);
+        if (IVotingEscrow(ve).balanceOfNFT(_tokenId) < IRewards(rewards).nodeRewardThreshold()) revert NodeProperties_NodeRewardThresholdNotReached(_tokenId);
+        if (_nodeId == bytes32("")) revert NodeProperties_InvalidNodeId(_nodeId);
         _nodeInfoOf[_tokenId][_owner] = _nodeInfo;
         _attachedNodeId[_tokenId] = _nodeId;
         _attachedTokenId[_nodeId] = _tokenId;
@@ -71,7 +68,7 @@ contract NodeProperties {
     // governance removes given token IDs from their respective node IDs.
     function detachNode(uint256 _tokenId) external onlyGov {
         bytes32 _nodeId = _attachedNodeId[_tokenId];
-        require(_nodeId != bytes32(""));
+        if (_nodeId == bytes32("")) revert NodeProperties_TokenIDNotAttached(_tokenId);
         address _account = IERC721(ve).ownerOf(_tokenId);
         _nodeInfoOf[_tokenId][_account] = NodeInfo("", "", bytes32(""), [0,0,0,0], "", 0, 0, "", "", "");
         _attachedNodeId[_tokenId] = bytes32("");
@@ -83,22 +80,19 @@ contract NodeProperties {
 
     // Set the node removal status to either true or false. This means it is flagged for detachment by governance vote.
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
-        require(msg.sender == IERC721(ve).ownerOf(_tokenId));
+        if (msg.sender != IERC721(ve).ownerOf(_tokenId)) revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
         _toBeRemoved[_tokenId] = _status;
     }
 
     // governance sets the quality of a node depending on a variety of performance factors.
     function setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external onlyGov {
-        assert(_nodeQualityOf <= 10);
-        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == bytes32("")) {
-            revert NodeNotAttached(_tokenId);
-        }
+        if (_nodeQualityOf > 10) revert NodeProperties_InvalidNodeQualityOf(_nodeQualityOf);
+        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == bytes32("")) revert NodeProperties_TokenIDNotAttached(_tokenId);
         uint208 _nodeQualityOf208 = SafeCast.toUint208(_nodeQualityOf);
         _nodeQualitiesOf[_tokenId].push(IERC6372(ve).clock(), _nodeQualityOf208);
     }
 
-    function setRewards(address _rewards) external {
-        require(rewards == address(0) || msg.sender == governor);
+    function setRewards(address _rewards) external onlyGov {
         rewards = _rewards;
     }
 

@@ -3,8 +3,11 @@
 pragma solidity 0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 interface ITestERC20 is IERC20 {
+    error OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
+
     function print(address _to, uint256 _amount) external;
     function mint(address _to, uint256 _amount) external;
     function burn(address _from) external;
