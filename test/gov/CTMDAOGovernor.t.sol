@@ -7,7 +7,6 @@ import {console} from "forge-std/console.sol";
 import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
 import {IVotingEscrow, VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
-import {TestERC20} from "../../src/mocks/TestERC20.sol";
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
 import {Helpers} from "../helpers/Helpers.sol";
 

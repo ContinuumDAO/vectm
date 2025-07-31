@@ -9,7 +9,7 @@ import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {Rewards} from "../../src/node/Rewards.sol";
-import {TestERC20} from "../../src/mocks/TestERC20.sol";
+import {TestERC20} from "../helpers/mocks/TestERC20.sol";
 
 contract TestNodeProperties is Test {
     TestERC20 ctm;

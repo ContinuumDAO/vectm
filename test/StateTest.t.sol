@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 
-import {TestERC20} from "../src/mocks/TestERC20.sol";
+import {TestERC20} from "./helpers/mocks/TestERC20.sol";
 import {VotingEscrow} from "../src/token/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/utils/VotingEscrowProxy.sol";
 import {CTMDAOGovernor} from "../src/gov/CTMDAOGovernor.sol";

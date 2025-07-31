@@ -13,7 +13,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 /**
  * @title Voting Escrow
  * @author Curve Finance, Solidly, w/ OpenZeppelin contracts
- * @author Modified for ContinuumDAO by @hal0177
+ * @author Modified for ContinuumDAO by @patrickcure
  * @notice Votes have a weight depending on time, so that users are
  * committed to the future of (whatever they are voting for)
  * @dev Vote weight decays linearly over time. Lock time cannot be

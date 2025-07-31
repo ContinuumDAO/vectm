@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity 0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ITestERC20} from "./ITestERC20.sol";
-import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import {VotingEscrowErrorParam} from "../../../src/utils/VotingEscrowUtils.sol";
 
 contract TestERC20 is ERC20, ITestERC20 {
     uint8 _decimals;

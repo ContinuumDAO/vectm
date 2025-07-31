@@ -11,7 +11,7 @@ import { CTM } from "../../src/token/CTM.sol";
 import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
 import { NodeProperties } from "../../src/node/NodeProperties.sol";
 import { Rewards } from "../../src/node/Rewards.sol";
-import { WETH } from "../../src/mocks/WETH.sol";
+import { WETH } from "./mocks/WETH.sol";
 import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
 
 import { Utils } from "./Utils.sol";
