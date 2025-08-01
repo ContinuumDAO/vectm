@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 import { console } from "forge-std/console.sol";
 
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
 import { VotingEscrowErrorParam } from "../../src/utils/VotingEscrowUtils.sol";
@@ -101,62 +102,6 @@ contract TestVotingEscrow is Helpers {
         );
         tokenId = ve.create_lock(uint256(int256(type(int128).max)) + 1, block.timestamp + MAXTIME);
     }
-
-    // contract Proxy is SetUp {
-    //     VotingEscrowV2 veImplV2;
-    //     bytes initializerDataV2;
-    //     string constant BASE_URI_V2 = "veCTM V2";
-    //
-    //     // UTILS
-    //
-    //     function setUp() public override {
-    //         super.setUp();
-    //
-    //         veImplV2 = new VotingEscrowV2();
-    //         initializerDataV2 = abi.encodeWithSignature(
-    //             "initialize(address,string)",
-    //             address(ctm),
-    //             BASE_URI_V2
-    //         );
-    //
-    //         ctm.print(gov, initialBalGov);
-    //         vm.prank(gov);
-    //         ctm.approve(address(ve), initialBalGov);
-    //     }
-    //
-    //     // TESTS
-    //     function test_InitializedStateEqualToInput() public {
-    //         string memory baseURI = ve.baseURI();
-    //         assertEq(baseURI, BASE_URI_V1);
-    //     }
-    //
-    //     function test_CannotInitializeTwice() public {
-    //         vm.expectRevert(Initializable.InvalidInitialization.selector);
-    //         ve.initialize(address(ctm), BASE_URI_V1);
-    //     }
-    //
-    //     function test_ValidUpgrade() public prank(gov) {
-    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-    //         string memory baseURI = ve.baseURI();
-    //         assertEq(baseURI, BASE_URI_V2);
-    //     }
-    //
-    //     function test_UnauthorizedUpgrade() public {
-    //         vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
-    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-    //         string memory baseURI = ve.baseURI();
-    //         assertEq(baseURI, BASE_URI_V1);
-    //     }
-    //
-    //     function test_CannotUpgradeToSameVersion() public prank(gov) {
-    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-    //         string memory baseURI = ve.baseURI();
-    //         assertEq(baseURI, BASE_URI_V2);
-    //         veImplV2 = new VotingEscrowV2();
-    //         vm.expectRevert(Initializable.InvalidInitialization.selector);
-    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-    //     }
-    // }
 
     function skip() internal {
         vm.warp(block.timestamp + 1);
