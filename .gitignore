@@ -5,6 +5,9 @@ out/
 # Flattened source code
 build/
 
+# Other
+other/
+
 # Ignores development broadcast logs
 broadcast/
 /broadcast/*/31337/
