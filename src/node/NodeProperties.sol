@@ -92,7 +92,10 @@ contract NodeProperties is INodeProperties {
         _nodeQualitiesOf[_tokenId].push(IERC6372(ve).clock(), _nodeQualityOf208);
     }
 
-    function setRewards(address _rewards) external onlyGov {
+    function initContracts(address _rewards) external {
+        if (rewards != address(0)) {
+            revert NodeProperties_InvalidInitialization();
+        }
         rewards = _rewards;
     }
 

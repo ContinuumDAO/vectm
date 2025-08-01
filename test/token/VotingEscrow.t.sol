@@ -7,6 +7,7 @@ import {console} from "forge-std/console.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
 import {Helpers} from "../helpers/Helpers.sol";
 
 contract TestVotingEscrow is Helpers {
@@ -35,6 +36,10 @@ contract TestVotingEscrow is Helpers {
     // UTILS
     function setUp() public override {
         super.setUp();
+        vm.startPrank(address(ctmDaoGovernor));
+        rewards.setBaseEmissionRate(0);
+        rewards.setNodeEmissionRate(0);
+        vm.stopPrank();
     }
 
     // TESTS
@@ -76,10 +81,10 @@ contract TestVotingEscrow is Helpers {
     }
 
     function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public prank(user1) {
-        amount = bound(amount, 1, _100_000);
+        amount = bound(amount, 1, CTM_TS);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
-        vm.assume(removalTime >= endpoint);
-        vm.assume(removalTime <= type(uint48).max);
+        removalTime = bound(removalTime, endpoint, type(uint48).max);
+
         tokenId = ve.create_lock(amount, endpoint);
         vm.warp(removalTime);
         ve.withdraw(tokenId);
@@ -187,6 +192,7 @@ contract TestVotingEscrow is Helpers {
         uint256 vepowerEndEth = ve.balanceOfNFT(id1) / 1e18;
         assertEq(vepowerEndEth, 0);
 
+        rewards.claimRewards(id1, user1);
         uint256 balBefore = ctm.balanceOf(user1);
         ve.withdraw(id1);
         uint256 balAfter = ctm.balanceOf(user1);
@@ -207,8 +213,6 @@ contract TestVotingEscrow is Helpers {
     }
 
     function test_DelegateTokens() public prank(user1) {
-        vm.startPrank(user1);
-
         console.log("Pre-check: User and user2 should have no delegated tokens");
         uint256[] memory userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         uint256[] memory user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
@@ -317,8 +321,6 @@ contract TestVotingEscrow is Helpers {
         assertEq(ve.ownerOf(id2), user2);
         assertEq(ve.ownerOf(id3), user1);
         assertEq(ve.ownerOf(id4), user2);
-
-        vm.stopPrank();
     }
 
     function test_GetVotes() public prank(user1) {
@@ -440,6 +442,8 @@ contract TestVotingEscrow is Helpers {
         uint256 balanceUserBeforeEth = ctm.balanceOf(user1) / 1e18;
         uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
         vm.warp(WEEK_3_YEARS);
+        uint256 claimed = rewards.claimRewards(id1, user1);
+        ctm.burn(claimed);
         ve.liquidate(id1);
         uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
         uint256 balanceUserAfterEth = ctm.balanceOf(user1) / 1e18;
@@ -451,14 +455,16 @@ contract TestVotingEscrow is Helpers {
 
     function test_LiquidateAfter4Years() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        uint256 balanceUserBefore = ctm.balanceOf(user1);
+        uint256 balanceTreasuryBefore = ctm.balanceOf(treasury);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
-        uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury);
         vm.warp(WEEK_4_YEARS);
+
         ve.liquidate(id1);
-        uint256 balanceUserAfterEth = ctm.balanceOf(user1);
-        uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury);
-        assertEq(balanceUserAfterEth, _100_000);
-        assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth);
+        uint256 balanceUserAfter = ctm.balanceOf(user1);
+        uint256 balanceTreasuryAfter = ctm.balanceOf(treasury);
+        assertEq(balanceUserAfter, balanceUserBefore);
+        assertEq(balanceTreasuryAfter, balanceTreasuryBefore);
     }
 
     function _weekTsInXWeeks(uint256 _weeks) internal pure returns (uint256) {
@@ -490,8 +496,8 @@ contract TestVotingEscrow is Helpers {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IVotingEscrow.VotingEscrow_OnlyAuthorized.selector,
-                user2,
-                id1
+                VotingEscrowErrorParam.Sender,
+                VotingEscrowErrorParam.ApprovedOrOwner
             )
         );
         ve.merge(id1, id2);
@@ -517,7 +523,8 @@ contract TestVotingEscrow is Helpers {
         skip(1);
         id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
-        vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
+        // vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
+        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_VotingAndNonVotingMerge.selector, id1, id2));
         ve.merge(id1, id2);
     }
 
@@ -592,8 +599,8 @@ contract TestVotingEscrow is Helpers {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IVotingEscrow.VotingEscrow_OnlyAuthorized.selector,
-                user2,
-                id1
+                VotingEscrowErrorParam.Sender,
+                VotingEscrowErrorParam.ApprovedOrOwner
             )
         );
         ve.split(id1, 500 ether);
@@ -635,11 +642,15 @@ contract TestVotingEscrow is Helpers {
         assertEq(_value2After, _extractedValue);
     }
 
-    function test_ApprovedLiquidation() public approveUser2 prank(user2) {
+    function test_ApprovedLiquidation() public approveUser2 {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+        vm.prank(user2);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         uint256 lengthBefore = ve.tokenIdsDelegatedTo(user1).length;
         vm.warp(WEEK_4_YEARS);
+        vm.prank(user1);
+        rewards.claimRewards(id1, user1);
+        vm.prank(user2);
         ve.liquidate(id1);
         uint256 lengthAfter = ve.tokenIdsDelegatedTo(user1).length;
         assertEq(lengthAfter, lengthBefore - 1);
@@ -660,6 +671,7 @@ contract TestVotingEscrow is Helpers {
         //     emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
         //     ve.liquidate(id1);
         // } else {
+            rewards.claimRewards(id1, user1);
             ve.liquidate(id1);
         // }
     }

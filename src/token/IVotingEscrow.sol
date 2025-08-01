@@ -120,7 +120,7 @@ interface IVotingEscrow {
     function merge(uint256 _from, uint256 _to) external;
     function split(uint256 _tokenId, uint256 _extracted) external returns (uint256);
     function liquidate(uint256 _tokenId) external;
-    function setUp(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
+    function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function setBaseURI(string memory _baseURI) external;
     function enableLiquidations() external;
 

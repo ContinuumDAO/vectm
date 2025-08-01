@@ -149,7 +149,10 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
     /// @param base_uri Base URI for token ID images
-    function initialize(address token_addr, string memory base_uri) external initializer {
+    function initialize(
+        address token_addr,
+        string memory base_uri
+    ) external initializer {
         __UUPSUpgradeable_init();
         token = token_addr;
         baseURI = base_uri;
@@ -189,7 +192,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Deposit `_value` additional tokens for `_tokenId` without modifying the unlock time
     /// @param _value Amount of tokens to deposit and add to the lock
-    function increase_amount(uint256 _tokenId, uint256 _value) external nonreentrant {
+    function increase_amount(uint256 _tokenId, uint256 _value) external nonreentrant checkNoRewards(_tokenId) {
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
@@ -203,7 +206,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Extend the unlock time for `_tokenId`
     /// @param _lock_duration New number of seconds until tokens unlock
-    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external nonreentrant {
+    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external nonreentrant checkNoRewards(_tokenId) {
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
@@ -431,11 +434,14 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /// @notice Because Voting Escrow is deployed before other contracts, we need a setup function.
-    function setUp(address _governor, address _nodeProperties, address _rewards, address _treasury) external onlyGov {
-        governor = _governor == address(0) ? governor : _governor;
-        nodeProperties = _nodeProperties == address(0) ? nodeProperties : _nodeProperties;
-        rewards = _rewards == address(0) ? rewards : _rewards;
-        treasury = _treasury == address(0) ? treasury : _treasury;
+    function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
+        if (governor != address(0)) {
+            revert InvalidInitialization();
+        }
+        governor = _governor;
+        nodeProperties = _nodeProperties;
+        rewards = _rewards;
+        treasury = _treasury;
     }
 
     function setBaseURI(string memory _baseURI) external onlyGov {

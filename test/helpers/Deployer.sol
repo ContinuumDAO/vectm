@@ -7,6 +7,7 @@ import { C3CallerUpgradeable } from "@c3caller/upgradeable/C3CallerUpgradeable.s
 import { C3UUIDKeeperUpgradeable } from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
 import { C3UUIDKeeper } from "@c3caller/uuid/C3UUIDKeeper.sol";
 
+import { TestERC20 } from "./mocks/TestERC20.sol";
 import { CTM } from "../../src/token/CTM.sol";
 import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
 import { NodeProperties } from "../../src/node/NodeProperties.sol";
@@ -20,6 +21,7 @@ import { MockSwapRouter } from "./mocks/MockSwapRouter.sol";
 contract Deployer is Utils {
     C3UUIDKeeper c3UUIDKeeper;
     C3Caller c3caller;
+    TestERC20 usdc;
     CTM ctm;
     VotingEscrow ve;
     CTMDAOGovernor ctmDaoGovernor;
@@ -32,8 +34,16 @@ contract Deployer is Utils {
         ctm = new CTM(_admin);
     }
 
+    function _deployUSDC() internal {
+        usdc = new TestERC20("Circle USD", "USDC", 6);
+    }
+
     function _deployWETH() internal {
         weth = new WETH();
+    }
+
+    function _deploySwapRouter() internal {
+        swapRouter = new MockSwapRouter();
     }
 
     function _deployC3Caller() internal {
@@ -46,38 +56,47 @@ contract Deployer is Utils {
         );
     }
 
-    function _deployVotingEscrow(address _ctm) internal {
+    function _deployVotingEscrow() internal {
         VotingEscrow veImpl = new VotingEscrow();
-        ve = VotingEscrow(_deployProxy(address(veImpl), abi.encodeCall(VotingEscrow.initialize, (address(_ctm), "Base URI"))));
-        ve.enableLiquidations();
+        ve = VotingEscrow(_deployProxy(address(veImpl), abi.encodeCall(VotingEscrow.initialize, (address(ctm), "Base URI"))));
     }
 
-    function _deployCTMDAOGovernor(address _ve) internal {
-        ctmDaoGovernor = new CTMDAOGovernor(_ve);
+    function _deployCTMDAOGovernor() internal {
+        ctmDaoGovernor = new CTMDAOGovernor(address(ve));
     }
 
-    function _deployNodeProperties(address _admin, address _ve) internal {
-        nodeProperties = new NodeProperties(_admin, _ve);
+    function _deployNodeProperties() internal {
+        nodeProperties = new NodeProperties(address(ctmDaoGovernor), address(ve));
     }
 
-    function _deployRewards(address _usdc, address _treasury, address _admin) internal {
-        swapRouter = new MockSwapRouter();
+    function _deployRewards() internal {
         rewards = new Rewards(
-            uint48(0), // _firstMidnight,
+            0, // _firstMidnight,
             address(ve), // _ve
             address(ctmDaoGovernor), // _gov
-            address(ctm), // _ctm
-            address(_usdc), // _usdc
+            address(ctm), // _rewardToken
+            address(usdc), // _feeToken
             address(swapRouter), // _swapRouter
             address(nodeProperties), // _nodeProperties
             address(weth), // _weth
-            0, // _baseEmissionRate
-            1 ether, // _nodeEmissionRate
-            1 ether, // _nodeRewardThreshold
-            1 ether, // _feePerByteRewardToken
-            1 ether // _feePerByteFeeToken
+            1 ether / 2000, // _baseEmissionRate
+            1 ether / 1000, // _nodeEmissionRate
+            5000 ether, // _nodeRewardThreshold
+            7_812_500 gwei, // _feePerByteRewardToken
+            3125 // _feePerByteFeeToken
         );
-        nodeProperties.setRewards(address(rewards));
-        ve.setUp(_admin, address(nodeProperties), address(rewards), _treasury);
+    }
+
+    function _initContracts(address _treasury) internal {
+        nodeProperties.initContracts(address(rewards));
+        ve.initContracts(address(ctmDaoGovernor), address(nodeProperties), address(rewards), _treasury);
+        vm.prank(address(ctmDaoGovernor));
+        ve.enableLiquidations();
+    }
+
+    function _fundRewards() internal {
+        deal(address(ctm), address(this), 100_000_000 ether, true);
+        ctm.approve(address(rewards), 100_000_000 ether);
+        rewards.receiveFees(address(ctm), 100_000_000 ether, 1);
     }
 }

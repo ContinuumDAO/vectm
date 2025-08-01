@@ -20,6 +20,7 @@ interface INodeProperties {
     error NodeProperties_InvalidNodeId(bytes32 _nodeId);
     error NodeProperties_InvalidNodeQualityOf(uint256 _nodeQualityOf);
     error NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
+    error NodeProperties_InvalidInitialization();
 
     function attachedNodeId(uint256 _tokenId) external view returns (bytes32);
     function nodeQualityOfAt(uint256 _tokenId, uint256 _timestamp) external view returns (uint256);

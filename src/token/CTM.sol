@@ -8,4 +8,8 @@ contract CTM is ERC20 {
     constructor(address _admin) ERC20("Continuum", "CTM") {
         _mint(_admin, 100_000_000 ether);
     }
+
+    function burn(uint256 _amount) external {
+        _burn(msg.sender, _amount);
+    }
 }

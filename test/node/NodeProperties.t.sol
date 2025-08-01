@@ -2,34 +2,13 @@
 
 pragma solidity 0.8.27;
 
-import {Test} from "forge-std/Test.sol";
-
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
-import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
-import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
+import {INodeProperties} from "../../src/node/INodeProperties.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
-import {Rewards} from "../../src/node/Rewards.sol";
-import {TestERC20} from "../helpers/mocks/TestERC20.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
-contract TestNodeProperties is Test {
-    TestERC20 ctm;
-    TestERC20 usdc;
-    VotingEscrow veImpl;
-    VotingEscrowProxy veProxy;
-    IVotingEscrow ve;
-    NodeProperties nodeProperties;
-    Rewards rewards;
-    string constant BASE_URI_V1 = "veCTM V1";
-    address gov;
-    address committee;
-    address treasury;
-    address user;
-    uint256 CTM_TS = 100_000_000 ether;
-    uint256 initialBalGov = CTM_TS;
-    uint256 initialBalUser = CTM_TS;
+contract TestNodeProperties is Helpers {
     uint256 constant MAXTIME = 4 * 365 * 86400;
-    uint256 constant ONE_YEAR = 365 * 86400;
-    uint256 constant WEEK = 1 weeks;
     uint256 id1;
     uint256 id2;
 
@@ -56,52 +35,8 @@ contract TestNodeProperties is Test {
         ""
     );
 
-
-    function setUp() public virtual {
-        gov = makeAddr("gov");
-        committee = makeAddr("committee");
-        treasury = makeAddr("treasury");
-        user = makeAddr("user");
-
-        ctm = new TestERC20("Continuum", "CTM", 18);
-        usdc = new TestERC20("Tether USD", "USDT", 6);
-        veImpl = new VotingEscrow();
-        bytes memory initializerData = abi.encodeWithSignature(
-            "initialize(address,string)",
-            address(ctm),
-            BASE_URI_V1
-        );
-        veProxy = new VotingEscrowProxy(address(veImpl), initializerData);
-
-        ve = IVotingEscrow(address(veProxy));
-        ctm.print(user, initialBalUser);
-        vm.prank(user);
-        ctm.approve(address(ve), initialBalUser);
-
-        nodeProperties = new NodeProperties(gov, address(ve));
-
-        rewards = new Rewards(
-            0, // _firstMidnight,
-            gov, // _gov
-            address(ctm), // _rewardToken
-            address(usdc), // _feeToken
-            address(0), // _swapRouter
-            address(ve), // _ve
-            address(nodeProperties), // _nodeProperties
-            address(0), // _weth
-            1 ether / 2000, // _baseEmissionRate
-            1 ether / 1000, // _nodeEmissionRate
-            5000 ether, // _nodeRewardThreshold
-            7_812_500 gwei, // _feePerByteRewardToken
-            3125 // _feePerByteFeeToken
-        );
-        
-        ve.setUp(gov, address(nodeProperties), address(rewards), treasury);
-
-        vm.startPrank(gov);
-        nodeProperties.setRewards(address(rewards));
-        ve.enableLiquidations();
-        vm.stopPrank();
+    function setUp() public override {        
+        super.setUp();
     }
 
     modifier prank(address _user) {
@@ -111,53 +46,53 @@ contract TestNodeProperties is Test {
     }
 
     function test_AttachNode() public {
-        vm.startPrank(user);
+        vm.startPrank(user1);
         id1 = ve.create_lock(10000 ether, MAXTIME);
         nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.stopPrank();
     }
 
-    function test_AttachNodeSufficientVePower() public prank(user) {
+    function test_AttachNodeSufficientVePower() public prank(user1) {
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_NodeRewardThresholdNotReached.selector, id1));
         nodeProperties.attachNode(id1, submittedNodeInfo);
         ve.increase_amount(id1, 14 ether);
         nodeProperties.attachNode(id1, submittedNodeInfo);
     }
 
-    function test_OnlyAttachOneTokenID() public prank(user) {
+    function test_OnlyAttachOneTokenID() public prank(user1) {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
         nodeProperties.attachNode(id1, submittedNodeInfo);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDAlreadyAttached.selector, id1));
         nodeProperties.attachNode(id1, submittedNodeInfo);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_NodeIDAlreadyAttached.selector, submittedNodeInfo.nodeId));
         nodeProperties.attachNode(id2, submittedNodeInfo);
     }
 
     function test_NodeDetachment() public {
-        vm.prank(user);
+        vm.prank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);
-        vm.prank(gov);
-        vm.expectRevert();
+        vm.prank(address(ctmDaoGovernor));
+        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDNotAttached.selector, id1));
         nodeProperties.detachNode(id1);
     }
 
     function test_AttachingDisablesInteractions() public {
-        vm.startPrank(user);
+        vm.startPrank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
         nodeProperties.attachNode(id1, submittedNodeInfo);
         skip(1);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_NodeAttached.selector, id1));
         ve.liquidate(id1);
         vm.stopPrank();
-        vm.prank(gov);
+        vm.prank(address(ctmDaoGovernor));
         nodeProperties.detachNode(id1);
-        vm.prank(user);
+        vm.prank(user1);
         ve.liquidate(id1);
     }
 }

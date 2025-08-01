@@ -196,6 +196,7 @@ contract Rewards is IRewards {
 
     function compoundLockRewards(uint256 _tokenId) external returns (uint256) {
         uint256 _rewards = claimRewards(_tokenId, address(this));
+        if (_rewards == 0) revert Rewards_NoUnclaimedRewards();
         IVotingEscrow(ve).deposit_for(_tokenId, _rewards);
         return _rewards;
     }
@@ -301,22 +302,9 @@ contract Rewards is IRewards {
         emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
     }
 
-
-
     // internal view
     function _getLatestMidnight() internal view returns (uint48) {
-        uint48 _latestMidnight = latestMidnight;
-        uint48 _time = IERC6372(ve).clock();
-
-        if ((_time - _latestMidnight) < ONE_DAY) {
-            return _latestMidnight;
-        }
-
-        while (_latestMidnight < (_time - ONE_DAY)) {
-            _latestMidnight += ONE_DAY;
-        }
-
-        return _latestMidnight;
+        return IERC6372(ve).clock() - (IERC6372(ve).clock() % ONE_DAY);
     }
 
     // only call when assuming _latestMidnight is up-to-date
@@ -324,8 +312,15 @@ contract Rewards is IRewards {
         uint48 _lastClaimed = _lastClaimOf[_tokenId];
 
         // if they have never claimed, ensure their last claim is set to a midnight timestamp
+        // Get the token's creation timestamp from the first point in user history
         if (_lastClaimed == 0) {
-            _lastClaimed = genesis;
+            // always greater than or equal to genesis
+            uint256 _tokenCreationTime = IVotingEscrow(ve).user_point_history__ts(_tokenId, 1);
+            if (_tokenCreationTime == 0) {
+                return 0;
+            }
+            uint256 _tokenCreationTimeMidnight =  _tokenCreationTime - (_tokenCreationTime % ONE_DAY);
+            _lastClaimed = SafeCast.toUint48(_tokenCreationTimeMidnight);
         }
 
         // number of days between latest midnight and last claimed
@@ -334,21 +329,34 @@ contract Rewards is IRewards {
         assert(_daysUnclaimed * ONE_DAY == (_latestMidnight - _lastClaimed));
 
         uint256 _reward;
+        uint256 _vePower;
         uint256 _prevDayVePower;
 
         // start at the midnight following their last claim, increment by one day at a time
         // continue until rewards counted for latest midnight
         for (uint48 i = _lastClaimed + ONE_DAY; i <= _lastClaimed + (_daysUnclaimed * ONE_DAY); i += ONE_DAY) {
             uint256 _time = uint256(i);
-            uint256 _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, _time);
+            _prevDayVePower = _vePower;
+            _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, _time);
+
+            // EARLY EXIT: Get token's expiration time and cap the calculation period
+            // (, uint256 _end) = IVotingEscrow(ve).locked(_tokenId);
+            if (_time > _lastClaimed + (4 * 365 * ONE_DAY)) {
+                break;
+            }
 
             // check if ve power is zero (meaning the token ID didn't exist at this time).
             // previous day ve power is the ve power of the previous iteration of this loop, if it is zero then
             // the midnight in question is less than a day since the token ID was created. This means they don't
             // get rewards for this day, and their rewards instead start at the following midnight.
-            if (_vePower == 0 || _prevDayVePower == 0) {
-                _prevDayVePower = _vePower;
-                continue;
+            // if (_vePower == 0 || _prevDayVePower == 0) {
+ 
+            // if yesterday's ve power was non-zero and today's is zero, then the token ID has expired at this time.
+
+            if (_vePower == 0 && _prevDayVePower != 0) {
+                // case: the ve power was non-zero yesterday, but is zero today.
+                // this means the token ID has expired at this time.
+                break;
             }
 
             uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);

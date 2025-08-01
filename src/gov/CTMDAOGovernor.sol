@@ -21,20 +21,12 @@ contract CTMDAOGovernor is
     GovernorVotesQuorumFraction,
     GovernorPreventLateQuorum
 {
-    // NOTE: Actual deployment parameters
-    // Governor("CTMDAOGovernor")
-    // GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
-    // GovernorVotes(IVotes(_token))
-    // GovernorVotesQuorumFraction(20)
-    // GovernorPreventLateQuorum(172800 /* 2 days */)
-
-    // NOTE: Test parameters
     constructor(address _token)
         Governor("CTMDAOGovernor")
-        GovernorSettings(300 /* 5 minutes */, 43200 /* 12 hours */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
+        GovernorSettings(432000 /* 5 days */, 864000 /* 10 days */, 1000 /* 1000x % of total voting power: 1000 => 1% */)
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
-        GovernorPreventLateQuorum(7200 /* 2 hours */)
+        GovernorPreventLateQuorum(172800 /* 2 days */)
     {}
 
     function execute(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public payable override(GovernorCountingMultiple, Governor) returns (uint256) {
@@ -43,10 +35,6 @@ contract CTMDAOGovernor is
 
     function proposalDeadline(uint256 proposalId) public view override(Governor, GovernorPreventLateQuorum) returns (uint256) {
         return super.proposalDeadline(proposalId);
-    }
-
-    function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
-        return super.proposalThreshold();
     }
 
     function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public override(Governor, GovernorCountingMultiple) returns (uint256) {
@@ -69,5 +57,18 @@ contract CTMDAOGovernor is
 
     function _tallyUpdated(uint256 proposalId) internal override(Governor, GovernorPreventLateQuorum) {
         super._tallyUpdated(proposalId);
+    }
+
+    function proposalThreshold()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        // proposal threshold is always a percentage of current total voting power
+        uint256 proposalThresholdTsPercentage = super.proposalThreshold();
+        uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100000;
+        assert(totalVotingPower > 0);
+        return totalVotingPower;
     }
 }
