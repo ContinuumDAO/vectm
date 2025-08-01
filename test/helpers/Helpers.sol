@@ -2,19 +2,17 @@
 
 pragma solidity 0.8.27;
 
-import {Test} from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {Accounts} from "./Accounts.sol";
-import {Deployer} from "./Deployer.sol";
+import { Accounts } from "./Accounts.sol";
+import { Deployer } from "./Deployer.sol";
 
 contract Helpers is Test, Accounts, Deployer {
     uint256 constant CTM_TS = 100_000_000 ether;
 
     function setUp() public virtual {
-        (admin, treasury, committee, user1, user2) = abi.decode(
-            abi.encode(_getAccounts()),
-            (address, address, address, address, address)
-        );
+        (admin, treasury, committee, user1, user2) =
+            abi.decode(abi.encode(_getAccounts()), (address, address, address, address, address));
 
         _deployUSDC();
         _deployCTM(admin);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
 
 /**
  * @notice Interface for use with the Rewards contract, where node runners can claim their rewards.

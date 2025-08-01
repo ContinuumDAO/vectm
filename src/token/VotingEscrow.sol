@@ -2,21 +2,25 @@
 
 pragma solidity 0.8.27;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import {INodeProperties} from "../node/INodeProperties.sol";
-import {IRewards} from "../node/IRewards.sol";
-import {IVotingEscrow} from "./IVotingEscrow.sol";
-import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
-import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import { IVotes } from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+
+import { IERC5805 } from "@openzeppelin/contracts/interfaces/IERC5805.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
+import { INodeProperties } from "../node/INodeProperties.sol";
+import { IRewards } from "../node/IRewards.sol";
+
+import { ArrayCheckpoints } from "../utils/ArrayCheckpoints.sol";
+import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
+import { IVotingEscrow } from "./IVotingEscrow.sol";
 
 /**
  * @title Voting Escrow
@@ -66,31 +70,37 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     mapping(uint256 => address) internal idToOwner; // mapping from NFT ID to the address that owns it.
     mapping(uint256 => address) internal idToApprovals; // mapping from NFT ID to approved address.
     mapping(address => uint256) internal ownerToNFTokenCount; // mapping from owner address to count of his tokens.
-    mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList; // mapping from owner address to mapping of index to tokenIds
+    mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList; // mapping from owner address to
+        // mapping of index to tokenIds
     mapping(uint256 => uint256) internal tokenToOwnerIndex; // mapping from NFT ID to index of owner
-    mapping(address => mapping(address => bool)) internal ownerToOperators; // mapping from owner address to mapping of operator addresses.
-    mapping(bytes4 => bool) internal supportedInterfaces; // mapping of interface id to bool about whether or not it's supported
+    mapping(address => mapping(address => bool)) internal ownerToOperators; // mapping from owner address to mapping of
+        // operator addresses.
+    mapping(bytes4 => bool) internal supportedInterfaces; // mapping of interface id to bool about whether or not it's
+        // supported
     mapping(uint256 => bool) public nonVoting; // token ID -> whether the veCTM is voting or non-voting
- 
+
     mapping(address => address) internal _delegatee; // delegated addresses
-    /** 
-        Example of delegated checkpoints of an address
-        [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
-    */ 
-    mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints; // address delegatee -> array checkpoints
-    mapping(address => uint256) internal _nonces; // tracking a signature's account nonce, incremented when delegateBySig is called
+    /**
+     * Example of delegated checkpoints of an address
+     *     [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
+     */
+    mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints; // address delegatee -> array
+        // checkpoints
+    mapping(address => uint256) internal _nonces; // tracking a signature's account nonce, incremented when
+        // delegateBySig is called
 
     string public constant name = "Voting Escrow Continuum";
     string public constant symbol = "veCTM";
     string public constant version = "1.0.0";
     uint8 public constant decimals = 18;
     bytes16 internal constant HEX_DIGITS = "0123456789abcdef";
-    uint256 internal constant WEEK = 7 * 86400;
-    uint256 internal constant MAXTIME = 4 * 365 * 86400;
+    uint256 internal constant WEEK = 7 * 86_400;
+    uint256 internal constant MAXTIME = 4 * 365 * 86_400;
     uint256 internal constant MULTIPLIER = 1e18;
-    int128 internal constant iMAXTIME = 4 * 365 * 86400;
+    int128 internal constant iMAXTIME = 4 * 365 * 86_400;
 
-    uint256 public constant LIQ_PENALTY_NUM = 50_000; // penalty for liquidating veCTM before maturity date. 50,000 / 100,000  =  50%
+    uint256 public constant LIQ_PENALTY_NUM = 50_000; // penalty for liquidating veCTM before maturity date. 50,000 /
+        // 100,000  =  50%
     uint256 public constant LIQ_PENALTY_DEN = 100_000;
     bool public liquidationsEnabled;
 
@@ -117,24 +127,32 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Modifiers
     ///
     modifier nonreentrant() {
-        if (_entered_state != NOT_ENTERED) revert VotingEscrow_Reentrant();
+        if (_entered_state != NOT_ENTERED) {
+            revert VotingEscrow_Reentrant();
+        }
         _entered_state = ENTERED;
         _;
         _entered_state = NOT_ENTERED;
     }
 
     modifier onlyGov() {
-        if (msg.sender != governor) revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
+        if (msg.sender != governor) {
+            revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
+        }
         _;
     }
 
     modifier checkNotAttached(uint256 _tokenId) {
-        if (INodeProperties(nodeProperties).attachedNodeId(_tokenId) != bytes32("")) revert VotingEscrow_NodeAttached(_tokenId);
+        if (INodeProperties(nodeProperties).attachedNodeId(_tokenId) != bytes32("")) {
+            revert VotingEscrow_NodeAttached(_tokenId);
+        }
         _;
     }
 
     modifier checkNoRewards(uint256 _tokenId) {
-        if (IRewards(rewards).unclaimedRewards(_tokenId) != 0) revert VotingEscrow_UnclaimedRewards(_tokenId);
+        if (IRewards(rewards).unclaimedRewards(_tokenId) != 0) {
+            revert VotingEscrow_UnclaimedRewards(_tokenId);
+        }
         _;
     }
 
@@ -149,10 +167,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Contract initializer
     /// @param token_addr `ERC20CRV` token address
     /// @param base_uri Base URI for token ID images
-    function initialize(
-        address token_addr,
-        string memory base_uri
-    ) external initializer {
+    function initialize(address token_addr, string memory base_uri) external initializer {
         __UUPSUpgradeable_init();
         token = token_addr;
         baseURI = base_uri;
@@ -197,25 +212,43 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         LockedBalance memory _locked = locked[_tokenId];
 
-        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
-        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
-        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
+        if (_value == 0) {
+            revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        }
+        if (_locked.amount == 0) {
+            revert VotingEscrow_NoExistingLock();
+        }
+        if (_locked.end <= block.timestamp) {
+            revert VotingEscrow_LockExpired(_locked.end);
+        }
 
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.INCREASE_LOCK_AMOUNT);
     }
 
     /// @notice Extend the unlock time for `_tokenId`
     /// @param _lock_duration New number of seconds until tokens unlock
-    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external nonreentrant checkNoRewards(_tokenId) {
+    function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration)
+        external
+        nonreentrant
+        checkNoRewards(_tokenId)
+    {
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
-        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
-        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
-        if (unlock_time <= _locked.end) revert VotingEscrow_InvalidUnlockTime(unlock_time, _locked.end);
-        if (unlock_time > block.timestamp + MAXTIME) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
+        if (_locked.end <= block.timestamp) {
+            revert VotingEscrow_LockExpired(_locked.end);
+        }
+        if (_locked.amount == 0) {
+            revert VotingEscrow_NoExistingLock();
+        }
+        if (unlock_time <= _locked.end) {
+            revert VotingEscrow_InvalidUnlockTime(unlock_time, _locked.end);
+        }
+        if (unlock_time > block.timestamp + MAXTIME) {
+            revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
+        }
 
         _deposit_for(_tokenId, 0, unlock_time, _locked, DepositType.INCREASE_UNLOCK_TIME);
     }
@@ -230,10 +263,20 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @dev End timestamp of merge is value-weighted based on composite tokens.
     /// @param _from The token ID that gets burned.
     /// @param _to The token ID that burned token gets merged into.
-    function merge(uint256 _from, uint256 _to) external checkNotAttached(_from) checkNotAttached(_to) checkNoRewards(_from) checkNoRewards(_to) {
-        if (nonVoting[_from] != nonVoting[_to]) revert VotingEscrow_VotingAndNonVotingMerge(_from, _to);
+    function merge(uint256 _from, uint256 _to)
+        external
+        checkNotAttached(_from)
+        checkNotAttached(_to)
+        checkNoRewards(_from)
+        checkNoRewards(_to)
+    {
+        if (nonVoting[_from] != nonVoting[_to]) {
+            revert VotingEscrow_VotingAndNonVotingMerge(_from, _to);
+        }
 
-        if (_from == _to) revert VotingEscrow_SameToken(_from, _to);
+        if (_from == _to) {
+            revert VotingEscrow_SameToken(_from, _to);
+        }
         _checkApprovedOrOwner(msg.sender, _from);
         _checkApprovedOrOwner(msg.sender, _to);
 
@@ -243,7 +286,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         address ownerFrom = idToOwner[_from];
         address ownerTo = idToOwner[_from];
-        if (ownerFrom != ownerTo) revert VotingEscrow_DifferentOwners(_from, _to);
+        if (ownerFrom != ownerTo) {
+            revert VotingEscrow_DifferentOwners(_from, _to);
+        }
 
         uint256 supply_before = _supply;
         LockedBalance memory _locked0 = locked[_from];
@@ -278,12 +323,19 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Split into two NFTs, with a new one created with an extracted value.
     /// @param _tokenId The token ID to be split.
     /// @param _extraction The underlying value to be used to make a new NFT.
-    function split(uint256 _tokenId, uint256 _extraction) external checkNotAttached(_tokenId) checkNoRewards(_tokenId) returns (uint256) {
+    function split(uint256 _tokenId, uint256 _extraction)
+        external
+        checkNotAttached(_tokenId)
+        checkNoRewards(_tokenId)
+        returns (uint256)
+    {
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
-        if (block.timestamp >= _locked.end) revert VotingEscrow_LockExpired(_locked.end);
+        if (block.timestamp >= _locked.end) {
+            revert VotingEscrow_LockExpired(_locked.end);
+        }
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
         int128 remainder = value - extraction;
@@ -315,7 +367,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /// @notice Opt-out mechanism for users to liquidate their veCTM anytime before end timestamp, incurring a penalty.
-    /// @dev User is penalized 50% of their remaining voting power in underlying tokens, transferred to the DAO treasury.
+    /// @dev User is penalized 50% of their remaining voting power in underlying tokens, transferred to the DAO
+    /// treasury.
     /// e.g. Unlock at 4 years before end => user is penalized 50% of tokens
     ///      Unlock at 3 years before end => user is penalized 37.5% of tokens
     ///      Unlock at 2 years before end => user is penalized 25% of tokens
@@ -324,7 +377,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @dev Minimum value to withdraw is 100 gwei, to prevent liquidation of low voting power, as this can
     ///      potentially lead to zero penalty.
     function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
-        if (!liquidationsEnabled) revert VotingEscrow_LiquidationsDisabled();
+        if (!liquidationsEnabled) {
+            revert VotingEscrow_LiquidationsDisabled();
+        }
         _checkApprovedOrOwner(msg.sender, _tokenId);
         address owner = idToOwner[_tokenId];
         LockedBalance memory _locked = locked[_tokenId];
@@ -333,7 +388,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             return;
         }
         uint256 value = uint256(int256(_locked.amount));
-        if (value <= 100 gwei) revert VotingEscrow_InvalidValue();
+        if (value <= 100 gwei) {
+            revert VotingEscrow_InvalidValue();
+        }
         uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
         uint256 penalty = vePower * LIQ_PENALTY_NUM / LIQ_PENALTY_DEN;
         assert(penalty != 0);
@@ -344,8 +401,12 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
-        if (!IERC20(token).transfer(owner, value - penalty)) revert VotingEscrow_TransferFailed();
-        if (!IERC20(token).transfer(treasury, penalty)) revert VotingEscrow_TransferFailed();
+        if (!IERC20(token).transfer(owner, value - penalty)) {
+            revert VotingEscrow_TransferFailed();
+        }
+        if (!IERC20(token).transfer(treasury, penalty)) {
+            revert VotingEscrow_TransferFailed();
+        }
 
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
@@ -366,13 +427,20 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function deposit_for(uint256 _tokenId, uint256 _value) external nonreentrant {
         LockedBalance memory _locked = locked[_tokenId];
 
-        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
-        if (_locked.amount == 0) revert VotingEscrow_NoExistingLock();
-        if (_locked.end <= block.timestamp) revert VotingEscrow_LockExpired(_locked.end);
+        if (_value == 0) {
+            revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        }
+        if (_locked.amount == 0) {
+            revert VotingEscrow_NoExistingLock();
+        }
+        if (_locked.end <= block.timestamp) {
+            revert VotingEscrow_LockExpired(_locked.end);
+        }
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.DEPOSIT_FOR_TYPE);
     }
 
-    /// @dev Throws unless `msg.sender` is the current owner, an authorized operator, or the approved address for this NFT.
+    /// @dev Throws unless `msg.sender` is the current owner, an authorized operator, or the approved address for this
+    /// NFT.
     ///      Throws if `_from` is not the current owner.
     ///      Throws if `_to` is the zero address.
     ///      Throws if `_tokenId` is not a valid NFT.
@@ -450,7 +518,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice One time use flag to enable liquidations.
     function enableLiquidations() external onlyGov {
-        if (treasury == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
+        if (treasury == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
+        }
         liquidationsEnabled = true;
     }
 
@@ -464,7 +534,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     function balanceOfNFT(uint256 _tokenId) external view returns (uint256) {
-        if (ownership_change[_tokenId] == clock()) return 0;
+        if (ownership_change[_tokenId] == clock()) {
+            return 0;
+        }
         return _balanceOfNFT(_tokenId, block.timestamp);
     }
 
@@ -630,7 +702,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @dev Returns current token URI metadata
     /// @param _tokenId Token ID to fetch URI for.
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        if (idToOwner[_tokenId] == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
+        if (idToOwner[_tokenId] == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
+        }
         string memory _baseURI = baseURI;
         return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
     }
@@ -642,7 +716,11 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Get the checkpoint (including timestamp and list of delegated token IDs) at position `_index` in the
     ///         delegated checkpoint array of address `account`.
-    function checkpoints(address _account, uint256 _index) external view returns (ArrayCheckpoints.CheckpointArray memory) {
+    function checkpoints(address _account, uint256 _index)
+        external
+        view
+        returns (ArrayCheckpoints.CheckpointArray memory)
+    {
         uint32 _index32 = SafeCast.toUint32(_index);
         return _delegateCheckpoints[_account].at(_index32);
     }
@@ -660,14 +738,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         return _tokenId;
     }
 
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
         if (block.timestamp > expiry) {
             revert VotesExpiredSignature(expiry);
         }
@@ -678,7 +749,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         assembly {
             let ptr := mload(0x40)
-            mstore(ptr, hex"19_01")
+            mstore(ptr, hex"1901")
             mstore(add(ptr, 0x02), domainSeparator)
             mstore(add(ptr, 0x22), structHash)
             digest := keccak256(ptr, 0x42)
@@ -688,12 +759,13 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         unchecked {
             uint256 current = _nonces[signer]++;
-            if (nonce != current) revert VotingEscrow_InvalidAccountNonce(signer, current);
+            if (nonce != current) {
+                revert VotingEscrow_InvalidAccountNonce(signer, current);
+            }
         }
 
         _delegate(signer, delegatee);
     }
-
 
     /// @notice Public view
     ///
@@ -718,13 +790,19 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function _approve(address _approved, uint256 _tokenId) internal {
         address owner = idToOwner[_tokenId];
         // Throws if `_tokenId` is not a valid NFT
-        if (owner == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
+        if (owner == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
+        }
         // Throws if `_approved` is the current owner
-        if (_approved == owner) revert VotingEscrow_Unauthorized(VotingEscrowErrorParam.Approved, VotingEscrowErrorParam.Owner);
+        if (_approved == owner) {
+            revert VotingEscrow_Unauthorized(VotingEscrowErrorParam.Approved, VotingEscrowErrorParam.Owner);
+        }
         // Check requirements
         bool senderIsOwner = (idToOwner[_tokenId] == msg.sender);
         bool senderIsApprovedForAll = (ownerToOperators[owner])[msg.sender];
-        if (!senderIsOwner && !senderIsApprovedForAll) revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.ApprovedOrOwner);
+        if (!senderIsOwner && !senderIsApprovedForAll) {
+            revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.ApprovedOrOwner);
+        }
         // Set the approval
         idToApprovals[_tokenId] = _approved;
         emit Approval(owner, _approved, _tokenId);
@@ -739,15 +817,19 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
-        if (_value == 0) revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
-        if (unlock_time <= block.timestamp) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp);
+        if (_value == 0) {
+            revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        }
+        if (unlock_time <= block.timestamp) {
+            revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp);
+        }
 
         ++tokenId;
         uint256 _tokenId = tokenId;
         _mint(_to, _tokenId);
 
         _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
- 
+
         // move delegated votes to the receiver upon deposit
         // doesn't matter if it's for a non-voting token as that gets checked when `getVotes` is called
         address owner = idToOwner[_tokenId];
@@ -780,7 +862,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             unlock_time -= WEEK;
         }
 
-        if (unlock_time > block.timestamp + MAXTIME) revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
+        if (unlock_time > block.timestamp + MAXTIME) {
+            revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp + MAXTIME);
+        }
 
         LockedBalance memory _locked = locked_balance;
         uint256 supply_before = _supply;
@@ -821,24 +905,16 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /**
      * @dev Remove a specific amount of token IDs from the delegated balance of `from` and move them to `to`.
-     * Checkpoint both delegatees. 
+     * Checkpoint both delegatees.
      */
     function _moveDelegateVotes(address from, address to, uint256[] memory deltaTokenIDs) private {
         if (from != to) {
             if (from != address(0)) {
-                (uint256 oldBalance, uint256 newBalance) = _push(
-                    _delegateCheckpoints[from],
-                    _remove,
-                    deltaTokenIDs
-                );
+                (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[from], _remove, deltaTokenIDs);
                 emit DelegateVotesChanged(from, oldBalance, newBalance);
             }
             if (to != address(0)) {
-                (uint256 oldBalance, uint256 newBalance) = _push(
-                    _delegateCheckpoints[to],
-                    _add,
-                    deltaTokenIDs
-                );
+                (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[to], _add, deltaTokenIDs);
                 emit DelegateVotesChanged(to, oldBalance, newBalance);
             }
         }
@@ -850,12 +926,10 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     ///      Throws if `_to` is the zero address.
     ///      Throws if `_from` is not the current owner.
     ///      Throws if `_tokenId` is not a valid NFT.
-    function _transferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        address _sender
-    ) internal checkNotAttached(_tokenId) {
+    function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender)
+        internal
+        checkNotAttached(_tokenId)
+    {
         // Check requirements
         _checkApprovedOrOwner(_sender, _tokenId);
 
@@ -883,7 +957,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _checkApprovedOrOwner(msg.sender, _tokenId);
 
         LockedBalance memory _locked = locked[_tokenId];
-        if (block.timestamp < _locked.end) revert VotingEscrow_LockNotExpired(_locked.end);
+        if (block.timestamp < _locked.end) {
+            revert VotingEscrow_LockNotExpired(_locked.end);
+        }
         uint256 value = uint256(int256(_locked.amount));
         address owner = idToOwner[_tokenId];
 
@@ -1033,7 +1109,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         if (_isContract(_to)) {
             // Throws if transfer destination is a contract which does not implement 'onERC721Received'
-            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) {}
+            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) { }
             catch (bytes memory reason) {
                 if (reason.length == 0) {
                     revert("ERC721: transfer to non ERC721Receiver implementer");
@@ -1082,7 +1158,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             }
         }
 
-        Point memory last_point = Point({bias: 0, slope: 0, ts: block.timestamp, blk: block.number});
+        Point memory last_point = Point({ bias: 0, slope: 0, ts: block.timestamp, blk: block.number });
         if (_epoch > 0) {
             last_point = point_history[_epoch];
         }
@@ -1326,7 +1402,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Conditions for upgrading the implementation.
     function _authorizeUpgrade(address newImplementation) internal view override onlyGov {
-        if (newImplementation == address(0)) revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Implementation);
+        if (newImplementation == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Implementation);
+        }
     }
 
     /// @notice Binary search to estimate timestamp for block number
@@ -1415,7 +1493,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
                     mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))
                 }
                 value /= 10;
-                if (value == 0) break;
+                if (value == 0) {
+                    break;
+                }
             }
             return buffer;
         }
@@ -1465,7 +1545,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Private mutable
     ///
-    /// @notice Create a new checkpoint which either adds to or removes from the latest checkpoint, a given array of token IDs.
+    /// @notice Create a new checkpoint which either adds to or removes from the latest checkpoint, a given array of
+    /// token IDs.
     /// @param store The checkpoint array to be operated on.
     /// @param op The operation to perform - can be `_add` or `_subtract`.
     /// @param deltaTokenIDs The array of token IDs that are to be added or removed from `store`.

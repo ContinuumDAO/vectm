@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.24;
 
-import {Governor} from "./Governor.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Governor } from "./Governor.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @dev A module that ensures there is a minimum voting period after quorum is reached. This prevents a large voter from

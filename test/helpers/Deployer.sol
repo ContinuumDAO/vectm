@@ -7,13 +7,14 @@ import { C3CallerUpgradeable } from "@c3caller/upgradeable/C3CallerUpgradeable.s
 import { C3UUIDKeeperUpgradeable } from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
 import { C3UUIDKeeper } from "@c3caller/uuid/C3UUIDKeeper.sol";
 
-import { TestERC20 } from "./mocks/TestERC20.sol";
-import { CTM } from "../../src/token/CTM.sol";
-import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
+import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
 import { NodeProperties } from "../../src/node/NodeProperties.sol";
 import { Rewards } from "../../src/node/Rewards.sol";
+import { CTM } from "../../src/token/CTM.sol";
+import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
+import { TestERC20 } from "./mocks/TestERC20.sol";
+
 import { WETH } from "./mocks/WETH.sol";
-import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
 
 import { Utils } from "./Utils.sol";
 import { MockSwapRouter } from "./mocks/MockSwapRouter.sol";
@@ -58,7 +59,9 @@ contract Deployer is Utils {
 
     function _deployVotingEscrow() internal {
         VotingEscrow veImpl = new VotingEscrow();
-        ve = VotingEscrow(_deployProxy(address(veImpl), abi.encodeCall(VotingEscrow.initialize, (address(ctm), "Base URI"))));
+        ve = VotingEscrow(
+            _deployProxy(address(veImpl), abi.encodeCall(VotingEscrow.initialize, (address(ctm), "Base URI")))
+        );
     }
 
     function _deployCTMDAOGovernor() internal {

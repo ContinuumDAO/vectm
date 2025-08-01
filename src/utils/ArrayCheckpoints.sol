@@ -43,7 +43,8 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or an
+     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or
+     * an
      * empty array if there is none.
      */
     function lowerLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
@@ -101,7 +102,11 @@ library ArrayCheckpoints {
      * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
      * in the most recent checkpoint.
      */
-    function latestCheckpoint(TraceArray storage self) internal view returns (bool exists, uint256 _key, uint256[] memory _values) {
+    function latestCheckpoint(TraceArray storage self)
+        internal
+        view
+        returns (bool exists, uint256 _key, uint256[] memory _values)
+    {
         uint256 pos = self._checkpoints.length;
         if (pos == 0) {
             return (false, 0, new uint256[](0));
@@ -129,7 +134,10 @@ library ArrayCheckpoints {
      * @dev Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values) private returns (uint256, uint256) {
+    function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values)
+        private
+        returns (uint256, uint256)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -145,11 +153,11 @@ library ArrayCheckpoints {
             if (last._key == key) {
                 _unsafeAccess(self, pos - 1)._values = values;
             } else {
-                self.push(CheckpointArray({_key: key, _values: values}));
+                self.push(CheckpointArray({ _key: key, _values: values }));
             }
             return (last._values.length, values.length);
         } else {
-            self.push(CheckpointArray({_key: key, _values: values}));
+            self.push(CheckpointArray({ _key: key, _values: values }));
             return (0, values.length);
         }
     }
@@ -161,12 +169,11 @@ library ArrayCheckpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(CheckpointArray[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -185,12 +192,11 @@ library ArrayCheckpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(CheckpointArray[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -208,10 +214,11 @@ library ArrayCheckpoints {
      *      as opposed to dynamic-sized arrays), the assembly outlined here does not work, nor is required.
      *      It now does a high level array read and is no longer unsafe.
      */
-    function _unsafeAccess(
-        CheckpointArray[] storage self,
-        uint256 pos
-    ) private view returns (CheckpointArray storage result) {
+    function _unsafeAccess(CheckpointArray[] storage self, uint256 pos)
+        private
+        view
+        returns (CheckpointArray storage result)
+    {
         // assembly {
         //     mstore(0, self.slot)
         //     result.slot := add(keccak256(0, 0x20), pos)

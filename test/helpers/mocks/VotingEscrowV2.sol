@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+import { IVotes } from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { IERC721Metadata } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
  * @title Voting Escrow
@@ -31,7 +34,6 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * 0 +--------+------> time
  *       maxtime (4 years?)
  */
-
 interface IVotingEscrow is IERC721Metadata, IVotes {
     function version() external view returns (string memory);
     function decimals() external view returns (uint8);
@@ -49,7 +51,9 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     function initialize(address token_addr, string memory base_uri) external;
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
+    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
+        external
+        returns (uint256);
     function increase_amount(uint256 _tokenId, uint256 _value) external;
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;
@@ -107,7 +111,6 @@ interface IVotingEscrow is IERC721Metadata, IVotes {
     // delegates
 }
 
-
 /**
  * @notice Interface for use with the Node Properties contract, where node runners can attach their veCTM to gain extra
  * rewards.
@@ -116,7 +119,6 @@ interface INodeProperties {
     function attachedNodeId(uint256 _tokenId) external view returns (uint256);
     function attachedTokenId(uint256 _nodeId) external view returns (uint256);
 }
-
 
 /**
  * @notice Modified version of OpenZeppelin's Checkpoints library that tracks arrays instead of single values.
@@ -157,7 +159,8 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or an
+     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or
+     * an
      * empty array if there is none.
      */
     function lowerLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
@@ -215,7 +218,11 @@ library ArrayCheckpoints {
      * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
      * in the most recent checkpoint.
      */
-    function latestCheckpoint(TraceArray storage self) internal view returns (bool exists, uint256 _key, uint256[] memory _values) {
+    function latestCheckpoint(TraceArray storage self)
+        internal
+        view
+        returns (bool exists, uint256 _key, uint256[] memory _values)
+    {
         uint256 pos = self._checkpoints.length;
         if (pos == 0) {
             return (false, 0, new uint256[](0));
@@ -243,7 +250,10 @@ library ArrayCheckpoints {
      * @dev Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values) private returns (uint256, uint256) {
+    function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values)
+        private
+        returns (uint256, uint256)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -259,11 +269,11 @@ library ArrayCheckpoints {
             if (last._key == key) {
                 _unsafeAccess(self, pos - 1)._values = values;
             } else {
-                self.push(CheckpointArray({_key: key, _values: values}));
+                self.push(CheckpointArray({ _key: key, _values: values }));
             }
             return (last._values.length, values.length);
         } else {
-            self.push(CheckpointArray({_key: key, _values: values}));
+            self.push(CheckpointArray({ _key: key, _values: values }));
             return (0, values.length);
         }
     }
@@ -275,12 +285,11 @@ library ArrayCheckpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(CheckpointArray[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -299,12 +308,11 @@ library ArrayCheckpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        CheckpointArray[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(CheckpointArray[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -322,10 +330,11 @@ library ArrayCheckpoints {
      *      as opposed to dynamic-sized arrays), the assembly outlined here does not work, nor is required.
      *      It now does a high level array read and is no longer unsafe.
      */
-    function _unsafeAccess(
-        CheckpointArray[] storage self,
-        uint256 pos
-    ) private view returns (CheckpointArray storage result) {
+    function _unsafeAccess(CheckpointArray[] storage self, uint256 pos)
+        private
+        view
+        returns (CheckpointArray storage result)
+    {
         // assembly {
         //     mstore(0, self.slot)
         //     result.slot := add(keccak256(0, 0x20), pos)
@@ -333,7 +342,6 @@ library ArrayCheckpoints {
         return self[pos];
     }
 }
-
 
 /**
  * @notice Compatible with UUPS proxy pattern, OpenZeppelin Governor Votes
@@ -389,7 +397,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     // epoch -> unsigned point
     mapping(uint256 => Point) public point_history;
     // user -> Point[user_epoch]
-    mapping(uint256 => Point[1000000000]) public user_point_history;
+    mapping(uint256 => Point[1_000_000_000]) public user_point_history;
     mapping(uint256 => uint256) public user_point_epoch;
     // time -> signed slope change
     mapping(uint256 => int128) public slope_changes;
@@ -408,7 +416,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     // mapping of interface id to bool about whether or not it's supported
     mapping(bytes4 => bool) internal supportedInterfaces;
     mapping(uint256 => bool) public nonVoting;
- 
+
     // delegated addresses
     mapping(address => address) internal _delegatee;
     // address delegatee => [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
@@ -422,11 +430,11 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     uint8 public constant decimals = 18;
     bytes16 internal constant HEX_DIGITS = "0123456789abcdef";
     uint256 internal constant WEEK = 1 weeks;
-    uint256 internal constant MAXTIME = 4 * 365 * 86400;
+    uint256 internal constant MAXTIME = 4 * 365 * 86_400;
     uint256 internal constant MULTIPLIER = 1 ether;
-    int128 internal constant iMAXTIME = 4 * 365 * 86400;
+    int128 internal constant iMAXTIME = 4 * 365 * 86_400;
     // penalty for liquidating veCTM before maturity date. 50,000 / 100,000  =  50%
-    uint256 public constant LIQUIDATION_PENALTY = 50000;
+    uint256 public constant LIQUIDATION_PENALTY = 50_000;
     bool internal liquidationsEnabled;
 
     // ERC165 interface ID of ERC165
@@ -662,7 +670,8 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     }
 
     /// @notice Opt-out mechanism for users to liquidate their veCTM anytime before end timestamp, incurring a penalty.
-    /// @dev User is penalized 50% of their remaining voting power in underlying tokens, transferred to the DAO treasury.
+    /// @dev User is penalized 50% of their remaining voting power in underlying tokens, transferred to the DAO
+    /// treasury.
     /// e.g. Unlock at 4 years before end => user is penalized 50% of tokens
     ///      Unlock at 3 years before end => user is penalized 37.5% of tokens
     ///      Unlock at 2 years before end => user is penalized 25% of tokens
@@ -682,7 +691,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
         uint256 value = uint256(int256(_locked.amount));
         require(value > 100 gwei);
         uint256 vePower = _balanceOfNFT(_tokenId, block.timestamp);
-        uint256 penalty = vePower * LIQUIDATION_PENALTY / 100000;
+        uint256 penalty = vePower * LIQUIDATION_PENALTY / 100_000;
         assert(penalty != 0);
 
         locked[_tokenId] = LockedBalance(0, 0);
@@ -719,7 +728,8 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
         _deposit_for(_tokenId, _value, 0, _locked, DepositType.DEPOSIT_FOR_TYPE);
     }
 
-    /// @dev Throws unless `msg.sender` is the current owner, an authorized operator, or the approved address for this NFT.
+    /// @dev Throws unless `msg.sender` is the current owner, an authorized operator, or the approved address for this
+    /// NFT.
     ///      Throws if `_from` is not the current owner.
     ///      Throws if `_to` is the zero address.
     ///      Throws if `_tokenId` is not a valid NFT.
@@ -817,7 +827,9 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     }
 
     function balanceOfNFT(uint256 _tokenId) external view returns (uint256) {
-        if (ownership_change[_tokenId] == clock()) return 0;
+        if (ownership_change[_tokenId] == clock()) {
+            return 0;
+        }
         return _balanceOfNFT(_tokenId, block.timestamp);
     }
 
@@ -1024,14 +1036,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
         emit Approval(owner, _approved, _tokenId);
     }
 
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
         if (block.timestamp > expiry) {
             revert VotesExpiredSignature(expiry);
         }
@@ -1042,7 +1047,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
 
         assembly {
             let ptr := mload(0x40)
-            mstore(ptr, hex"19_01")
+            mstore(ptr, hex"1901")
             mstore(add(ptr, 0x02), domainSeparator)
             mstore(add(ptr, 0x22), structHash)
             digest := keccak256(ptr, 0x42)
@@ -1052,12 +1057,13 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
 
         unchecked {
             uint256 current = _nonces[signer]++;
-            if (nonce != current) revert InvalidAccountNonce(signer, current);
+            if (nonce != current) {
+                revert InvalidAccountNonce(signer, current);
+            }
         }
 
         _delegate(signer, delegatee);
     }
-
 
     /// @notice Public view
     ///
@@ -1094,7 +1100,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
         _mint(_to, _tokenId);
 
         _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
- 
+
         // move delegated votes to the receiver upon deposit
         // doesn't matter if it's for a non-voting token as that gets checked when `getVotes` is called
         address owner = idToOwner[_tokenId];
@@ -1161,24 +1167,16 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
 
     /**
      * @dev Remove a specific amount of token IDs from the delegated balance of `from` and move them to `to`.
-     * Checkpoint both delegatees. 
+     * Checkpoint both delegatees.
      */
     function _moveDelegateVotes(address from, address to, uint256[] memory deltaTokenIDs) private {
         if (from != to) {
             if (from != address(0)) {
-                (uint256 oldBalance, uint256 newBalance) = _push(
-                    _delegateCheckpoints[from],
-                    _remove,
-                    deltaTokenIDs
-                );
+                (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[from], _remove, deltaTokenIDs);
                 emit DelegateVotesChanged(from, oldBalance, newBalance);
             }
             if (to != address(0)) {
-                (uint256 oldBalance, uint256 newBalance) = _push(
-                    _delegateCheckpoints[to],
-                    _add,
-                    deltaTokenIDs
-                );
+                (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[to], _add, deltaTokenIDs);
                 emit DelegateVotesChanged(to, oldBalance, newBalance);
             }
         }
@@ -1190,12 +1188,10 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
     ///      Throws if `_to` is the zero address.
     ///      Throws if `_from` is not the current owner.
     ///      Throws if `_tokenId` is not a valid NFT.
-    function _transferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId,
-        address _sender
-    ) internal checkNotAttached(_tokenId) {
+    function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender)
+        internal
+        checkNotAttached(_tokenId)
+    {
         // Check requirements
         _checkApprovedOrOwner(_sender, _tokenId);
 
@@ -1373,7 +1369,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
 
         if (_isContract(_to)) {
             // Throws if transfer destination is a contract which does not implement 'onERC721Received'
-            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) {}
+            try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) { }
             catch (bytes memory reason) {
                 if (reason.length == 0) {
                     revert("ERC721: transfer to non ERC721Receiver implementer");
@@ -1422,7 +1418,7 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
             }
         }
 
-        Point memory last_point = Point({bias: 0, slope: 0, ts: block.timestamp, blk: block.number});
+        Point memory last_point = Point({ bias: 0, slope: 0, ts: block.timestamp, blk: block.number });
         if (_epoch > 0) {
             last_point = point_history[_epoch];
         }
@@ -1755,7 +1751,9 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
                     mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))
                 }
                 value /= 10;
-                if (value == 0) break;
+                if (value == 0) {
+                    break;
+                }
             }
             return buffer;
         }
@@ -1805,7 +1803,8 @@ contract VotingEscrowV2 is UUPSUpgradeable, IVotingEscrow {
 
     /// @notice Private mutable
     ///
-    /// @notice Create a new checkpoint which either adds to or removes from the latest checkpoint, a given array of token IDs.
+    /// @notice Create a new checkpoint which either adds to or removes from the latest checkpoint, a given array of
+    /// token IDs.
     /// @param store The checkpoint array to be operated on.
     /// @param op The operation to perform - can be `_add` or `_subtract`.
     /// @param deltaTokenIDs The array of token IDs that are to be added or removed from `store`.

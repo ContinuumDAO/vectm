@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.24;
 
-import {IGovernor, Governor} from "./Governor.sol";
+import { Governor, IGovernor } from "./Governor.sol";
 
 /**
  * @dev Extension of {Governor} for settings updatable through governance.

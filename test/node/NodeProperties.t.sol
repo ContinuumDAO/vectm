@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.27;
 
-import {NodeProperties} from "../../src/node/NodeProperties.sol";
-import {INodeProperties} from "../../src/node/INodeProperties.sol";
-import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
-import {Helpers} from "../helpers/Helpers.sol";
+import { INodeProperties } from "../../src/node/INodeProperties.sol";
+import { NodeProperties } from "../../src/node/NodeProperties.sol";
+import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
+import { Helpers } from "../helpers/Helpers.sol";
 
 contract TestNodeProperties is Helpers {
-    uint256 constant MAXTIME = 4 * 365 * 86400;
+    uint256 constant MAXTIME = 4 * 365 * 86_400;
     uint256 id1;
     uint256 id2;
 
@@ -20,11 +20,11 @@ contract TestNodeProperties is Helpers {
         // bytes32 nodeId
         keccak256(abi.encode("Example Node ID")),
         // uint8[4] ip;
-        [0,0,0,0],
+        [0, 0, 0, 0],
         // string vpsProvider;
         "Contabo",
         // uint256 ramInstalled;
-        16000000000,
+        16_000_000_000,
         // uint256 cpuCores;
         8,
         // string dIDType;
@@ -35,7 +35,7 @@ contract TestNodeProperties is Helpers {
         ""
     );
 
-    function setUp() public override {        
+    function setUp() public override {
         super.setUp();
     }
 
@@ -47,7 +47,7 @@ contract TestNodeProperties is Helpers {
 
     function test_AttachNode() public {
         vm.startPrank(user1);
-        id1 = ve.create_lock(10000 ether, MAXTIME);
+        id1 = ve.create_lock(10_000 ether, MAXTIME);
         nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.stopPrank();
     }
@@ -55,7 +55,9 @@ contract TestNodeProperties is Helpers {
     function test_AttachNodeSufficientVePower() public prank(user1) {
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
-        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_NodeRewardThresholdNotReached.selector, id1));
+        vm.expectRevert(
+            abi.encodeWithSelector(INodeProperties.NodeProperties_NodeRewardThresholdNotReached.selector, id1)
+        );
         nodeProperties.attachNode(id1, submittedNodeInfo);
         ve.increase_amount(id1, 14 ether);
         nodeProperties.attachNode(id1, submittedNodeInfo);
@@ -68,7 +70,11 @@ contract TestNodeProperties is Helpers {
         nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDAlreadyAttached.selector, id1));
         nodeProperties.attachNode(id1, submittedNodeInfo);
-        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_NodeIDAlreadyAttached.selector, submittedNodeInfo.nodeId));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                INodeProperties.NodeProperties_NodeIDAlreadyAttached.selector, submittedNodeInfo.nodeId
+            )
+        );
         nodeProperties.attachNode(id2, submittedNodeInfo);
     }
 

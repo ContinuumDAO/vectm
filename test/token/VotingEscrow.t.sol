@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.27;
 
-import {console} from "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
-import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
-import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
-import {Helpers} from "../helpers/Helpers.sol";
+import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
+import { VotingEscrowErrorParam } from "../../src/utils/VotingEscrowUtils.sol";
+import { Helpers } from "../helpers/Helpers.sol";
 
 contract TestVotingEscrow is Helpers {
     uint256 id1;
@@ -16,8 +16,8 @@ contract TestVotingEscrow is Helpers {
     uint256 id3;
     uint256 id4;
 
-    uint256 constant MAXTIME = 4 * 365 * 86400;
-    uint256 constant ONE_YEAR = 365 * 86400;
+    uint256 constant MAXTIME = 4 * 365 * 86_400;
+    uint256 constant ONE_YEAR = 365 * 86_400;
     uint256 tokenId;
 
     // UTILS
@@ -49,7 +49,10 @@ contract TestVotingEscrow is Helpers {
         tokenId = ve.create_lock(amount, endpoint);
     }
 
-    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public prank(user1) {
+    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease)
+        public
+        prank(user1)
+    {
         amount = bound(amount, 1, _100_000 - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         amountIncrease = bound(amountIncrease, 1, _100_000 - amount);
@@ -93,71 +96,67 @@ contract TestVotingEscrow is Helpers {
     function test_LockValueOverInt128() public prank(user1) {
         vm.expectRevert(
             abi.encodeWithSelector(
-                SafeCast.SafeCastOverflowedIntDowncast.selector,
-                128,
-                uint256(int256(type(int128).max)) + 1
+                SafeCast.SafeCastOverflowedIntDowncast.selector, 128, uint256(int256(type(int128).max)) + 1
             )
         );
         tokenId = ve.create_lock(uint256(int256(type(int128).max)) + 1, block.timestamp + MAXTIME);
     }
 
-
-// contract Proxy is SetUp {
-//     VotingEscrowV2 veImplV2;
-//     bytes initializerDataV2;
-//     string constant BASE_URI_V2 = "veCTM V2";
-// 
-//     // UTILS
-// 
-//     function setUp() public override {
-//         super.setUp();
-// 
-//         veImplV2 = new VotingEscrowV2();
-//         initializerDataV2 = abi.encodeWithSignature(
-//             "initialize(address,string)",
-//             address(ctm),
-//             BASE_URI_V2
-//         );
-// 
-//         ctm.print(gov, initialBalGov);
-//         vm.prank(gov);
-//         ctm.approve(address(ve), initialBalGov);
-//     }
-// 
-//     // TESTS
-//     function test_InitializedStateEqualToInput() public {
-//         string memory baseURI = ve.baseURI();
-//         assertEq(baseURI, BASE_URI_V1);
-//     }
-// 
-//     function test_CannotInitializeTwice() public {
-//         vm.expectRevert(Initializable.InvalidInitialization.selector);
-//         ve.initialize(address(ctm), BASE_URI_V1);
-//     }
-// 
-//     function test_ValidUpgrade() public prank(gov) {
-//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-//         string memory baseURI = ve.baseURI();
-//         assertEq(baseURI, BASE_URI_V2);
-//     }
-// 
-//     function test_UnauthorizedUpgrade() public {
-//         vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
-//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-//         string memory baseURI = ve.baseURI();
-//         assertEq(baseURI, BASE_URI_V1);
-//     }
-// 
-//     function test_CannotUpgradeToSameVersion() public prank(gov) {
-//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-//         string memory baseURI = ve.baseURI();
-//         assertEq(baseURI, BASE_URI_V2);
-//         veImplV2 = new VotingEscrowV2();
-//         vm.expectRevert(Initializable.InvalidInitialization.selector);
-//         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
-//     }
-// }
-
+    // contract Proxy is SetUp {
+    //     VotingEscrowV2 veImplV2;
+    //     bytes initializerDataV2;
+    //     string constant BASE_URI_V2 = "veCTM V2";
+    //
+    //     // UTILS
+    //
+    //     function setUp() public override {
+    //         super.setUp();
+    //
+    //         veImplV2 = new VotingEscrowV2();
+    //         initializerDataV2 = abi.encodeWithSignature(
+    //             "initialize(address,string)",
+    //             address(ctm),
+    //             BASE_URI_V2
+    //         );
+    //
+    //         ctm.print(gov, initialBalGov);
+    //         vm.prank(gov);
+    //         ctm.approve(address(ve), initialBalGov);
+    //     }
+    //
+    //     // TESTS
+    //     function test_InitializedStateEqualToInput() public {
+    //         string memory baseURI = ve.baseURI();
+    //         assertEq(baseURI, BASE_URI_V1);
+    //     }
+    //
+    //     function test_CannotInitializeTwice() public {
+    //         vm.expectRevert(Initializable.InvalidInitialization.selector);
+    //         ve.initialize(address(ctm), BASE_URI_V1);
+    //     }
+    //
+    //     function test_ValidUpgrade() public prank(gov) {
+    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    //         string memory baseURI = ve.baseURI();
+    //         assertEq(baseURI, BASE_URI_V2);
+    //     }
+    //
+    //     function test_UnauthorizedUpgrade() public {
+    //         vm.expectRevert("ContinuumDAO: Only Governor can perform this operation.");
+    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    //         string memory baseURI = ve.baseURI();
+    //         assertEq(baseURI, BASE_URI_V1);
+    //     }
+    //
+    //     function test_CannotUpgradeToSameVersion() public prank(gov) {
+    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    //         string memory baseURI = ve.baseURI();
+    //         assertEq(baseURI, BASE_URI_V2);
+    //         veImplV2 = new VotingEscrowV2();
+    //         vm.expectRevert(Initializable.InvalidInitialization.selector);
+    //         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    //     }
+    // }
 
     function skip() internal {
         vm.warp(block.timestamp + 1);
@@ -235,7 +234,9 @@ contract TestVotingEscrow is Helpers {
         assertEq(userDelegatedIDs[1], id2);
         skip(1);
 
-        console.log("Delegate user => user2: User should have zero delegated, two owned (1,2) and user2 should have two delegated (1,2)");
+        console.log(
+            "Delegate user => user2: User should have zero delegated, two owned (1,2) and user2 should have two delegated (1,2)"
+        );
         ve.delegate(user2);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
@@ -247,7 +248,9 @@ contract TestVotingEscrow is Helpers {
         assertEq(ve.ownerOf(id2), user1);
         skip(1);
 
-        console.log("Create token 3: User should have zero delegated, three owned (1,2,3) and user2 should have three delegated (1,2,3)");
+        console.log(
+            "Create token 3: User should have zero delegated, three owned (1,2,3) and user2 should have three delegated (1,2,3)"
+        );
         id3 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
         user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
@@ -261,10 +264,12 @@ contract TestVotingEscrow is Helpers {
         assertEq(ve.ownerOf(id3), user1);
         skip(1);
 
-        console.log("Transfer token 2: User should have zero delegated, two owned (1,3) and user2 should have two delegated (1,3), one owned (2)");
+        console.log(
+            "Transfer token 2: User should have zero delegated, two owned (1,3) and user2 should have two delegated (1,3), one owned (2)"
+        );
         ve.transferFrom(user1, user2, id2);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
-        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
+        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 2);
         assertEq(user2DelegatedIDs[0], id1);
@@ -277,10 +282,12 @@ contract TestVotingEscrow is Helpers {
         vm.stopPrank();
         vm.startPrank(user2);
 
-        console.log("Delegate user2 => user2: User should have zero delegated, two owned (1,3) and user2 should have three delegated (1,3,2), one owned (2)");
+        console.log(
+            "Delegate user2 => user2: User should have zero delegated, two owned (1,3) and user2 should have three delegated (1,3,2), one owned (2)"
+        );
         ve.delegate(user2);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
-        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
+        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 3);
         assertEq(user2DelegatedIDs[0], id1);
@@ -291,10 +298,12 @@ contract TestVotingEscrow is Helpers {
         assertEq(ve.ownerOf(id3), user1);
         skip(1);
 
-        console.log("Create token 4: User should have zero delegated, two owned (1,3) and user2 should have four delegated (1,3,2,4), two owned (2,4)");
+        console.log(
+            "Create token 4: User should have zero delegated, two owned (1,3) and user2 should have four delegated (1,3,2,4), two owned (2,4)"
+        );
         id4 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
-        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
+        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 0);
         assertEq(user2DelegatedIDs.length, 4);
         assertEq(user2DelegatedIDs[0], id1);
@@ -307,10 +316,12 @@ contract TestVotingEscrow is Helpers {
         assertEq(ve.ownerOf(id4), user2);
         skip(1);
 
-        console.log("Delegate user2 => user: User should have two delegated, two owned (1,3) and user2 should have two delegated (1,3), two owned (2,4)");
+        console.log(
+            "Delegate user2 => user: User should have two delegated, two owned (1,3) and user2 should have two delegated (1,3), two owned (2,4)"
+        );
         ve.delegate(user1);
         userDelegatedIDs = ve.tokenIdsDelegatedTo(user1);
-        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2); 
+        user2DelegatedIDs = ve.tokenIdsDelegatedTo(user2);
         assertEq(userDelegatedIDs.length, 2);
         assertEq(user2DelegatedIDs.length, 2);
         assertEq(userDelegatedIDs[0], id2);
@@ -404,7 +415,7 @@ contract TestVotingEscrow is Helpers {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
         uint256 votesBeforeEth = ve.getVotes(user1) / 1e18;
-        (,uint256 _endBefore) = ve.locked(id1);
+        (, uint256 _endBefore) = ve.locked(id1);
         skip(1);
         id2 = ve.split(id1, 980 ether);
         (int128 _value1, uint256 _end1) = ve.locked(id1);
@@ -450,7 +461,8 @@ contract TestVotingEscrow is Helpers {
         uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
         assertEq(votesAfterEth, 0);
         assertEq(balanceUserAfterEth, balanceUserBeforeEth + 87); // should be 5/8s of original lock = 87.5 (truncation)
-        assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5 (truncation)
+        assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5
+            // (truncation)
     }
 
     function test_LiquidateAfter4Years() public prank(user1) {
@@ -549,7 +561,8 @@ contract TestVotingEscrow is Helpers {
         (int128 _value2After128, uint256 _end2After) = ve.locked(id2);
         uint256 _value1After = SafeCast.toUint256(int256(_value1After128));
         uint256 _value2After = SafeCast.toUint256(int256(_value2After128));
-        uint256 weightedEnd = ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
+        uint256 weightedEnd =
+            ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
         // uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
         uint256 unlockTime = ((weightedEnd / 1 weeks) * 1 weeks) + 1 weeks;
         if (unlockTime > MAX_LOCK) {
@@ -559,10 +572,7 @@ contract TestVotingEscrow is Helpers {
         assertEq(_value1After, 0);
         assertEq(_end1After, 0);
         assertEq(_value2After, _value1Before + _value2Before);
-        assertEq(
-            _end2After,
-            unlockTime
-        );
+        assertEq(_end2After, unlockTime);
     }
 
     function test_SplitValueOverMaxInt128() public prank(user1) {
@@ -571,15 +581,13 @@ contract TestVotingEscrow is Helpers {
         skip(1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SafeCast.SafeCastOverflowedIntDowncast.selector,
-                128,
-                uint256(int256(type(int128).max)) + 1
+                SafeCast.SafeCastOverflowedIntDowncast.selector, 128, uint256(int256(type(int128).max)) + 1
             )
         );
         ve.split(id1, uint256(int256(type(int128).max)) + 1);
     }
 
-    function test_ApprovedSplit() public approveUser2 prank(user2) { 
+    function test_ApprovedSplit() public approveUser2 prank(user2) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
         id1 = ve.create_lock_for(1000 ether, WEEK_4_YEARS, user1);
         skip(1);
@@ -671,8 +679,8 @@ contract TestVotingEscrow is Helpers {
         //     emit VotingEscrow.Withdraw(user, id1, _value, _liquidationTs);
         //     ve.liquidate(id1);
         // } else {
-            rewards.claimRewards(id1, user1);
-            ve.liquidate(id1);
+        rewards.claimRewards(id1, user1);
+        ve.liquidate(id1);
         // }
     }
 }

@@ -2,13 +2,14 @@
 
 pragma solidity 0.8.27;
 
-import {console} from "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
-import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
-import {IVotingEscrow, VotingEscrow} from "../../src/token/VotingEscrow.sol";
-import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
-import {NodeProperties} from "../../src/node/NodeProperties.sol";
-import {Helpers} from "../helpers/Helpers.sol";
+import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
+
+import { NodeProperties } from "../../src/node/NodeProperties.sol";
+import { IVotingEscrow, VotingEscrow } from "../../src/token/VotingEscrow.sol";
+import { VotingEscrowProxy } from "../../src/utils/VotingEscrowProxy.sol";
+import { Helpers } from "../helpers/Helpers.sol";
 
 enum VoteType {
     Against,
@@ -17,7 +18,7 @@ enum VoteType {
 }
 
 contract TestCTMDAOGovernor is Helpers {
-    uint256 constant ONE_YEAR = 365 * 86400;
+    uint256 constant ONE_YEAR = 365 * 86_400;
     uint256 currentTime = block.timestamp;
 
     modifier prank(address _user) {

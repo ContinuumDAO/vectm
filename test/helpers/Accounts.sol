@@ -58,9 +58,7 @@ contract Accounts is Utils {
         _approveERC20(user2, token, amount, _spenders);
     }
 
-    function _approveERC20(address account, ITestERC20 token, uint256 amount, address[] memory _spenders)
-        private
-    {
+    function _approveERC20(address account, ITestERC20 token, uint256 amount, address[] memory _spenders) private {
         vm.startPrank(account);
 
         for (uint256 i = 0; i < _spenders.length; i++) {

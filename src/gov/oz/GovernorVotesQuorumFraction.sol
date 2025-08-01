@@ -3,10 +3,10 @@
 
 pragma solidity ^0.8.24;
 
-import {GovernorVotes} from "./GovernorVotes.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import { GovernorVotes } from "./GovernorVotes.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 /**
  * @dev Extension of {Governor} for voting weight extraction from an {ERC20Votes} token and a quorum expressed as a
@@ -101,10 +101,11 @@ abstract contract GovernorVotesQuorumFraction is GovernorVotes {
     /**
      * @dev Returns the numerator at a specific timepoint.
      */
-    function _optimisticUpperLookupRecent(
-        Checkpoints.Trace208 storage ckpts,
-        uint256 timepoint
-    ) internal view returns (uint256) {
+    function _optimisticUpperLookupRecent(Checkpoints.Trace208 storage ckpts, uint256 timepoint)
+        internal
+        view
+        returns (uint256)
+    {
         // If trace is empty, key and value are both equal to 0.
         // In that case `key <= timepoint` is true, and it is ok to return 0.
         (, uint48 key, uint208 value) = ckpts.latestCheckpoint();

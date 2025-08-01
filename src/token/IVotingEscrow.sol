@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.27;
 
-import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
-import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import { ArrayCheckpoints } from "../utils/ArrayCheckpoints.sol";
+import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
 
 interface IVotingEscrow {
     /// @notice Type declarations
@@ -101,7 +101,9 @@ interface IVotingEscrow {
     /// @notice VotingEscrow Core
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
+    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
+        external
+        returns (uint256);
     function increase_amount(uint256 _tokenId, uint256 _value) external;
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;
@@ -129,5 +131,8 @@ interface IVotingEscrow {
     function totalPowerAt(uint256 _block) external view returns (uint256);
     function tokenIdsDelegatedTo(address _account) external view returns (uint256[] memory);
     function tokenIdsDelegatedToAt(address _account, uint256 _timepoint) external view returns (uint256[] memory);
-    function checkpoints(address _account, uint256 _index) external view returns (ArrayCheckpoints.CheckpointArray memory);
+    function checkpoints(address _account, uint256 _index)
+        external
+        view
+        returns (ArrayCheckpoints.CheckpointArray memory);
 }

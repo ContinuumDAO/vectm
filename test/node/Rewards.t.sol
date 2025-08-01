@@ -2,20 +2,23 @@
 
 pragma solidity 0.8.27;
 
-import {console} from "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
-import {Rewards} from "../../src/node/Rewards.sol";
-import {IRewards} from "../../src/node/IRewards.sol";
-import {NodeProperties} from "../../src/node/NodeProperties.sol";
-import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
-import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
-import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
-import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
-import {TestERC20} from "../helpers/mocks/TestERC20.sol";
-import {Helpers} from "../helpers/Helpers.sol";
+import { IRewards } from "../../src/node/IRewards.sol";
+import { NodeProperties } from "../../src/node/NodeProperties.sol";
+import { Rewards } from "../../src/node/Rewards.sol";
+
+import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
+import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
+import { VotingEscrowProxy } from "../../src/utils/VotingEscrowProxy.sol";
+
+import { VotingEscrowErrorParam } from "../../src/utils/VotingEscrowUtils.sol";
+
+import { Helpers } from "../helpers/Helpers.sol";
+import { TestERC20 } from "../helpers/mocks/TestERC20.sol";
 
 contract TestRewards is Helpers {
-    uint256 constant MAXTIME = 4 * 365 * 86400;
+    uint256 constant MAXTIME = 4 * 365 * 86_400;
 
     function setUp() public override {
         super.setUp();
@@ -38,11 +41,11 @@ contract TestRewards is Helpers {
                 // bytes32 nodeId
                 keccak256(abi.encode("Example Node ID")),
                 // uint8[4] ip;
-                [0,0,0,0],
+                [0, 0, 0, 0],
                 // string vpsProvider;
                 "Contabo",
                 // uint256 ramInstalled;
-                16000000000,
+                16_000_000_000,
                 // uint256 cpuCores;
                 8,
                 // string dIDType;
@@ -69,37 +72,37 @@ contract TestRewards is Helpers {
     function test_RewardBaseEmissions() public {
         _setQualityOf(1, 0);
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
         uint256 unclaimed = rewards.unclaimedRewards(tokenId);
         skip(1 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        console.log(unclaimed/1e18);
+        console.log(unclaimed / 1e18);
         // assertEq(unclaimed/1e18, 4); // 1 day => 4.9 CTM = 0.05%
         skip(9 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        console.log(unclaimed/1e18);
+        console.log(unclaimed / 1e18);
         // assertEq(unclaimed/1e18, 49); // 10 days => 49.67 CTM = 0.5%
         skip(355 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        console.log(unclaimed/1e18);
+        console.log(unclaimed / 1e18);
         // assertEq(unclaimed/1e18, 1591); // 365 days => 1591 CTM = 15.9%
     }
 
     function test_RewardNodeEmissions() public {
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
         _attachTokenId(tokenId, user1);
         _setQualityOf(tokenId, 10);
         uint256 unclaimed = rewards.unclaimedRewards(tokenId);
         skip(1 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        assertEq(unclaimed/1e18, 14); // 1 day => 14.95 CTM = 0.15%
+        assertEq(unclaimed / 1e18, 14); // 1 day => 14.95 CTM = 0.15%
         skip(9 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        assertEq(unclaimed/1e18, 149); // 10 days => 149 CTM = 1.5%
+        assertEq(unclaimed / 1e18, 149); // 10 days => 149 CTM = 1.5%
         skip(355 days);
         unclaimed = rewards.unclaimedRewards(tokenId);
-        assertEq(unclaimed/1e18, 4773); // 365 days => 4773 CTM = 48%
+        assertEq(unclaimed / 1e18, 4773); // 365 days => 4773 CTM = 48%
     }
 
     function test_FuzzClaimBaseRewards(uint256 _lockAmount, uint256 _claimDays) public {
@@ -115,8 +118,8 @@ contract TestRewards is Helpers {
 
     function test_FuzzClaimNodeRewards(uint256 _lockAmount, uint256 _claimDays, uint256 _quality) public {
         vm.startPrank(address(ctmDaoGovernor));
-        rewards.setBaseEmissionRate(1 ether / 200000);
-        rewards.setNodeEmissionRate(1 ether / 100000);
+        rewards.setBaseEmissionRate(1 ether / 200_000);
+        rewards.setNodeEmissionRate(1 ether / 100_000);
         vm.stopPrank();
         _quality = bound(_quality, 0, 10);
         _lockAmount = bound(_lockAmount, 6000 ether, CTM_TS);
@@ -137,9 +140,13 @@ contract TestRewards is Helpers {
 
     function test_OnlyOwnerClaimsRewards() public {
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
         skip(1 days);
-        vm.expectRevert(abi.encodeWithSelector(IRewards.Rewards_OnlyAuthorized.selector, VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRewards.Rewards_OnlyAuthorized.selector, VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner
+            )
+        );
         rewards.claimRewards(tokenId, user1);
         vm.prank(user1);
         rewards.claimRewards(tokenId, address(this));
@@ -147,7 +154,7 @@ contract TestRewards is Helpers {
 
     function test_CompoundLockRewards() public {
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(10000 ether, MAXTIME);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
         (int128 lockedAmountBefore,) = ve.locked(tokenId);
         skip(10 days);
         vm.prank(user1);

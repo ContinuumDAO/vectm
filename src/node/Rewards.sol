@@ -2,17 +2,18 @@
 
 pragma solidity 0.8.27;
 
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IERC6372 } from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-import {IVotingEscrow} from "../token/IVotingEscrow.sol";
-import {INodeProperties} from "./INodeProperties.sol";
-import {ISwapRouter} from "./ISwapRouter.sol";
-import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
-import {IRewards} from "./IRewards.sol";
+import { IVotingEscrow } from "../token/IVotingEscrow.sol";
+
+import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
+import { INodeProperties } from "./INodeProperties.sol";
+import { IRewards } from "./IRewards.sol";
+import { ISwapRouter } from "./ISwapRouter.sol";
 
 contract Rewards is IRewards {
     using Checkpoints for Checkpoints.Trace208;
@@ -49,7 +50,9 @@ contract Rewards is IRewards {
     mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
     modifier onlyGov() {
-        if (msg.sender != gov) revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
+        if (msg.sender != gov) {
+            revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
+        }
         _;
     }
 
@@ -84,8 +87,6 @@ contract Rewards is IRewards {
         IERC20(_rewardToken).approve(_ve, type(uint256).max);
     }
 
-
-
     // external mutable
     function setBaseEmissionRate(uint256 _baseEmissionRate) external onlyGov {
         _setBaseEmissionRate(_baseEmissionRate);
@@ -109,7 +110,7 @@ contract Rewards is IRewards {
         rewardToken = _rewardToken;
         genesis = _firstMidnight;
         uint256 _oldTokenContractBalance = IERC20(_oldRewardToken).balanceOf(address(this));
-        
+
         if (_oldTokenContractBalance != 0) {
             _withdrawToken(_oldRewardToken, _recipient, _oldTokenContractBalance);
             emit Withdrawal(_oldRewardToken, _recipient, _oldTokenContractBalance);
@@ -122,7 +123,7 @@ contract Rewards is IRewards {
         address _oldFeeToken = feeToken;
         feeToken = _feeToken;
         uint256 _oldTokenContractBalance = IERC20(_oldFeeToken).balanceOf(address(this));
-        
+
         if (_oldTokenContractBalance != 0) {
             _withdrawToken(_oldFeeToken, _recipient, _oldTokenContractBalance);
             emit Withdrawal(_oldFeeToken, _recipient, _oldTokenContractBalance);
@@ -148,13 +149,17 @@ contract Rewards is IRewards {
     }
 
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
-        if (_token != feeToken && _token != rewardToken) revert Rewards_InvalidToken(_token);
+        if (_token != feeToken && _token != rewardToken) {
+            revert Rewards_InvalidToken(_token);
+        }
 
         if (_feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()].amount != 0) {
             revert Rewards_FeesAlreadyReceivedFromChain();
         }
 
-        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert Rewards_TransferFailed();
+        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) {
+            revert Rewards_TransferFailed();
+        }
 
         _feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
@@ -165,13 +170,13 @@ contract Rewards is IRewards {
         _updateLatestMidnight(_latestMidnight);
     }
 
-    function swapFeeToReward(
-        uint256 _amountIn,
-        uint256 _deadline,
-        uint256 _uniFeeWETH,
-        uint256 _uniFeeReward
-    ) external returns (uint256 _amountOut) {
-        if (!_swapEnabled) revert Rewards_SwapDisabled();
+    function swapFeeToReward(uint256 _amountIn, uint256 _deadline, uint256 _uniFeeWETH, uint256 _uniFeeReward)
+        external
+        returns (uint256 _amountOut)
+    {
+        if (!_swapEnabled) {
+            revert Rewards_SwapDisabled();
+        }
 
         uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
 
@@ -196,12 +201,12 @@ contract Rewards is IRewards {
 
     function compoundLockRewards(uint256 _tokenId) external returns (uint256) {
         uint256 _rewards = claimRewards(_tokenId, address(this));
-        if (_rewards == 0) revert Rewards_NoUnclaimedRewards();
+        if (_rewards == 0) {
+            revert Rewards_NoUnclaimedRewards();
+        }
         IVotingEscrow(ve).deposit_for(_tokenId, _rewards);
         return _rewards;
     }
-
-
 
     // external view
     function baseEmissionRate() external view returns (uint256) {
@@ -221,11 +226,11 @@ contract Rewards is IRewards {
         return _calculateRewardsOf(_tokenId, _latestMidnight);
     }
 
-
-
     // public mutable
     function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
-        if (msg.sender != IERC721(ve).ownerOf(_tokenId)) revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
+        if (msg.sender != IERC721(ve).ownerOf(_tokenId)) {
+            revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
+        }
 
         uint48 _latestMidnight = _getLatestMidnight();
 
@@ -246,14 +251,14 @@ contract Rewards is IRewards {
 
         _lastClaimOf[_tokenId] = _latestMidnight;
 
-        if (!IERC20(_rewardToken).transfer(_to, _reward)) revert Rewards_TransferFailed();
+        if (!IERC20(_rewardToken).transfer(_to, _reward)) {
+            revert Rewards_TransferFailed();
+        }
 
         emit Claim(_tokenId, _reward, _rewardToken);
 
         return _reward;
     }
-
-
 
     // public view
     function baseEmissionRateAt(uint256 _timestamp) public view returns (uint256) {
@@ -268,19 +273,21 @@ contract Rewards is IRewards {
         return _nodeRewardThresholds.upperLookupRecent(SafeCast.toUint48(_timestamp));
     }
 
-
-
     // internal mutable
     function _updateLatestMidnight(uint48 _latestMidnight) internal {
         latestMidnight = _latestMidnight;
     }
 
     function _withdrawToken(address _token, address _recipient, uint256 _amount) internal {
-        if (!IERC20(_token).transfer(_recipient, _amount)) revert Rewards_TransferFailed();
+        if (!IERC20(_token).transfer(_recipient, _amount)) {
+            revert Rewards_TransferFailed();
+        }
     }
 
     function _setBaseEmissionRate(uint256 _baseEmissionRate) internal {
-        if (_baseEmissionRate > MULTIPLIER / 100) revert Rewards_EmissionRateChangeTooHigh();
+        if (_baseEmissionRate > MULTIPLIER / 100) {
+            revert Rewards_EmissionRateChangeTooHigh();
+        }
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
             _baseEmissionRates.push(IERC6372(ve).clock(), _baseEmissionRate208);
@@ -288,7 +295,9 @@ contract Rewards is IRewards {
     }
 
     function _setNodeEmissionRate(uint256 _nodeEmissionRate) internal {
-        if (_nodeEmissionRate > MULTIPLIER / 100) revert Rewards_EmissionRateChangeTooHigh();
+        if (_nodeEmissionRate > MULTIPLIER / 100) {
+            revert Rewards_EmissionRateChangeTooHigh();
+        }
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
             _nodeEmissionRates.push(IERC6372(ve).clock(), _nodeEmissionRate208);
@@ -319,7 +328,7 @@ contract Rewards is IRewards {
             if (_tokenCreationTime == 0) {
                 return 0;
             }
-            uint256 _tokenCreationTimeMidnight =  _tokenCreationTime - (_tokenCreationTime % ONE_DAY);
+            uint256 _tokenCreationTimeMidnight = _tokenCreationTime - (_tokenCreationTime % ONE_DAY);
             _lastClaimed = SafeCast.toUint48(_tokenCreationTimeMidnight);
         }
 
@@ -350,7 +359,7 @@ contract Rewards is IRewards {
             // the midnight in question is less than a day since the token ID was created. This means they don't
             // get rewards for this day, and their rewards instead start at the following midnight.
             // if (_vePower == 0 || _prevDayVePower == 0) {
- 
+
             // if yesterday's ve power was non-zero and today's is zero, then the token ID has expired at this time.
 
             if (_vePower == 0 && _prevDayVePower != 0) {
@@ -375,15 +384,12 @@ contract Rewards is IRewards {
         return _reward;
     }
 
-
-
     // internal pure
-    function _calculateRewards(
-        uint256 _votingPower,
-        uint256 _baseRewards,
-        uint256 _nodeRewards,
-        uint256 _quality
-    ) internal pure returns (uint256) {
+    function _calculateRewards(uint256 _votingPower, uint256 _baseRewards, uint256 _nodeRewards, uint256 _quality)
+        internal
+        pure
+        returns (uint256)
+    {
         // votingPower * (baseRewards + (quality * (nodeRewards / 10)))
         return _votingPower * (_baseRewards + (_quality * _nodeRewards / 10)) / MULTIPLIER;
     }

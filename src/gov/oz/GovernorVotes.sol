@@ -3,10 +3,10 @@
 
 pragma solidity ^0.8.24;
 
-import {Governor} from "./Governor.sol";
-import {IVotes} from "./IVotes.sol";
-import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
-import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
+import { Governor } from "./Governor.sol";
+import { IVotes } from "./IVotes.sol";
+import { IERC5805 } from "@openzeppelin/contracts/interfaces/IERC5805.sol";
+import { Time } from "@openzeppelin/contracts/utils/types/Time.sol";
 
 /**
  * @dev Extension of {Governor} for voting weight extraction from an {ERC20Votes} token, or since v4.5 an {ERC721Votes}
@@ -53,11 +53,13 @@ abstract contract GovernorVotes is Governor {
     /**
      * Read the voting weight from the token's built in snapshot mechanism (see {Governor-_getVotes}).
      */
-    function _getVotes(
-        address account,
-        uint256 timepoint,
-        bytes memory /*params*/
-    ) internal view virtual override returns (uint256) {
+    function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return token().getPastVotes(account, timepoint);
     }
 }

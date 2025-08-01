@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.27;
 
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {Governor} from "./oz/Governor.sol";
+import { Governor } from "./oz/Governor.sol";
+import { IGovernor } from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 error GovernorDeltaInvalidProposal(uint256 nOptions, uint256 nWinners, bytes metadata);
 error GovernorDeltaInvalidVoteParams(bytes params);
@@ -28,14 +28,16 @@ error GovernorNonIncrementingOptionIndices(uint256 nOptions, bytes metadata);
  *    `calldatas` input to `propose`, `queue` and `execute`.
  * 2. The number of options and number of winners can be extracted from this, as well as the start indices of each
  *    option's on-chain operations.
- * 3. When voting, {Governor-castVoteWithParams} must be used (for multiple-option (Delta) voting). This `params` field contains
+ * 3. When voting, {Governor-castVoteWithParams} must be used (for multiple-option (Delta) voting). This `params` field
+ * contains
  *    a non-zero value for each option that the voter wishes to vote for, along with weighting coefficients.
  * 4. If the `params` field is empty (or if {Governor-castVote} is used), the vote will be assumed to be Bravo.
  * 4. If the proposal's number of options is non-zero, the params field must be defined and populated with 32-byte
  *    weighting coefficients.
  *
  * @custom:security-considerations
- * 1. Weight Precision: When using weighted voting, there is (POTENTIAL) inherent precision loss due to integer division.
+ * 1. Weight Precision: When using weighted voting, there is (POTENTIAL) inherent precision loss due to integer
+ * division.
  *    This loss of precision is negligible, but can be mitigated by using weightings the sum of which is a factor of
  *    the voter's total votes.
  * 2. Front-Running: In scenarios with high-value proposals, voters might observe others' votes and
@@ -160,8 +162,7 @@ abstract contract GovernorCountingMultiple is Governor {
         }
 
         _validateStateBitmap(
-            proposalId,
-            _encodeStateBitmap(ProposalState.Succeeded) | _encodeStateBitmap(ProposalState.Queued)
+            proposalId, _encodeStateBitmap(ProposalState.Succeeded) | _encodeStateBitmap(ProposalState.Queued)
         );
 
         // mark as executed before calls to avoid reentrancy
@@ -189,11 +190,7 @@ abstract contract GovernorCountingMultiple is Governor {
         }
 
         _executeOperations(
-            proposalId,
-            winningExecOps.targets,
-            winningExecOps.values,
-            winningExecOps.calldatas,
-            descriptionHash
+            proposalId, winningExecOps.targets, winningExecOps.values, winningExecOps.calldatas, descriptionHash
         );
 
         // after execute: cleanup governance call queue.
@@ -209,12 +206,12 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /// @notice Override of {Governor-queue} to include Delta proposal queueing.
-    function queue(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public virtual override returns (uint256) {
+    function queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        public
+        virtual
+        override
+        returns (uint256)
+    {
         uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
         // Bravo proposal (referencing _proposalConfig because metadata is not yet defined)
@@ -235,11 +232,7 @@ abstract contract GovernorCountingMultiple is Governor {
         Operations memory winningQueueOps = _buildOperations(allQueueOps, metadata);
 
         uint48 etaSeconds = _queueOperations(
-            proposalId,
-            winningQueueOps.targets,
-            winningQueueOps.values,
-            winningQueueOps.calldatas,
-            descriptionHash
+            proposalId, winningQueueOps.targets, winningQueueOps.values, winningQueueOps.calldatas, descriptionHash
         );
 
         if (etaSeconds != 0) {
@@ -289,13 +282,12 @@ abstract contract GovernorCountingMultiple is Governor {
      * (totalWeight * weights[i] / weightDenominator). This can be mitigated by selecting weightings whose denominator
      * add up to a factor of `totalWeight`.
      */
-    function _countVote(
-        uint256 proposalId,
-        address account,
-        uint8 support,
-        uint256 totalWeight,
-        bytes memory params
-    ) internal virtual override returns (uint256) {
+    function _countVote(uint256 proposalId, address account, uint8 support, uint256 totalWeight, bytes memory params)
+        internal
+        virtual
+        override
+        returns (uint256)
+    {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
         ProposalConfig memory proposalConfig = _proposalConfig[proposalId];
 
@@ -317,7 +309,9 @@ abstract contract GovernorCountingMultiple is Governor {
             }
         } else {
             // a weighting must be provided for every option, even if it is zero
-            if (params.length / 32 != proposalConfig.nOptions) revert GovernorDeltaInvalidVoteParams(params);
+            if (params.length / 32 != proposalConfig.nOptions) {
+                revert GovernorDeltaInvalidVoteParams(params);
+            }
 
             uint256 weightDenominator = 0;
             uint256[] memory weights = new uint256[](proposalConfig.nOptions);
@@ -460,11 +454,11 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /// @dev Get the top `nWinners` voted-for option indices
-    function _getWinningIndices(
-        uint256[] memory votes,
-        uint256[] memory optionIndices,
-        uint256 nWinners
-    ) internal pure returns (uint256[] memory winningIndices) {
+    function _getWinningIndices(uint256[] memory votes, uint256[] memory optionIndices, uint256 nWinners)
+        internal
+        pure
+        returns (uint256[] memory winningIndices)
+    {
         winningIndices = new uint256[](nWinners);
 
         // Searches for the location of option with highest votes, sets it to zero, repeats up to nWinners
@@ -484,10 +478,11 @@ abstract contract GovernorCountingMultiple is Governor {
 
     /// @dev Using the winning indices, extract the corresponding members of the targets/values/calldatas arrays and
     /// prepare them for queueing/execution
-    function _buildOperations(
-        Operations memory allOps,
-        Metadata memory metadata
-    ) internal pure returns (Operations memory winningOps) {
+    function _buildOperations(Operations memory allOps, Metadata memory metadata)
+        internal
+        pure
+        returns (Operations memory winningOps)
+    {
         // First, calculate the total length needed
         uint256 winningOpsLength = _countOperations(allOps.targets.length, metadata);
 
@@ -518,10 +513,11 @@ abstract contract GovernorCountingMultiple is Governor {
 
     /// @dev A length is needed to initialize the successful operations arrays.
     /// This function finds the length of the successful on-chain operations.
-    function _countOperations(
-        uint256 allOpsLength,
-        Metadata memory metadata
-    ) internal pure returns (uint256 winningOpsLength) {
+    function _countOperations(uint256 allOpsLength, Metadata memory metadata)
+        internal
+        pure
+        returns (uint256 winningOpsLength)
+    {
         for (uint256 i = 0; i < metadata.nWinners; i++) {
             // solhint-disable-next-line var-name-mixedcase
             uint256 winningIndex_i = metadata.winningIndices[i];
