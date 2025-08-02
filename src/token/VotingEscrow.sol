@@ -285,7 +285,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         }
 
         address ownerFrom = idToOwner[_from];
-        address ownerTo = idToOwner[_from];
+        address ownerTo = idToOwner[_to];
         if (ownerFrom != ownerTo) {
             revert VotingEscrow_DifferentOwners(_from, _to);
         }
@@ -307,7 +307,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _from;
-        _moveDelegateVotes(ownerFrom, address(0), _votingUnit);
+        _moveDelegateVotes(_delegatee[ownerFrom], address(0), _votingUnit);
+
+        // Burn the NFT
         _burn(_from);
 
         // add _from lock value to _to lock, using the value-weighted and rounded unlock time
@@ -339,7 +341,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
         int128 remainder = value - extraction;
+        assert(remainder > 0);
         assert(extraction + remainder <= value);
+        
         uint256 supply_before = _supply;
 
         locked[_tokenId] = LockedBalance(remainder, _locked.end);
@@ -411,7 +415,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
-        _moveDelegateVotes(owner, address(0), _votingUnit);
+        _moveDelegateVotes(_delegatee[owner], address(0), _votingUnit);
 
         // Burn the NFT
         _burn(_tokenId);
@@ -517,11 +521,11 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /// @notice One time use flag to enable liquidations.
-    function enableLiquidations() external onlyGov {
-        if (treasury == address(0)) {
+    function setLiquidationsEnabled(bool _liquidationsEnabled) external onlyGov {
+        if (_liquidationsEnabled && treasury == address(0)) {
             revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
         }
-        liquidationsEnabled = true;
+        liquidationsEnabled = _liquidationsEnabled;
     }
 
     /// @notice External view
@@ -910,10 +914,18 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function _moveDelegateVotes(address from, address to, uint256[] memory deltaTokenIDs) private {
         if (from != to) {
             if (from != address(0)) {
+                // (, uint256 _keyFrom, ) = _delegateCheckpoints[from].latestCheckpoint();
+                // if (_keyFrom == block.timestamp) {
+                //     revert VotingEscrow_SameTimestampFrom();
+                // }
                 (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[from], _remove, deltaTokenIDs);
                 emit DelegateVotesChanged(from, oldBalance, newBalance);
             }
             if (to != address(0)) {
+                // (, uint256 _keyTo, ) = _delegateCheckpoints[to].latestCheckpoint();
+                // if (_keyTo == block.timestamp) {
+                //     revert VotingEscrow_SameTimestampTo();
+                // }
                 (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[to], _add, deltaTokenIDs);
                 emit DelegateVotesChanged(to, oldBalance, newBalance);
             }
@@ -977,7 +989,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
-        _moveDelegateVotes(owner, address(0), _votingUnit);
+        _moveDelegateVotes(_delegatee[owner], address(0), _votingUnit);
 
         // Burn the NFT
         _burn(_tokenId);

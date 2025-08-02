@@ -124,7 +124,7 @@ interface IVotingEscrow {
     function liquidate(uint256 _tokenId) external;
     function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function setBaseURI(string memory _baseURI) external;
-    function enableLiquidations() external;
+    function setLiquidationsEnabled(bool _liquidationsEnabled) external;
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);

@@ -94,7 +94,7 @@ contract Deployer is Utils {
         nodeProperties.initContracts(address(rewards));
         ve.initContracts(address(ctmDaoGovernor), address(nodeProperties), address(rewards), _treasury);
         vm.prank(address(ctmDaoGovernor));
-        ve.enableLiquidations();
+        ve.setLiquidationsEnabled(true);
     }
 
     function _fundRewards() internal {

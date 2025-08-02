@@ -58,7 +58,7 @@ contract VotingEscrowV2 is VotingEscrow {
     }
 }
 
-contract TestVotingEscrowUpgrades is Helpers {
+contract VotingEscrowUpgradesTest is Helpers {
     uint256 id1;
     uint256 id2;
     uint256 id3;
