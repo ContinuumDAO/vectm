@@ -54,7 +54,7 @@ interface IVotingEscrow {
     error VotingEscrow_VotingAndNonVotingMerge(uint256 _from, uint256 _to);
     error VotingEscrow_SameToken(uint256 _from, uint256 _to);
     error VotingEscrow_DifferentOwners(uint256 _from, uint256 _to);
-    error VotingEscrow_SameTimestamp();
+    error VotingEscrow_FlashProtection();
     error VotingEscrow_InvalidValue();
     error VotingEscrow_TransferFailed();
     error VotingEscrow_LiquidationsDisabled();

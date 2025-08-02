@@ -135,6 +135,14 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _entered_state = NOT_ENTERED;
     }
 
+    modifier nonflash(uint256 _tokenId) {
+        if (ownership_change[_tokenId] == clock()) {
+            revert VotingEscrow_FlashProtection();
+        }
+        _;
+        ownership_change[_tokenId] = clock();
+    }
+
     modifier onlyGov() {
         if (msg.sender != governor) {
             revert VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
@@ -255,7 +263,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Withdraw all tokens for `_tokenId`
     /// @dev Only possible if the lock has expired
-    function withdraw(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
+    function withdraw(uint256 _tokenId) external nonreentrant nonflash(_tokenId) checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
         _withdraw(_tokenId);
     }
 
@@ -265,6 +273,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @param _to The token ID that burned token gets merged into.
     function merge(uint256 _from, uint256 _to)
         external
+        nonflash(_from)
+        nonflash(_to)
         checkNotAttached(_from)
         checkNotAttached(_to)
         checkNoRewards(_from)
@@ -279,10 +289,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         }
         _checkApprovedOrOwner(msg.sender, _from);
         _checkApprovedOrOwner(msg.sender, _to);
-
-        if (ownership_change[_from] == clock() || ownership_change[_to] == clock()) {
-            revert VotingEscrow_SameTimestamp();
-        }
 
         address ownerFrom = idToOwner[_from];
         address ownerTo = idToOwner[_to];
@@ -307,7 +313,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _from;
-        _moveDelegateVotes(_delegatee[ownerFrom], address(0), _votingUnit);
+        _moveDelegateVotes(_getDelegatee(ownerFrom), address(0), _votingUnit);
 
         // Burn the NFT
         _burn(_from);
@@ -327,6 +333,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @param _extraction The underlying value to be used to make a new NFT.
     function split(uint256 _tokenId, uint256 _extraction)
         external
+        nonflash(_tokenId)
         checkNotAttached(_tokenId)
         checkNoRewards(_tokenId)
         returns (uint256)
@@ -380,7 +387,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     ///      Unlock on/after end => user is not penalized.
     /// @dev Minimum value to withdraw is 100 gwei, to prevent liquidation of low voting power, as this can
     ///      potentially lead to zero penalty.
-    function liquidate(uint256 _tokenId) external nonreentrant checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
+    function liquidate(uint256 _tokenId) external nonreentrant nonflash(_tokenId) checkNotAttached(_tokenId) checkNoRewards(_tokenId) {
         if (!liquidationsEnabled) {
             revert VotingEscrow_LiquidationsDisabled();
         }
@@ -415,7 +422,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
-        _moveDelegateVotes(_delegatee[owner], address(0), _votingUnit);
+        _moveDelegateVotes(_getDelegatee(owner), address(0), _votingUnit);
 
         // Burn the NFT
         _burn(_tokenId);
@@ -665,9 +672,13 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         return _totalPowerAtT(timepoint);
     }
 
+    function _getDelegatee(address account) internal view returns (address) {
+        return _delegatee[account] == address(0) ? account : _delegatee[account];
+    }
+
     /// @notice Check the current delegated address for `account`.
     function delegates(address account) external view returns (address) {
-        return _delegatee[account];
+        return _getDelegatee(account);
     }
 
     /// @notice Get the list of token IDs that are currently delegated to `account`.
@@ -836,14 +847,18 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         // move delegated votes to the receiver upon deposit
         // doesn't matter if it's for a non-voting token as that gets checked when `getVotes` is called
-        address owner = idToOwner[_tokenId];
-        if (_delegatee[owner] == address(0)) {
-            _delegate(owner, owner);
-        } else {
-            uint256[] memory _votingUnit = new uint256[](1);
-            _votingUnit[0] = _tokenId;
-            _moveDelegateVotes(address(0), _delegatee[owner], _votingUnit);
-        }
+        uint256[] memory _votingUnit = new uint256[](1);
+        _votingUnit[0] = _tokenId;
+        _moveDelegateVotes(address(0), _getDelegatee(_to), _votingUnit);
+
+        // address owner = idToOwner[_tokenId];
+        // if (_delegatee[owner] == address(0)) {
+        //     _delegate(owner, owner);
+        // } else {
+        //     uint256[] memory _votingUnit = new uint256[](1);
+        //     _votingUnit[0] = _tokenId;
+        //     _moveDelegateVotes(address(0), _delegatee[owner], _votingUnit);
+        // }
 
         return _tokenId;
     }
@@ -900,7 +915,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
     /// @notice Change the delegatee of `account` to `delegatee` including all currently delegated token IDs.
     function _delegate(address account, address delegatee) internal {
-        address oldDelegate = _delegatee[account];
+        if (delegatee == address(0)) delegatee = account;
+        address oldDelegate = _getDelegatee(account);
         _delegatee[account] = delegatee;
 
         emit DelegateChanged(account, oldDelegate, delegatee);
@@ -914,18 +930,10 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function _moveDelegateVotes(address from, address to, uint256[] memory deltaTokenIDs) private {
         if (from != to) {
             if (from != address(0)) {
-                // (, uint256 _keyFrom, ) = _delegateCheckpoints[from].latestCheckpoint();
-                // if (_keyFrom == block.timestamp) {
-                //     revert VotingEscrow_SameTimestampFrom();
-                // }
                 (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[from], _remove, deltaTokenIDs);
                 emit DelegateVotesChanged(from, oldBalance, newBalance);
             }
             if (to != address(0)) {
-                // (, uint256 _keyTo, ) = _delegateCheckpoints[to].latestCheckpoint();
-                // if (_keyTo == block.timestamp) {
-                //     revert VotingEscrow_SameTimestampTo();
-                // }
                 (uint256 oldBalance, uint256 newBalance) = _push(_delegateCheckpoints[to], _add, deltaTokenIDs);
                 emit DelegateVotesChanged(to, oldBalance, newBalance);
             }
@@ -941,6 +949,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender)
         internal
         checkNotAttached(_tokenId)
+        nonflash(_tokenId)
     {
         // Check requirements
         _checkApprovedOrOwner(_sender, _tokenId);
@@ -948,10 +957,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // move delegated votes
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
-        if (ownership_change[_tokenId] == clock()) {
-            revert VotingEscrow_SameTimestamp();
-        }
-        _moveDelegateVotes(_delegatee[_from], _delegatee[_to], _votingUnit);
+        _moveDelegateVotes(_getDelegatee(_from), _getDelegatee(_to), _votingUnit);
 
         // Clear approval. Throws if `_from` is not the current owner
         _clearApproval(_from, _tokenId);
@@ -959,8 +965,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _removeTokenFrom(_from, _tokenId);
         // Add NFT
         _addTokenTo(_to, _tokenId);
-        // Set the block of ownership transfer (for Flash NFT protection)
-        ownership_change[_tokenId] = clock();
         // Log the transfer
         emit Transfer(_from, _to, _tokenId);
     }
@@ -989,7 +993,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
         _votingUnit[0] = _tokenId;
-        _moveDelegateVotes(_delegatee[owner], address(0), _votingUnit);
+        _moveDelegateVotes(_getDelegatee(owner), address(0), _votingUnit);
 
         // Burn the NFT
         _burn(_tokenId);
@@ -1569,7 +1573,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     ) private returns (uint256, uint256) {
         (, uint256 _key,) = store.latestCheckpoint();
         if (_key == block.timestamp) {
-            revert VotingEscrow_SameTimestamp();
+            revert VotingEscrow_FlashProtection();
         }
         (uint256 oldLength, uint256 newLength) = store.push(uint256(clock()), op(store.latest(), deltaTokenIDs));
         return (oldLength, newLength);
