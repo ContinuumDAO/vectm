@@ -75,18 +75,18 @@ contract Deployer is Utils {
     function _deployRewards() internal {
         rewards = new Rewards(
             0, // _firstMidnight,
-            address(ve), // _ve
-            address(ctmDaoGovernor), // _gov
-            address(ctm), // _rewardToken
-            address(usdc), // _feeToken
-            address(swapRouter), // _swapRouter
-            address(nodeProperties), // _nodeProperties
-            address(weth), // _weth
-            1 ether / 2000, // _baseEmissionRate
-            1 ether / 1000, // _nodeEmissionRate
-            5000 ether, // _nodeRewardThreshold
-            7_812_500 gwei, // _feePerByteRewardToken
-            3125 // _feePerByteFeeToken
+            address(ve),                // _ve
+            address(ctmDaoGovernor),    // _gov
+            address(ctm),               // _rewardToken
+            address(usdc),              // _feeToken
+            address(swapRouter),        // _swapRouter
+            address(nodeProperties),    // _nodeProperties
+            address(weth),              // _weth
+            1 ether / 2000,             // _baseEmissionRate
+            1 ether / 1000,             // _nodeEmissionRate
+            5000 ether,                 // _nodeRewardThreshold
+            7_812_500 gwei,             // _feePerByteRewardToken
+            3125                        // _feePerByteFeeToken
         );
     }
 

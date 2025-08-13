@@ -3,7 +3,7 @@ src = "build"
 out = "out"
 libs = ["lib"]
 optimizer = true
-optimizer_runs = 200
+optimizer_runs = 100
 viaIR = true
 solc = "0.8.27"
 evm_version = "cancun"
@@ -16,11 +16,9 @@ remappings = [
 ]
 
 [rpc_endpoints]
-arbSepolia = "${ARB_SEPOLIA_RPC_URL}"
-ethSepolia = "${ETH_SEPOLIA_RPC_URL}"
-mumbai = "${MUMBAI_RPC_URL}"
+ arbitrum-sepolia-rpc-url = "${ARBITRUM_SEPOLIA_RPC_URL}"
 
 [etherscan]
-arbSepoliaKey = { url = "https://api-sepolia.arbiscan.io/api", chain = 421614, key = "${ETHERSCAN_API_KEY}" }
+ arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

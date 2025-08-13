@@ -347,18 +347,17 @@ contract Rewards is IRewards {
     /**
      * @notice Swaps fee tokens for reward tokens using Uniswap V3. Can be called by anyone.
      * @param _amountIn The amount of fee tokens to swap
-     * @param _deadline The deadline for the swap transaction
      * @param _uniFeeWETH The Uniswap fee tier for WETH pair
      * @param _uniFeeReward The Uniswap fee tier for reward token pair
      * @return _amountOut The amount of reward tokens received
      * @dev Performs a swap from fee tokens to reward tokens via WETH.
      * Uses the contract's balance if requested amount exceeds available balance.
-     * 
+     *
      * Emits a Swap event on successful swap.
-     * 
+     *
      * @custom:error Rewards_SwapDisabled When swap functionality is disabled
      */
-    function swapFeeToReward(uint256 _amountIn, uint256 _deadline, uint256 _uniFeeWETH, uint256 _uniFeeReward)
+    function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
         external
         returns (uint256 _amountOut)
     {
@@ -377,7 +376,6 @@ contract Rewards is IRewards {
         ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
             path: abi.encodePacked(feeToken, _uniFeeWETH, WETH, _uniFeeReward, rewardToken),
             recipient: address(this),
-            deadline: _deadline,
             amountIn: _amountIn,
             amountOutMinimum: 0
         });

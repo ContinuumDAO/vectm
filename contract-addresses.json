@@ -1,0 +1,10 @@
+{
+  "421614": {
+    "ctm": "0xb6afce4bdd4405824b60f927182b142bde2a7110",
+    "votingEscrowProxy": "0xc34c33354ebe1015e36d21d6212e2c397f5480b3",
+    "votingEscrowImpl": "0x5a239a9c967dd5daba67b9b367a4088d43c2d0d1",
+    "ctmDAOGovernor": "0x1edf2225eb8268495e4c5f0abefbef8c7799438b",
+    "nodeProperties": "0x3abf22aa10e008ec3abb00c94b5b34eb8476e0af",
+    "rewards": "0xb16152147afe33d026873ddc1c8355c7db5e7236"
+  }
+}

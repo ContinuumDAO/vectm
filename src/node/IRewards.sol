@@ -29,4 +29,7 @@ interface IRewards {
     function unclaimedRewards(uint256 _tokenId) external view returns (uint256);
     function nodeRewardThreshold() external view returns (uint256);
     function updateLatestMidnight() external;
+    function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
+        external
+        returns (uint256 _amountOut);
 }

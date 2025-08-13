@@ -23,4 +23,5 @@ interface INodeProperties {
 
     function attachedNodeId(uint256 _tokenId) external view returns (bytes32);
     function nodeQualityOfAt(uint256 _tokenId, uint256 _timestamp) external view returns (uint256);
+    function initContracts(address _rewards) external;
 }

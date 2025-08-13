@@ -64,6 +64,7 @@ interface IVotingEscrow {
     error VotingEscrow_IsZeroAddress(VotingEscrowErrorParam _account);
     error VotingEscrow_FutureLookup(uint256 _timepoint, uint256 _currentTimepoint);
     error VotingEscrow_InvalidAccountNonce(address _account, uint256 _currentNonce);
+    error VotingEscrow_NonERC721Receiver();
 
     /// @notice Storage
     function token() external view returns (address);
@@ -112,7 +113,7 @@ interface IVotingEscrow {
 
     function balanceOfNFT(uint256 _tokenid) external view returns (uint256);
     function balanceOfNFTAt(uint256 _tokenid, uint256 _t) external view returns (uint256);
-    function balanceOfAtNFT(uint256 _tokenid, uint256 _block) external view returns (uint256);
+    // function balanceOfAtNFT(uint256 _tokenid, uint256 _block) external view returns (uint256);
     function isApprovedOrOwner(address _spender, uint256 _tokenid) external view returns (bool);
     function get_last_user_slope(uint256 _tokenid) external view returns (int128);
     function user_point_history__ts(uint256 _tokenid, uint256 _idx) external view returns (uint256);
@@ -128,7 +129,7 @@ interface IVotingEscrow {
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);
-    function totalPowerAt(uint256 _block) external view returns (uint256);
+    // function totalPowerAt(uint256 _block) external view returns (uint256);
     function tokenIdsDelegatedTo(address _account) external view returns (uint256[] memory);
     function tokenIdsDelegatedToAt(address _account, uint256 _timepoint) external view returns (uint256[] memory);
     function checkpoints(address _account, uint256 _index)

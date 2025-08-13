@@ -15,6 +15,8 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+
 import { INodeProperties } from "../node/INodeProperties.sol";
 import { IRewards } from "../node/IRewards.sol";
 
@@ -58,6 +60,7 @@ import { IVotingEscrow } from "./IVotingEscrow.sol";
  */
 contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPSUpgradeable {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
+    using Strings for uint256;
 
     /// @notice State variables
     ///
@@ -652,12 +655,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * The delegatee can then use this voting power for governance decisions.
      */
     function delegate(address delegatee) external {
-        address account = msg_sender();
+        address account = msg.sender;
         _delegate(account, delegatee);
-    }
-
-    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) external {
-        _safeTransferFrom(_from, _to, _tokenId, _data);
     }
 
     /// @dev Transfers the ownership of an NFT from one address to another address.
@@ -672,7 +671,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @param _to The new owner.
     /// @param _tokenId The NFT to transfer.
     function safeTransferFrom(address _from, address _to, uint256 _tokenId) external {
-        _safeTransferFrom(_from, _to, _tokenId, "");
+        safeTransferFrom(_from, _to, _tokenId, "");
     }
 
     /**
@@ -737,10 +736,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         return _balanceOfNFT(_tokenId, _t);
     }
 
-    function balanceOfAtNFT(uint256 _tokenId, uint256 _block) external view returns (uint256) {
-        return _balanceOfAtNFT(_tokenId, _block);
-    }
-
     /// @dev Returns the address of the owner of the NFT.
     /// @param _tokenId The identifier for an NFT.
     function ownerOf(uint256 _tokenId) external view returns (address) {
@@ -771,30 +766,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      */
     function totalPowerAtT(uint256 t) external view returns (uint256) {
         return _totalPowerAtT(t);
-    }
-
-    /// @notice Calculate total voting power at some point in the past
-    /// @param _block Block to calculate the total voting power at
-    /// @return Total voting power at `_block`
-    function totalPowerAt(uint256 _block) external view returns (uint256) {
-        assert(_block <= block.number);
-        uint256 _epoch = epoch;
-        uint256 target_epoch = _find_block_epoch(_block, _epoch);
-
-        Point memory point = point_history[target_epoch];
-        uint256 dt = 0;
-        if (target_epoch < _epoch) {
-            Point memory point_next = point_history[target_epoch + 1];
-            if (point.blk != point_next.blk) {
-                dt = ((_block - point.blk) * (point_next.ts - point.ts)) / (point_next.blk - point.blk);
-            }
-        } else {
-            if (point.blk != block.number) {
-                dt = ((_block - point.blk) * (block.timestamp - point.ts)) / (block.number - point.blk);
-            }
-        }
-        // Now dt contains info on how far are we beyond point
-        return _supply_at(point, point.ts + dt);
     }
 
     /// @dev Get the approved address for a single NFT.
@@ -922,7 +893,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Owner);
         }
         string memory _baseURI = baseURI;
-        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, toString(_tokenId))) : "";
+        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, _tokenId.toString())) : "";
     }
 
     /// @notice ERC165 compliant method for checking supported interfaces.
@@ -1321,7 +1292,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @param _to The new owner.
     /// @param _tokenId The NFT to transfer.
     /// @param _data Additional data with no specified format, sent in call to `_to`.
-    function _safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) internal {
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes memory _data) public {
         _transferFrom(_from, _to, _tokenId, msg.sender);
 
         if (_isContract(_to)) {
@@ -1329,7 +1300,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             try IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) returns (bytes4) { }
             catch (bytes memory reason) {
                 if (reason.length == 0) {
-                    revert("ERC721: transfer to non ERC721Receiver implementer");
+                    revert VotingEscrow_NonERC721Receiver();
                 } else {
                     assembly {
                         revert(add(32, reason), mload(reason))
@@ -1508,60 +1479,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         }
     }
 
-    /// @notice Measure voting power of `_tokenId` at block height `_block`
-    /// @dev Adheres to MiniMe `balanceOfAt` interface: https://github.com/Giveth/minime
-    /// @param _tokenId User's wallet NFT
-    /// @param _block Block to calculate the voting power at
-    /// @return Voting power
-    function _balanceOfAtNFT(uint256 _tokenId, uint256 _block) internal view returns (uint256) {
-        // Copying and pasting totalSupply code because Vyper cannot pass by
-        // reference yet
-        assert(_block <= block.number);
-
-        // Binary search
-        uint256 _min = 0;
-        uint256 _max = user_point_epoch[_tokenId];
-        for (uint256 i = 0; i < 128; ++i) {
-            // Will be always enough for 128-bit numbers
-            if (_min >= _max) {
-                break;
-            }
-            uint256 _mid = (_min + _max + 1) / 2;
-            if (user_point_history[_tokenId][_mid].blk <= _block) {
-                _min = _mid;
-            } else {
-                _max = _mid - 1;
-            }
-        }
-
-        Point memory upoint = user_point_history[_tokenId][_min];
-
-        uint256 max_epoch = epoch;
-        uint256 _epoch = _find_block_epoch(_block, max_epoch);
-        Point memory point_0 = point_history[_epoch];
-        uint256 d_block = 0;
-        uint256 d_t = 0;
-        if (_epoch < max_epoch) {
-            Point memory point_1 = point_history[_epoch + 1];
-            d_block = point_1.blk - point_0.blk;
-            d_t = point_1.ts - point_0.ts;
-        } else {
-            d_block = block.number - point_0.blk;
-            d_t = block.timestamp - point_0.ts;
-        }
-        uint256 block_time = point_0.ts;
-        if (d_block != 0) {
-            block_time += (d_t * (_block - point_0.blk)) / d_block;
-        }
-
-        upoint.bias -= upoint.slope * int128(int256(block_time - upoint.ts));
-        if (upoint.bias >= 0) {
-            return uint256(uint128(upoint.bias));
-        } else {
-            return 0;
-        }
-    }
-
     /// @notice Calculate total voting power at some point in the past
     /// @param point The point (bias/slope) to start search from
     /// @param t Time to calculate the total voting power at
@@ -1684,37 +1601,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         tokenList = new uint256[](tokenCount);
         for (uint256 i = 0; i < tokenCount; i++) {
             tokenList[i] = ownerToNFTokenIdList[account][i];
-        }
-    }
-
-    function msg_sender() internal view returns (address) {
-        return msg.sender;
-    }
-
-    function block_number() internal view returns (uint256) {
-        return block.number;
-    }
-
-    /// @notice Internal pure
-    function toString(uint256 value) internal pure returns (string memory) {
-        unchecked {
-            uint256 length = Math.log10(value) + 1;
-            string memory buffer = new string(length);
-            uint256 ptr;
-            assembly {
-                ptr := add(buffer, add(32, length))
-            }
-            while (true) {
-                ptr--;
-                assembly {
-                    mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))
-                }
-                value /= 10;
-                if (value == 0) {
-                    break;
-                }
-            }
-            return buffer;
         }
     }
 
