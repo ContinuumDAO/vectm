@@ -52,7 +52,7 @@ contract DeployVotingEscrow is Script {
 
         console.log("Deploying CTM Token...");
 
-        CTM ctm = new CTM(msg.sender);
+        CTM ctm = new CTM(treasury);
         console.log("CTM Token deployed at:", address(ctm));
 
         VotingEscrow votingEscrowImpl = new VotingEscrow();
