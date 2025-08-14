@@ -5,34 +5,45 @@
 |___/ \__/ \___/  /_/  /_/  /_/  
 ```
 
-### Voting Escrow - How does it work?
+### ContinuumDAO Voting Escrow
 
-Users can create a lock - a position which locks an amount of CTM tokens $a$ for a specified amount of time $t_l$ (rounded by week) and weighs voting power $P$ based on $t_l$ and maximum lockable time $t_{max}$ (equal to 4 years).
+:pager: Users can create a lock - a position which locks an amount of CTM tokens
+$a$ for a specified amount of time $t_l$ (rounded by week) and weighs voting
+power $P$ based on $t_l$ and maximum lockable time $t_{max}$ (equal to 4 years).
 
 ***How is voting power calculated?***
 
 $$P = a \times {t_l \over t_{max}}$$
 
+# Table of Contents
+
+- [Contract Architecture](#contract-architecture)
+- [API Reference](#api-reference)
+- [Upgrade Reference](docs/upgradeable/VotingEscrowUpgrades.md)
+- [Installation](#installation)
+- [Deployment](docs/DEPLOYMENT.md)
+
 ### Contract Architecture
 
-Modifying a copy of [Solidly Voting Escrow code](https://web.archive.org/web/20220501080953/https://github.com/solidlyexchange/solidly/blob/master/contracts/ve.sol), using OpenZeppelin [Governor Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.1/contracts/governance/utils/Votes.sol) to support Governance.
+- Based on [Solidly Voting Escrow code](https://web.archive.org/web/20220501080953/https://github.com/solidlyexchange/solidly/blob/master/contracts/ve.sol)
+- Using OpenZeppelin [Governor Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.1/contracts/governance/utils/Votes.sol) to support Governance.
+- OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) patterns are used, complying to ERC-1967.
 
-OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) patterns are used, complying to ERC-1967.
+# API Reference
 
-### VotingEscrow Topology Diagram
+## Token
 
-![VotingEscrow Topology](diagrams/VotingEscrow_Topology.png)
+- [VotingEscrow](docs/token/VotingEscrow.md)
+- [CTM](docs/token/CTM.md)
 
-### CTMDAOGovernor Topology Diagram
+## Governance
 
-![Governor Topology](diagrams/CTMDAOGovernor_Topology.png)
+- [CTMDAOGovernor](docs/gov/CTMDAOGovernor.md)
+- [GovernorCountingMultiple](docs/gov/GovernorCountingMultiple.md)
 
-### Compile and run tests
+# Installation
 
-```bash
-forge build
-```
+## Dependencies
 
-```bash
-forge test -vv
-```
+[Foundry](https://getfoundry.sh/) is currently supported, or any smart contract
+development framework that supports git submodules.
