@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Dependencies: foundry
+Dependencies: foundry, node, npm
 
 Verification: An Etherscan API V2 key,
 see [here](https://docs.etherscan.io/etherscan-v2/v2-quickstart).
@@ -86,7 +86,7 @@ Run the JS helper found in `js-helpers/` to generate a
 JSON file containing latest deployed contract addresses.
 
 ```bash
-node js-helpers/save-contract-addresses.js
+node js-helpers/0-save-contract-addresses.js
 ```
 
 ## Complete
