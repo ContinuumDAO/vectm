@@ -1,0 +1,511 @@
+export const NodePropertiesABI = [
+    {
+        "type": "constructor",
+        "inputs": [
+            {
+                "name": "_governor",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_ve",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "attachNode",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_nodeInfo",
+                "type": "tuple",
+                "internalType": "struct NodeProperties.NodeInfo",
+                "components": [
+                    {
+                        "name": "forumHandle",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "email",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "nodeId",
+                        "type": "bytes32",
+                        "internalType": "bytes32"
+                    },
+                    {
+                        "name": "ip",
+                        "type": "uint8[4]",
+                        "internalType": "uint8[4]"
+                    },
+                    {
+                        "name": "vpsProvider",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "ramInstalled",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "cpuCores",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "dIDType",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "dID",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "data",
+                        "type": "bytes",
+                        "internalType": "bytes"
+                    }
+                ]
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "attachedNodeId",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "attachedTokenId",
+        "inputs": [
+            {
+                "name": "_nodeId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "detachNode",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "governor",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "initContracts",
+        "inputs": [
+            {
+                "name": "_rewards",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "nodeInfo",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_account",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "tuple",
+                "internalType": "struct NodeProperties.NodeInfo",
+                "components": [
+                    {
+                        "name": "forumHandle",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "email",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "nodeId",
+                        "type": "bytes32",
+                        "internalType": "bytes32"
+                    },
+                    {
+                        "name": "ip",
+                        "type": "uint8[4]",
+                        "internalType": "uint8[4]"
+                    },
+                    {
+                        "name": "vpsProvider",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "ramInstalled",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "cpuCores",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "dIDType",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "dID",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "data",
+                        "type": "bytes",
+                        "internalType": "bytes"
+                    }
+                ]
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "nodeQualityOf",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "nodeQualityOfAt",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "nodeRequestingDetachment",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "rewards",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "setNodeQualityOf",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_nodeQualityOf",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setNodeRemovalStatus",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_status",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "ve",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "Attachment",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_nodeId",
+                "type": "bytes32",
+                "indexed": true,
+                "internalType": "bytes32"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Detachment",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_nodeId",
+                "type": "bytes32",
+                "indexed": true,
+                "internalType": "bytes32"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "error",
+        "name": "CheckpointUnorderedInsertion",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_InvalidInitialization",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_InvalidNodeId",
+        "inputs": [
+            {
+                "name": "_nodeId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_InvalidNodeQualityOf",
+        "inputs": [
+            {
+                "name": "_nodeQualityOf",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_NodeIDAlreadyAttached",
+        "inputs": [
+            {
+                "name": "_nodeId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_NodeRewardThresholdNotReached",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_OnlyAuthorized",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum VotingEscrowErrorParam"
+            },
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum VotingEscrowErrorParam"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_TokenIDAlreadyAttached",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "NodeProperties_TokenIDNotAttached",
+        "inputs": [
+            {
+                "name": "_tokenId",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "SafeCastOverflowedUintDowncast",
+        "inputs": [
+            {
+                "name": "bits",
+                "type": "uint8",
+                "internalType": "uint8"
+            },
+            {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    }
+]
