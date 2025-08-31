@@ -294,7 +294,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * @custom:error VotingEscrow_InvalidUnlockTime When unlock time is invalid
      */
     function create_lock(uint256 _value, uint256 _lock_duration) external nonreentrant returns (uint256) {
-        return _create_lock(_value, _lock_duration, msg.sender);
+        return _create_lock(_value, _lock_duration, msg.sender, DepositType.CREATE_LOCK_TYPE);
     }
 
     /**
@@ -314,7 +314,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         nonreentrant
         returns (uint256)
     {
-        return _create_lock(_value, _lock_duration, _to);
+        return _create_lock(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
     }
 
     /**
@@ -501,7 +501,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         int128 remainder = value - extraction;
         assert(remainder > 0);
         assert(extraction + remainder <= value);
-        
+
         uint256 supply_before = _supply;
 
         locked[_tokenId] = LockedBalance(remainder, _locked.end);
@@ -515,7 +515,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         } else {
             // create another voting lock
             // adding a week to lock duration to prevent rounding down exploit
-            extractionId = _create_lock(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
+            extractionId = _create_lock(_extraction, (_locked.end - block.timestamp) + WEEK, owner, DepositType.SPLIT_TYPE);
         }
 
         // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
@@ -920,7 +920,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         nonreentrant
         returns (uint256)
     {
-        uint256 _tokenId = _create_lock(_value, _lock_duration, _to);
+        uint256 _tokenId = _create_lock(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
         nonVoting[_tokenId] = true;
         return _tokenId;
     }
@@ -1001,7 +1001,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @param _to Address to deposit
     /// @dev If the receiver does not have a delegatee, then automatically delegate receiver.
     ///      Otherwise, checkpoint the receiver's delegatee's balance with the new token ID.
-    function _create_lock(uint256 _value, uint256 _lock_duration, address _to) internal returns (uint256) {
+    function _create_lock(uint256 _value, uint256 _lock_duration, address _to, DepositType deposit_type) internal returns (uint256) {
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK; // Locktime is rounded down to weeks
 
         if (_value == 0) {
@@ -1015,7 +1015,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 _tokenId = tokenId;
         _mint(_to, _tokenId);
 
-        _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
+        _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], deposit_type);
 
         // move delegated votes to the receiver upon deposit
         // doesn't matter if it's for a non-voting token as that gets checked when `getVotes` is called
@@ -1077,7 +1077,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _checkpoint(_tokenId, old_locked, _locked);
 
         address from = msg.sender;
-        if (_value != 0 && deposit_type != DepositType.MERGE_TYPE) {
+        if (_value != 0 && deposit_type != DepositType.MERGE_TYPE && deposit_type != DepositType.SPLIT_TYPE) {
             assert(IERC20(token).transferFrom(from, address(this), _value));
         }
 

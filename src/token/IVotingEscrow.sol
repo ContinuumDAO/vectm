@@ -24,7 +24,8 @@ interface IVotingEscrow {
         CREATE_LOCK_TYPE,
         INCREASE_LOCK_AMOUNT,
         INCREASE_UNLOCK_TIME,
-        MERGE_TYPE
+        MERGE_TYPE,
+        SPLIT_TYPE
     }
 
     /// @notice Events
