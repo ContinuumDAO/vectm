@@ -3,7 +3,7 @@ cache/
 out/
 
 # Flattened source code
-flattened/
+build/
 
 # Other
 other/

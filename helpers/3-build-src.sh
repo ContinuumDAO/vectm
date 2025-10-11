@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo -e "\nBuilding src/gov..."
+echo -e "\n🔨 Compiling src/gov..."
 forge build src/gov/
-echo -e "\nBuilding src/node..."
+echo -e "🔨 Compiling src/node..."
 forge build src/node/
-echo -e "\nBuilding src/token..."
+echo -e "🔨 Compiling src/token..."
 forge build src/token/
-echo -e "\nBuilding src/utils..."
+echo -e "🔨 Compiling src/utils..."
 forge build src/utils/

@@ -5,12 +5,12 @@ pragma solidity 0.8.27;
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { CTM } from "../flattened/token/CTM.sol";
-import { VotingEscrow, IVotingEscrow } from "../flattened/token/VotingEscrow.sol";
-import { VotingEscrowProxy } from "../flattened/utils/VotingEscrowProxy.sol";
-import { CTMDAOGovernor } from "../flattened/gov/CTMDAOGovernor.sol";
-import { NodeProperties, INodeProperties } from "../flattened/node/NodeProperties.sol";
-import { Rewards } from "../flattened/node/Rewards.sol";
+import { CTM } from "../build/token/CTM.sol";
+import { VotingEscrow, IVotingEscrow } from "../build/token/VotingEscrow.sol";
+import { VotingEscrowProxy } from "../build/utils/VotingEscrowProxy.sol";
+import { CTMDAOGovernor } from "../build/gov/CTMDAOGovernor.sol";
+import { NodeProperties, INodeProperties } from "../build/node/NodeProperties.sol";
+import { Rewards } from "../build/node/Rewards.sol";
 
 contract DeployVotingEscrow is Script {
     address feeToken;
