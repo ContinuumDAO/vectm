@@ -21,4 +21,9 @@ remappings = [
 [etherscan]
  arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
 
+[invariant]
+runs = 256
+depth = 500
+show_progress = true
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

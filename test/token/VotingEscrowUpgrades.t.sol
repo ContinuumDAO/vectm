@@ -42,7 +42,7 @@ contract VotingEscrowV2 is VotingEscrow {
     // New function: create lock with minimum duration check
     function create_lock_v2(uint256 _value, uint256 _lock_duration) external returns (uint256) {
         if (_lock_duration < MIN_LOCK_DURATION) revert V2_MinimumLockDuration(_lock_duration);
-        return _create_lock(_value, _lock_duration, msg.sender);
+        return _create_lock(_value, _lock_duration, msg.sender, DepositType.CREATE_LOCK_TYPE);
     }
 
     // New function to be called after upgrade
@@ -173,7 +173,7 @@ contract VotingEscrowUpgradesTest is Helpers {
     function test_UpgradePreservesDelegation() public {
         // Create lock
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(1 ether, block.timestamp + 1 weeks);
+        ve.create_lock(1 ether, block.timestamp + 1 weeks);
 
         skip(1);
         
@@ -226,7 +226,7 @@ contract VotingEscrowUpgradesTest is Helpers {
     function test_UpgradePreservesCheckpoints() public {
         // Create lock and checkpoint
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(1 ether, block.timestamp + 1 weeks);
+        ve.create_lock(1 ether, block.timestamp + 1 weeks);
         ve.checkpoint();
         
         // Upgrade
@@ -310,7 +310,7 @@ contract VotingEscrowUpgradesTest is Helpers {
     function test_UpgradePreservesVotingFunctions() public {
         // Create lock and delegate
         vm.prank(user1);
-        uint256 tokenId = ve.create_lock(1 ether, block.timestamp + 1 weeks);
+        ve.create_lock(1 ether, block.timestamp + 1 weeks);
         ve.delegate(user2);
         
         // Upgrade
@@ -318,8 +318,8 @@ contract VotingEscrowUpgradesTest is Helpers {
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         
         // Test voting functions - voting power might be 0 initially
-        uint256 votes = ve.getVotes(user2);
-        uint256 pastVotes = ve.getPastVotes(user2, block.timestamp - 1);
+        ve.getVotes(user2);
+        ve.getPastVotes(user2, block.timestamp - 1);
         // Just verify the functions don't revert
         assertTrue(true);
     }

@@ -66,125 +66,90 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     ///
     /// @notice Address of the underlying CTM token
     address public token;
-    
     /// @notice Address of the governance contract with administrative privileges
     address public governor;
-    
     /// @notice Address of the node properties contract for node integration
     address public nodeProperties;
-    
     /// @notice Address of the rewards contract for reward integration
     address public rewards;
-    
     /// @notice Address of the treasury contract for penalty collection
     address public treasury;
-    
     /// @notice Current epoch number for global checkpoint tracking
     uint256 public epoch;
-    
     /// @notice Base URI for NFT metadata
     string public baseURI;
-    
     /// @notice Reentrancy guard state (1 = not entered, 2 = entered)
     uint8 internal _entered_state;
-    
     /// @notice Total locked token supply
     uint256 internal _supply;
-    
     /// @notice Current token ID counter for NFT minting
     uint256 internal tokenId;
-    
     /// @notice Total number of NFTs minted
     uint256 internal _totalSupply;
 
     /// @notice Mapping from token ID to locked balance information
     mapping(uint256 => LockedBalance) public locked;
-    
     /// @notice Mapping from token ID to ownership change timestamp (prevents flash NFT attacks)
     mapping(uint256 => uint256) public ownership_change;
-    
     /// @notice Mapping from epoch to global checkpoint point
     mapping(uint256 => Point) public point_history;
-    
     /// @notice Mapping from token ID to user checkpoint history array
     mapping(uint256 => Point[1_000_000_000]) private user_point_history;
-    
     /// @notice Mapping from token ID to current user epoch
     mapping(uint256 => uint256) public user_point_epoch;
-    
     /// @notice Mapping from timestamp to slope change for global supply calculations
     mapping(uint256 => int128) public slope_changes;
-    
     /// @notice Mapping from NFT ID to owner address
     mapping(uint256 => address) internal idToOwner;
-    
     /// @notice Mapping from NFT ID to approved address for transfers
     mapping(uint256 => address) internal idToApprovals;
-    
     /// @notice Mapping from owner address to token count
     mapping(address => uint256) internal ownerToNFTokenCount;
-    
     /// @notice Mapping from owner address to index-to-tokenId mapping
     mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList;
-    
     /// @notice Mapping from NFT ID to owner's token index
     mapping(uint256 => uint256) internal tokenToOwnerIndex;
-    
     /// @notice Mapping from owner address to operator approval status
     mapping(address => mapping(address => bool)) internal ownerToOperators;
-    
     /// @notice Mapping from interface ID to support status for ERC165
     mapping(bytes4 => bool) internal supportedInterfaces;
-    
     /// @notice Mapping from token ID to non-voting status (true = non-voting, false = voting)
     mapping(uint256 => bool) public nonVoting;
 
     /// @notice Mapping from account address to delegatee address
     mapping(address => address) internal _delegatee;
-    
     /**
      * @notice Mapping from delegatee address to checkpointed token ID arrays
      * @dev Example of delegated checkpoints of an address:
      * [ {timestamp 1, [1, 2, 3]}, {timestamp 2, [1, 2, 3, 5]}, {timestamp 3, [1, 2, 5]} ]
      */
     mapping(address => ArrayCheckpoints.TraceArray) internal _delegateCheckpoints;
-    
     /// @notice Mapping from account address to nonce for signature verification
     mapping(address => uint256) internal _nonces;
 
     /// @notice Token name for ERC721 metadata
     string public constant name = "Voting Escrow Continuum";
-    
     /// @notice Token symbol for ERC721 metadata
     string public constant symbol = "veCTM";
-    
     /// @notice Contract version
     string public constant version = "1.0.0";
-    
     /// @notice Token decimals (18 for compatibility with ERC20)
     uint8 public constant decimals = 18;
-    
     /// @notice Hexadecimal digits for string conversion
     bytes16 internal constant HEX_DIGITS = "0123456789abcdef";
-    
     /// @notice Duration of one week in seconds
     uint256 internal constant WEEK = 7 * 86_400;
-    
     /// @notice Maximum lock duration in seconds (4 years)
     uint256 internal constant MAXTIME = 4 * 365 * 86_400;
-    
     /// @notice Multiplier for precision in calculations (1e18)
     uint256 internal constant MULTIPLIER = 1e18;
-    
     /// @notice Maximum lock duration as int128 for calculations
     int128 internal constant iMAXTIME = 4 * 365 * 86_400;
 
     /// @notice Liquidation penalty numerator (50,000 / 100,000 = 50%)
     uint256 public constant LIQ_PENALTY_NUM = 50_000;
-    
     /// @notice Liquidation penalty denominator
     uint256 public constant LIQ_PENALTY_DEN = 100_000;
-    
     /// @notice Flag to enable/disable liquidations
     bool public liquidationsEnabled;
 
@@ -447,6 +412,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
         // uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK; // Incorrect
+        // BUG: #5 Structural week-ratcheting suppresses intended decay
         uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
@@ -511,11 +477,24 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         if (nonVoting[_tokenId]) {
             // create another non-voting lock
             // adding a week to lock duration to prevent rounding down exploit
-            extractionId = create_nonvoting_lock_for(_extraction, (_locked.end - block.timestamp) + WEEK, owner);
+            // BUG: #5 Structural week-ratcheting suppresses intended decay
+            extractionId = _create_nonvoting_lock_for(
+                _extraction,
+                (_locked.end - block.timestamp) + WEEK,
+                owner,
+                DepositType.SPLIT_TYPE
+            );
         } else {
             // create another voting lock
             // adding a week to lock duration to prevent rounding down exploit
-            extractionId = _create_lock(_extraction, (_locked.end - block.timestamp) + WEEK, owner, DepositType.SPLIT_TYPE);
+            // BUG: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
+            // BUG: #5 Structural week-ratcheting suppresses intended decay
+            extractionId = _create_lock(
+                _extraction,
+                (_locked.end - block.timestamp) + WEEK,
+                owner,
+                DepositType.SPLIT_TYPE
+            );
         }
 
         // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
@@ -920,7 +899,15 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         nonreentrant
         returns (uint256)
     {
-        uint256 _tokenId = _create_lock(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
+        return _create_nonvoting_lock_for(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
+    }
+
+    // FIX: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
+    function _create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to, DepositType deposit_type)
+        internal
+        returns (uint256)
+    {
+        uint256 _tokenId = _create_lock(_value, _lock_duration, _to, deposit_type);
         nonVoting[_tokenId] = true;
         return _tokenId;
     }
@@ -1077,6 +1064,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _checkpoint(_tokenId, old_locked, _locked);
 
         address from = msg.sender;
+        // BUG: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
+        // FIX: Checking for SPLIT_TYPE now ensures that tokens are only transfered from the user if not part of a split
+        // operation, fixing the double-charging bug.
         if (_value != 0 && deposit_type != DepositType.MERGE_TYPE && deposit_type != DepositType.SPLIT_TYPE) {
             assert(IERC20(token).transferFrom(from, address(this), _value));
         }
