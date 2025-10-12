@@ -18,8 +18,8 @@ contract MergeSplitHandler is Test {
     uint256 id2;
     address user1;
 
-    uint256 public referenceEnd1;
-    uint256 public referenceEnd2;
+    uint256 public referenceEnd;
+    // uint256 public referenceEnd2;
     uint256 public latestEnd1;
     uint256 public latestEnd2;
 
@@ -27,7 +27,7 @@ contract MergeSplitHandler is Test {
     uint8 constant MERGE_OP = 1;
     uint8 constant SPLIT_OP = 2;
 
-    uint8 op = 1; // start with merge
+    uint8 public op = 1; // start with merge
 
     uint256 constant MAXTIME = 4 * 365 * 86_400;
 
@@ -45,34 +45,31 @@ contract MergeSplitHandler is Test {
     }
 
     function execOp(uint256 _amount) public flipOp {
-        (, referenceEnd1) = ve.locked(id1);
+        (, referenceEnd) = ve.locked(id1);
         if (op == MERGE_OP) {
-            (, referenceEnd2) = ve.locked(id2);
-            merge(id2, id1);
+            // (, referenceEnd2) = ve.locked(id2);
+            merge();
         } else if (op == SPLIT_OP) {
-            split(id1, _amount);
+            split(_amount);
         }
     }
 
-    function merge(uint256 _id2, uint256 _id1) public {
+    function merge() public {
         vm.prank(user1);
-        ve.merge(_id2, _id1);
-        (, latestEnd1) = ve.locked(_id1);
+        ve.merge(id2, id1);
+        (, latestEnd1) = ve.locked(id1);
     }
 
-    function split(uint256 _tokenId, uint256 _amount) public {
+    function split(uint256 _amount) public {
         // NOTE: bound amount to between 1 and lock amount - 1
-        (int256 lockAmount,) = ve.locked(_tokenId);
+        (int256 lockAmount,) = ve.locked(id1);
         _amount = bound(_amount, 1, uint256(lockAmount - 1));
 
         vm.prank(user1);
-        uint256 extractionId = ve.split(_tokenId, _amount);
+        id2 = ve.split(id1, _amount);
 
-        (, uint256 end1) = ve.locked(_tokenId);
-        (, uint256 end2) = ve.locked(extractionId);
-        latestEnd1 = end1;
-        latestEnd2 = end2;
-        id2 = extractionId;
+        (, latestEnd1) = ve.locked(id1);
+        (, latestEnd2) = ve.locked(id2);
     }
 }
 
@@ -128,13 +125,17 @@ contract InvariantVotingEscrow is StdInvariant, Helpers {
     }
 
     function invariant_LockEndDoesNotIncrease() public {
-        uint256 referenceEnd1 = mergeSplitHandler.referenceEnd1();
-        uint256 referenceEnd2 = mergeSplitHandler.referenceEnd2();
+        uint8 nextOp = mergeSplitHandler.op();
 
+        // NOTE: last operation was a merge or a split -> tokenId 1 always exists
+        uint256 referenceEnd = mergeSplitHandler.referenceEnd();
         uint256 latestEnd1 = mergeSplitHandler.latestEnd1();
-        uint256 latestEnd2 = mergeSplitHandler.latestEnd2();
+        assertLe(referenceEnd, latestEnd1);
 
-        assertLe(referenceEnd1, latestEnd1);
-        assertLe(referenceEnd2, latestEnd2);
+        // NOTE: last operation was a split -> tokenId 2 
+        if (nextOp == 1) {
+            uint256 latestEnd2 = mergeSplitHandler.latestEnd2();
+            assertLe(referenceEnd, latestEnd2);
+        }
     }
 }

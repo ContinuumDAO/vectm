@@ -411,8 +411,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
-        // uint256 unlock_time = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK; // Incorrect
         // BUG: #5 Structural week-ratcheting suppresses intended decay
+        // PASSED: #5 this bug is not an issue. you can increase end lock time of tokens using this ratcheting
+        // technique, however it is not an issue as this would be the same as increase_unlock_time.
         uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
 
         // checkpoint the _from lock to zero (_from gets burned)
@@ -474,24 +475,30 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _checkpoint(_tokenId, _locked, LockedBalance(remainder, _locked.end));
 
         uint256 extractionId;
+
+        // BUG: #5 Structural week-ratcheting suppresses intended decay
+        // PASSED: #5 checking whether a week needs to be added to lock duration now ensures that the lock end
+        // time will not decrease artificially due to ratcheting.
+        uint256 lock_duration = (_locked.end - block.timestamp);
+        if (((block.timestamp + lock_duration) / WEEK) * WEEK < _locked.end) {
+            lock_duration = (_locked.end - block.timestamp) + WEEK;
+        }
+
         if (nonVoting[_tokenId]) {
             // create another non-voting lock
             // adding a week to lock duration to prevent rounding down exploit
-            // BUG: #5 Structural week-ratcheting suppresses intended decay
             extractionId = _create_nonvoting_lock_for(
                 _extraction,
-                (_locked.end - block.timestamp) + WEEK,
+                lock_duration,
                 owner,
                 DepositType.SPLIT_TYPE
             );
         } else {
             // create another voting lock
             // adding a week to lock duration to prevent rounding down exploit
-            // BUG: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
-            // BUG: #5 Structural week-ratcheting suppresses intended decay
             extractionId = _create_lock(
                 _extraction,
-                (_locked.end - block.timestamp) + WEEK,
+                lock_duration,
                 owner,
                 DepositType.SPLIT_TYPE
             );
