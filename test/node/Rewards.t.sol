@@ -4,9 +4,10 @@ pragma solidity 0.8.27;
 
 import { console } from "forge-std/console.sol";
 
+import { Rewards } from "../../src/node/Rewards.sol";
 import { IRewards } from "../../src/node/IRewards.sol";
 import { NodeProperties } from "../../src/node/NodeProperties.sol";
-import { Rewards } from "../../src/node/Rewards.sol";
+import { INodeProperties } from "../../src/node/INodeProperties.sol";
 
 import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
 import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
@@ -33,7 +34,7 @@ contract TestRewards is Helpers {
     function _attachTokenId(uint256 _tokenId, address _sender) internal prank(_sender) {
         nodeProperties.attachNode(
             _tokenId,
-            NodeProperties.NodeInfo(
+            INodeProperties.NodeInfo(
                 // string forumHandle;
                 "@myhandle",
                 // string email

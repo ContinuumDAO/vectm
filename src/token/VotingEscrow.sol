@@ -504,6 +504,10 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             );
         }
 
+        // BUG: #11 Split lacks immediate flash protection
+        // PASSED: the child token ID is now flash-stamped (parent is flash-stamped in nonflash modifier)
+        ownership_change[extractionId] = clock();
+
         // we need to decrease the supply by _extraction because _deposit_for adds it again, when in reality
         // _supply doesn't change in this operation
         _supply -= _extraction;

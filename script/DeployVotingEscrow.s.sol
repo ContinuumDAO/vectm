@@ -14,13 +14,9 @@ import { Rewards } from "../build/node/Rewards.sol";
 
 contract DeployVotingEscrow is Script {
     address feeToken;
-    address swapRouter;
-    address weth;
     address treasury;
 
     string feeTokenKey = string.concat("FEE_TOKEN_", vm.toString(block.chainid));
-    string swapRouterKey = string.concat("SWAP_ROUTER_", vm.toString(block.chainid));
-    string wethKey = string.concat("WETH_", vm.toString(block.chainid));
     string treasuryKey = string.concat("TREASURY_", vm.toString(block.chainid));
 
     function run() public {
@@ -28,18 +24,6 @@ contract DeployVotingEscrow is Script {
             feeToken = _feeToken;
         } catch {
             revert(string.concat(feeTokenKey, " not defined"));
-        }
-
-        try vm.envAddress(swapRouterKey) returns (address _swapRouter) {
-            swapRouter = _swapRouter;
-        } catch {
-            revert(string.concat(swapRouterKey, " not defined"));
-        }
-
-        try vm.envAddress(wethKey) returns (address _weth) {
-            weth = _weth;
-        } catch {
-            revert(string.concat(wethKey, " not defined"));
         }
 
         try vm.envAddress(treasuryKey) returns (address _treasury) {
@@ -73,9 +57,7 @@ contract DeployVotingEscrow is Script {
             address(ctmDAOGovernor),    // _gov
             address(ctm),               // _rewardToken
             feeToken,                   // _feeToken
-            swapRouter,                 // _swapRouter
             address(nodeProperties),    // _nodeProperties
-            weth,                       // _weth
             1 ether / 2000,             // _baseEmissionRate
             1 ether / 1000,             // _nodeEmissionRate
             5000 ether,                 // _nodeRewardThreshold

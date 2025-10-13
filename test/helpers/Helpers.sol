@@ -31,8 +31,6 @@ contract Helpers is Test, Accounts, Deployer {
         vm.stopPrank();
 
         _deployC3Caller();
-        _deployWETH();
-        _deploySwapRouter();
         _deployVotingEscrow();
         _deployCTMDAOGovernor();
         _deployNodeProperties();

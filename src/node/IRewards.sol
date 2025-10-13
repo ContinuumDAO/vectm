@@ -26,10 +26,42 @@ interface IRewards {
     error Rewards_SwapDisabled();
     error Rewards_TransferFailed();
 
-    function unclaimedRewards(uint256 _tokenId) external view returns (uint256);
-    function nodeRewardThreshold() external view returns (uint256);
+    function setBaseEmissionRate(uint256 _baseEmissionRate) external;
+    function setNodeEmissionRate(uint256 _nodeEmissionRate) external;
+    function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external;
+    function withdrawToken(address _token, address _recipient, uint256 _amount) external;
+    function setRewardToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external;
+    function setFeeToken(address _feeToken, address _recipient) external;
+    function setFeePerByteRewardToken(uint256 _fee) external;
+    function setFeePerByteFeeToken(uint256 _fee) external;
+    function setNodeProperties(address _nodeProperties) external;
+    function setSwapEnabled(bool _enabled) external;
+    function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external;
     function updateLatestMidnight() external;
-    function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
-        external
-        returns (uint256 _amountOut);
+    // NOTE: deprecated
+    // function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
+    //     external
+    //     returns (uint256 _amountOut);
+    function compoundLockRewards(uint256 _tokenId) external returns (uint256);
+    function baseEmissionRate() external view returns (uint256);
+    function nodeEmissionRate() external view returns (uint256);
+    function nodeRewardThreshold() external view returns (uint256);
+    function unclaimedRewards(uint256 _tokenId) external view returns (uint256);
+
+    function latestMidnight() external view returns (uint48);
+    function genesis() external view returns (uint48);
+    function feePerByteRewardToken() external view returns (uint256);
+    function feePerByteFeeToken() external view returns (uint256);
+    function gov() external view returns (address);
+    function rewardToken() external view returns (address);
+    function feeToken() external view returns (address);
+    // function swapRouter() external view returns (address); // NOTE: deprecated
+    function nodeProperties() external view returns (address);
+    function ve() external view returns (address);
+    // function WETH() external view returns (address); // NOTE: deprecated
+
+    function claimRewards(uint256 _tokenId, address _to) external returns (uint256);
+    function baseEmissionRateAt(uint256 _timestamp) external view returns (uint256);
+    function nodeEmissionRateAt(uint256 _timestamp) external view returns (uint256);
+    function nodeRewardThresholdAt(uint256 _timestamp) external view returns (uint256);
 }

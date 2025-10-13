@@ -13,7 +13,7 @@ import { IVotingEscrow } from "../token/IVotingEscrow.sol";
 import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
 import { INodeProperties } from "./INodeProperties.sol";
 import { IRewards } from "./IRewards.sol";
-import { ISwapRouter } from "./ISwapRouter.sol";
+// import { ISwapRouter } from "./ISwapRouter.sol";
 
 /**
  * @title Rewards
@@ -52,59 +52,59 @@ contract Rewards is IRewards {
     }
 
     /// @notice Duration of one day in seconds
-    uint48 public constant ONE_DAY = 1 days;
-    
+    uint48 constant ONE_DAY = 1 days;
+
     /// @notice Multiplier for precision in reward calculations (1e18)
-    uint256 public constant MULTIPLIER = 1 ether;
-    
+    uint256 constant MULTIPLIER = 1 ether;
+
     /// @notice The latest midnight timestamp that has been processed
     uint48 public latestMidnight;
-    
+
     /// @notice The genesis timestamp when rewards started
     uint48 public genesis;
 
     /// @notice Fee per byte for reward token (CTM)
     uint256 public feePerByteRewardToken;
-    
+
     /// @notice Fee per byte for fee token (USDC)
     uint256 public feePerByteFeeToken;
 
     /// @notice Address of the governance contract with administrative privileges
     address public gov;
-    
+
     /// @notice Address of the reward token (CTM)
     address public rewardToken;
-    
+
     /// @notice Address of the fee token (e.g., USDC)
     address public feeToken;
-    
+
     /// @notice Address of the Uniswap V3 swap router
-    address public swapRouter;
-    
+    // address public swapRouter;
+
     /// @notice Address of the node properties contract
     address public nodeProperties;
-    
+
     /// @notice Address of the voting escrow contract
     address public ve;
 
     /// @notice Address of WETH for swap operations (immutable)
-    address public immutable WETH;
+    // address public immutable WETH;
 
     /// @notice Flag to enable/disable swap functionality
     bool internal _swapEnabled;
 
     /// @notice Checkpointed base emission rates over time (CTM per vePower)
     Checkpoints.Trace208 internal _baseEmissionRates;
-    
+
     /// @notice Checkpointed node emission rates over time (CTM per vePower)
     Checkpoints.Trace208 internal _nodeEmissionRates;
-    
+
     /// @notice Checkpointed minimum voting power thresholds for node rewards
     Checkpoints.Trace208 internal _nodeRewardThresholds;
 
     /// @notice Mapping from token ID to last claim timestamp (midnight)
     mapping(uint256 => uint48) internal _lastClaimOf;
-    
+
     /// @notice Mapping from chain ID and timestamp to fee receipts
     mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
@@ -126,15 +126,15 @@ contract Rewards is IRewards {
      * @param _gov The address of the governance contract
      * @param _rewardToken The address of the reward token (CTM)
      * @param _feeToken The address of the fee token (e.g., USDC)
-     * @param _swapRouter The address of the Uniswap V3 swap router
      * @param _nodeProperties The address of the node properties contract
-     * @param _weth The address of WETH for swap operations
      * @param _baseEmissionRate The initial base emission rate
      * @param _nodeEmissionRate The initial node emission rate
      * @param _nodeRewardThreshold The initial minimum voting power threshold for node rewards
      * @param _feePerByteRewardToken The fee per byte for reward token
      * @param _feePerByteFeeToken The fee per byte for fee token
      * @dev Sets up all initial parameters and approves the voting escrow contract to spend reward tokens
+     *
+     * NOTE: _swapRouter and _weth are deprecated
      */
     constructor(
         uint48 _firstMidnight,
@@ -142,9 +142,9 @@ contract Rewards is IRewards {
         address _gov,
         address _rewardToken,
         address _feeToken,
-        address _swapRouter,
+        // address _swapRouter,
         address _nodeProperties,
-        address _weth,
+        // address _weth,
         uint256 _baseEmissionRate,
         uint256 _nodeEmissionRate,
         uint256 _nodeRewardThreshold,
@@ -156,9 +156,9 @@ contract Rewards is IRewards {
         gov = _gov;
         rewardToken = _rewardToken;
         feeToken = _feeToken;
-        swapRouter = _swapRouter;
+        // swapRouter = _swapRouter;
         nodeProperties = _nodeProperties;
-        WETH = _weth;
+        // WETH = _weth;
         _setBaseEmissionRate(_baseEmissionRate);
         _setNodeEmissionRate(_nodeEmissionRate);
         _setNodeRewardThreshold(_nodeRewardThreshold);
@@ -344,6 +344,8 @@ contract Rewards is IRewards {
         _updateLatestMidnight(_latestMidnight);
     }
 
+    // BUG: #14 Unbounded slippage + permissionless swap drains fee value
+    // PASSED: removing this feature because it is not required for core protocol functionality
     /**
      * @notice Swaps fee tokens for reward tokens using Uniswap V3. Can be called by anyone.
      * @param _amountIn The amount of fee tokens to swap
@@ -357,33 +359,27 @@ contract Rewards is IRewards {
      *
      * @custom:error Rewards_SwapDisabled When swap functionality is disabled
      */
-    function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
-        external
-        returns (uint256 _amountOut)
-    {
-        if (!_swapEnabled) {
-            revert Rewards_SwapDisabled();
-        }
-
-        uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
-
-        if (_amountIn > _contractBalance) {
-            _amountIn = _contractBalance;
-        }
-
-        IERC20(feeToken).approve(swapRouter, _amountIn);
-
-        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
-            path: abi.encodePacked(feeToken, _uniFeeWETH, WETH, _uniFeeReward, rewardToken),
-            recipient: address(this),
-            amountIn: _amountIn,
-            amountOutMinimum: 0
-        });
-
-        _amountOut = ISwapRouter(swapRouter).exactInput(params);
-
-        emit Swap(feeToken, rewardToken, _amountIn, _amountOut);
-    }
+    // function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
+    //     external
+    //     returns (uint256 _amountOut)
+    // {
+    //     if (!_swapEnabled) {
+    //         revert Rewards_SwapDisabled();
+    //     }
+    //     uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
+    //     if (_amountIn > _contractBalance) {
+    //         _amountIn = _contractBalance;
+    //     }
+    //     IERC20(feeToken).approve(swapRouter, _amountIn);
+    //     ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+    //         path: abi.encodePacked(feeToken, _uniFeeWETH, WETH, _uniFeeReward, rewardToken),
+    //         recipient: address(this),
+    //         amountIn: _amountIn,
+    //         amountOutMinimum: 0
+    //     });
+    //     _amountOut = ISwapRouter(swapRouter).exactInput(params);
+    //     emit Swap(feeToken, rewardToken, _amountIn, _amountOut);
+    // }
 
     /**
      * @notice Compounds claimed rewards back into the voting escrow

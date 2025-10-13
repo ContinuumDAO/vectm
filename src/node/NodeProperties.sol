@@ -32,56 +32,30 @@ import { IRewards } from "./IRewards.sol";
 contract NodeProperties is INodeProperties {
     using Checkpoints for Checkpoints.Trace208;
 
-    /**
-     * @notice Structure containing comprehensive node information
-     * @param forumHandle The forum handle/username of the node operator
-     * @param email The email address of the node operator
-     * @param nodeId The unique identifier for the node (bytes32)
-     * @param ip The IP address of the node as a 4-byte array [octet1, octet2, octet3, octet4]
-     * @param vpsProvider The virtual private server provider name
-     * @param ramInstalled The amount of RAM installed on the node (in MB/GB)
-     * @param cpuCores The number of CPU cores available on the node
-     * @param dIDType The type of decentralized identifier (e.g., "did:key", "did:web")
-     * @param dID The decentralized identifier string
-     * @param data Additional arbitrary data associated with the node
-     */
-    struct NodeInfo {
-        string forumHandle;
-        string email;
-        bytes32 nodeId;
-        uint8[4] ip;
-        string vpsProvider;
-        uint256 ramInstalled;
-        uint256 cpuCores;
-        string dIDType;
-        string dID;
-        bytes data;
-    }
-
     /// @notice Address of the governance contract with administrative privileges
     address public governor;
-    
+
     /// @notice Address of the rewards contract for threshold checking
     address public rewards;
-    
+
     /// @notice Address of the voting escrow contract for token ownership verification
     address public ve;
 
     /// @notice Mapping from token ID to attached node ID
     mapping(uint256 => bytes32) internal _attachedNodeId;
-    
+
     /// @notice Mapping from node ID to attached token ID
     mapping(bytes32 => uint256) internal _attachedTokenId;
-    
+
     /// @notice Mapping from token ID to checkpointed node quality scores over time
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf;
-    
+
     /// @notice Mapping from token ID to node validation status (dID verification)
     mapping(uint256 => bool) internal _nodeValidated;
-    
+
     /// @notice Mapping from token ID and address to node information
     mapping(uint256 => mapping(address => NodeInfo)) internal _nodeInfoOf;
-    
+
     /// @notice Mapping from token ID to removal request status
     mapping(uint256 => bool) internal _toBeRemoved;
 
@@ -160,6 +134,9 @@ contract NodeProperties is INodeProperties {
      * Emits a Detachment event on successful detachment.
      * 
      * @custom:error NodeProperties_TokenIDNotAttached When token is not attached to any node
+     * BUG: #29 Node data can be cleared by governance even if the node owner is not marked for removal
+     * PASSED: explicitly document the fact that governance has unconditional authority over node attachment status.
+     * attachment status is checked before executing vectm actions such as transfer, merge, split, withdraw, liquidate.
      */
     function detachNode(uint256 _tokenId) external onlyGov {
         bytes32 _nodeId = _attachedNodeId[_tokenId];

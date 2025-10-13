@@ -12,7 +12,7 @@ contract TestNodeProperties is Helpers {
     uint256 id1;
     uint256 id2;
 
-    NodeProperties.NodeInfo submittedNodeInfo = NodeProperties.NodeInfo(
+    NodeProperties.NodeInfo submittedNodeInfo = INodeProperties.NodeInfo(
         // string forumHandle;
         "@myhandle",
         // string email
