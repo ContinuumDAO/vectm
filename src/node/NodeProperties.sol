@@ -122,6 +122,9 @@ contract NodeProperties is INodeProperties {
         _nodeInfoOf[_tokenId][_owner] = _nodeInfo;
         _attachedNodeId[_tokenId] = _nodeId;
         _attachedTokenId[_nodeId] = _tokenId;
+        // BUG: #47 Node validation status not set on attachment
+        // PASSED:
+        _nodeValidated[_tokenId] = true;
         emit Attachment(_tokenId, _nodeId);
     }
 

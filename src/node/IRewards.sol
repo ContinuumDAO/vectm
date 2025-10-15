@@ -15,7 +15,6 @@ interface IRewards {
     event Claim(uint256 indexed _tokenId, uint256 _claimedReward, address indexed _rewardToken);
     event Withdrawal(address indexed _token, address indexed _recipient, uint256 _amount);
     event FeesReceived(address indexed _token, uint256 _amount, uint256 indexed _fromChainId);
-    event Swap(address indexed _feeToken, address indexed _rewardToken, uint256 _amountIn, uint256 _amountOut);
 
     error Rewards_NoUnclaimedRewards();
     error Rewards_InsufficientContractBalance(uint256 _balance, uint256 _required);
@@ -23,7 +22,6 @@ interface IRewards {
     error Rewards_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error Rewards_EmissionRateChangeTooHigh();
     error Rewards_InvalidToken(address _token);
-    error Rewards_SwapDisabled();
     error Rewards_TransferFailed();
 
     function setBaseEmissionRate(uint256 _baseEmissionRate) external;
@@ -35,13 +33,8 @@ interface IRewards {
     function setFeePerByteRewardToken(uint256 _fee) external;
     function setFeePerByteFeeToken(uint256 _fee) external;
     function setNodeProperties(address _nodeProperties) external;
-    function setSwapEnabled(bool _enabled) external;
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external;
     function updateLatestMidnight() external;
-    // NOTE: deprecated
-    // function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
-    //     external
-    //     returns (uint256 _amountOut);
     function compoundLockRewards(uint256 _tokenId) external returns (uint256);
     function baseEmissionRate() external view returns (uint256);
     function nodeEmissionRate() external view returns (uint256);
@@ -55,10 +48,8 @@ interface IRewards {
     function gov() external view returns (address);
     function rewardToken() external view returns (address);
     function feeToken() external view returns (address);
-    // function swapRouter() external view returns (address); // NOTE: deprecated
     function nodeProperties() external view returns (address);
     function ve() external view returns (address);
-    // function WETH() external view returns (address); // NOTE: deprecated
 
     function claimRewards(uint256 _tokenId, address _to) external returns (uint256);
     function baseEmissionRateAt(uint256 _timestamp) external view returns (uint256);

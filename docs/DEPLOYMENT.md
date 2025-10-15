@@ -60,7 +60,7 @@ Use the compilation script to compile the flattened source code and scripts.
 
 ```bash
 ./helpers/1-clean.sh
-./helpers/2-build-flattened.sh
+./helpers/2-build.sh
 ./helpers/5-build-script.sh
 ```
 

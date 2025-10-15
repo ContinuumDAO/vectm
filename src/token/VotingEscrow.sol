@@ -477,7 +477,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 extractionId;
 
         // BUG: #5 Structural week-ratcheting suppresses intended decay
-        // PASSED: #5 checking whether a week needs to be added to lock duration now ensures that the lock end
+        // PASSED: checking whether a week needs to be added to lock duration now ensures that the lock end
         // time will not decrease artificially due to ratcheting.
         uint256 lock_duration = (_locked.end - block.timestamp);
         if (((block.timestamp + lock_duration) / WEEK) * WEEK < _locked.end) {
@@ -504,7 +504,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             );
         }
 
-        // BUG: #11 Split lacks immediate flash protection
+        // BUG: #10 Split lacks immediate flash protection
         // PASSED: the child token ID is now flash-stamped (parent is flash-stamped in nonflash modifier)
         ownership_change[extractionId] = clock();
 
@@ -1076,8 +1076,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         address from = msg.sender;
         // BUG: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
-        // FIX: Checking for SPLIT_TYPE now ensures that tokens are only transfered from the user if not part of a split
-        // operation, fixing the double-charging bug.
+        // PASSED: Checking for SPLIT_TYPE now ensures that tokens are only transfered from the user if not part of a
+        // split operation, fixing the double-charging bug.
         if (_value != 0 && deposit_type != DepositType.MERGE_TYPE && deposit_type != DepositType.SPLIT_TYPE) {
             assert(IERC20(token).transferFrom(from, address(this), _value));
         }
