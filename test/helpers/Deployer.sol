@@ -2,22 +2,19 @@
 
 pragma solidity 0.8.27;
 
-import { C3Caller } from "@c3caller/C3Caller.sol";
-import { C3CallerUpgradeable } from "@c3caller/upgradeable/C3CallerUpgradeable.sol";
-import { C3UUIDKeeperUpgradeable } from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
-import { C3UUIDKeeper } from "@c3caller/uuid/C3UUIDKeeper.sol";
+import {C3Caller} from "@c3caller/C3Caller.sol";
+import {C3CallerUpgradeable} from "@c3caller/upgradeable/C3CallerUpgradeable.sol";
+import {C3UUIDKeeperUpgradeable} from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
+import {C3UUIDKeeper} from "@c3caller/uuid/C3UUIDKeeper.sol";
 
-import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
-import { NodeProperties } from "../../src/node/NodeProperties.sol";
-import { Rewards } from "../../src/node/Rewards.sol";
-import { CTM } from "../../src/token/CTM.sol";
-import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
-import { TestERC20 } from "./mocks/TestERC20.sol";
+import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
+import {NodeProperties} from "../../src/node/NodeProperties.sol";
+import {Rewards} from "../../src/node/Rewards.sol";
+import {CTM} from "../../src/token/CTM.sol";
+import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
+import {TestERC20} from "./mocks/TestERC20.sol";
 
-import { WETH } from "./mocks/WETH.sol";
-
-import { Utils } from "./Utils.sol";
-import { MockSwapRouter } from "./mocks/MockSwapRouter.sol";
+import {Utils} from "./Utils.sol";
 
 contract Deployer is Utils {
     C3UUIDKeeper c3UUIDKeeper;
@@ -28,8 +25,6 @@ contract Deployer is Utils {
     CTMDAOGovernor ctmDaoGovernor;
     NodeProperties nodeProperties;
     Rewards rewards;
-    WETH weth;
-    MockSwapRouter swapRouter;
 
     function _deployCTM(address _admin) internal {
         ctm = new CTM(_admin);
@@ -37,14 +32,6 @@ contract Deployer is Utils {
 
     function _deployUSDC() internal {
         usdc = new TestERC20("Circle USD", "USDC", 6);
-    }
-
-    function _deployWETH() internal {
-        weth = new WETH();
-    }
-
-    function _deploySwapRouter() internal {
-        swapRouter = new MockSwapRouter();
     }
 
     function _deployC3Caller() internal {
@@ -75,26 +62,25 @@ contract Deployer is Utils {
     function _deployRewards() internal {
         rewards = new Rewards(
             0, // _firstMidnight,
-            address(ve),                // _ve
-            address(ctmDaoGovernor),    // _gov
-            address(ctm),               // _rewardToken
-            address(usdc),              // _feeToken
-            address(swapRouter),        // _swapRouter
-            address(nodeProperties),    // _nodeProperties
-            address(weth),              // _weth
-            1 ether / 2000,             // _baseEmissionRate
-            1 ether / 1000,             // _nodeEmissionRate
-            5000 ether,                 // _nodeRewardThreshold
-            7_812_500 gwei,             // _feePerByteRewardToken
-            3125                        // _feePerByteFeeToken
+            address(ve), // _ve
+            address(ctmDaoGovernor), // _gov
+            address(ctm), // _rewardToken
+            address(usdc), // _feeToken
+            address(nodeProperties), // _nodeProperties
+            1 ether / 2000, // _baseEmissionRate
+            1 ether / 1000, // _nodeEmissionRate
+            5000 ether, // _nodeRewardThreshold
+            7_812_500 gwei, // _feePerByteRewardToken
+            3125 // _feePerByteFeeToken
         );
     }
 
     function _initContracts(address _treasury) internal {
-        nodeProperties.initContracts(address(rewards));
+        vm.startPrank(address(ctmDaoGovernor));
+        nodeProperties.setRewards(address(rewards));
         ve.initContracts(address(ctmDaoGovernor), address(nodeProperties), address(rewards), _treasury);
-        vm.prank(address(ctmDaoGovernor));
         ve.setLiquidationsEnabled(true);
+        vm.stopPrank();
     }
 
     function _fundRewards() internal {

@@ -2,18 +2,17 @@
 
 pragma solidity 0.8.27;
 
-import { IERC6372 } from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-import { IVotingEscrow } from "../token/IVotingEscrow.sol";
+import {IVotingEscrow} from "../token/IVotingEscrow.sol";
 
-import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
-import { INodeProperties } from "./INodeProperties.sol";
-import { IRewards } from "./IRewards.sol";
-import { ISwapRouter } from "./ISwapRouter.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
+import {INodeProperties} from "./INodeProperties.sol";
+import {IRewards} from "./IRewards.sol";
 
 /**
  * @title Rewards
@@ -22,15 +21,15 @@ import { ISwapRouter } from "./ISwapRouter.sol";
  * @dev This contract handles the distribution of rewards to veCTM token holders based on their
  * voting power and node performance. It supports both base rewards for all token holders and
  * additional node rewards for those who have attached their tokens to MPC node infrastructure.
- * 
+ *
  * Key features:
  * - Daily reward calculations based on voting power
  * - Node quality-based bonus rewards
- * - Fee collection and token swapping
+ * - Fee collection
  * - Historical emission rate tracking with checkpoints
  * - Cross-chain fee integration
  * - Compound rewards back into voting escrow
- * 
+ *
  * Reward calculation considers:
  * - Base emission rate for all token holders
  * - Node emission rate for node operators
@@ -52,59 +51,50 @@ contract Rewards is IRewards {
     }
 
     /// @notice Duration of one day in seconds
-    uint48 public constant ONE_DAY = 1 days;
-    
+    uint48 constant ONE_DAY = 1 days;
+
     /// @notice Multiplier for precision in reward calculations (1e18)
-    uint256 public constant MULTIPLIER = 1 ether;
-    
+    uint256 constant MULTIPLIER = 1 ether;
+
     /// @notice The latest midnight timestamp that has been processed
     uint48 public latestMidnight;
-    
+
     /// @notice The genesis timestamp when rewards started
     uint48 public genesis;
 
     /// @notice Fee per byte for reward token (CTM)
     uint256 public feePerByteRewardToken;
-    
+
     /// @notice Fee per byte for fee token (USDC)
     uint256 public feePerByteFeeToken;
 
     /// @notice Address of the governance contract with administrative privileges
     address public gov;
-    
+
     /// @notice Address of the reward token (CTM)
     address public rewardToken;
-    
+
     /// @notice Address of the fee token (e.g., USDC)
     address public feeToken;
-    
-    /// @notice Address of the Uniswap V3 swap router
-    address public swapRouter;
-    
+
     /// @notice Address of the node properties contract
     address public nodeProperties;
-    
+
     /// @notice Address of the voting escrow contract
     address public ve;
 
-    /// @notice Address of WETH for swap operations (immutable)
-    address public immutable WETH;
-
-    /// @notice Flag to enable/disable swap functionality
-    bool internal _swapEnabled;
-
     /// @notice Checkpointed base emission rates over time (CTM per vePower)
     Checkpoints.Trace208 internal _baseEmissionRates;
-    
+
     /// @notice Checkpointed node emission rates over time (CTM per vePower)
     Checkpoints.Trace208 internal _nodeEmissionRates;
-    
+
     /// @notice Checkpointed minimum voting power thresholds for node rewards
     Checkpoints.Trace208 internal _nodeRewardThresholds;
 
     /// @notice Mapping from token ID to last claim timestamp (midnight)
     mapping(uint256 => uint48) internal _lastClaimOf;
-    
+
     /// @notice Mapping from chain ID and timestamp to fee receipts
     mapping(uint256 => mapping(uint48 => Fee)) internal _feeReceivedFromChainAt;
 
@@ -114,7 +104,7 @@ contract Rewards is IRewards {
      */
     modifier onlyGov() {
         if (msg.sender != gov) {
-            revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor);
+            revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Gov);
         }
         _;
     }
@@ -126,9 +116,7 @@ contract Rewards is IRewards {
      * @param _gov The address of the governance contract
      * @param _rewardToken The address of the reward token (CTM)
      * @param _feeToken The address of the fee token (e.g., USDC)
-     * @param _swapRouter The address of the Uniswap V3 swap router
      * @param _nodeProperties The address of the node properties contract
-     * @param _weth The address of WETH for swap operations
      * @param _baseEmissionRate The initial base emission rate
      * @param _nodeEmissionRate The initial node emission rate
      * @param _nodeRewardThreshold The initial minimum voting power threshold for node rewards
@@ -142,28 +130,25 @@ contract Rewards is IRewards {
         address _gov,
         address _rewardToken,
         address _feeToken,
-        address _swapRouter,
         address _nodeProperties,
-        address _weth,
         uint256 _baseEmissionRate,
         uint256 _nodeEmissionRate,
         uint256 _nodeRewardThreshold,
         uint256 _feePerByteRewardToken,
         uint256 _feePerByteFeeToken
     ) {
+        _firstMidnight = _firstMidnight - (_firstMidnight % 1 days);
         genesis = _firstMidnight;
         ve = _ve;
         gov = _gov;
         rewardToken = _rewardToken;
         feeToken = _feeToken;
-        swapRouter = _swapRouter;
         nodeProperties = _nodeProperties;
-        WETH = _weth;
         _setBaseEmissionRate(_baseEmissionRate);
         _setNodeEmissionRate(_nodeEmissionRate);
         _setNodeRewardThreshold(_nodeRewardThreshold);
-        feePerByteRewardToken = _feePerByteRewardToken;
-        feePerByteFeeToken = _feePerByteFeeToken;
+        _setFeePerByteRewardToken(_feePerByteRewardToken);
+        _setFeePerByteFeeToken(_feePerByteFeeToken);
         IERC20(_rewardToken).approve(_ve, type(uint256).max);
     }
 
@@ -172,8 +157,6 @@ contract Rewards is IRewards {
      * @param _baseEmissionRate The new base emission rate
      * @dev Updates the base emission rate with checkpointing for historical tracking.
      * The emission rate cannot exceed 1% of the multiplier to prevent excessive inflation.
-     * 
-     * @custom:error Rewards_EmissionRateChangeTooHigh When emission rate exceeds 1% of multiplier
      */
     function setBaseEmissionRate(uint256 _baseEmissionRate) external onlyGov {
         _setBaseEmissionRate(_baseEmissionRate);
@@ -184,8 +167,6 @@ contract Rewards is IRewards {
      * @param _nodeEmissionRate The new node emission rate
      * @dev Updates the node emission rate with checkpointing for historical tracking.
      * The emission rate cannot exceed 1% of the multiplier to prevent excessive inflation.
-     * 
-     * @custom:error Rewards_EmissionRateChangeTooHigh When emission rate exceeds 1% of multiplier
      */
     function setNodeEmissionRate(uint256 _nodeEmissionRate) external onlyGov {
         _setNodeEmissionRate(_nodeEmissionRate);
@@ -207,14 +188,9 @@ contract Rewards is IRewards {
      * @param _recipient The address to receive the tokens
      * @param _amount The amount of tokens to withdraw
      * @dev Allows governance to withdraw any tokens held by the contract.
-     * 
-     * Emits a Withdrawal event on successful withdrawal.
-     * 
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function withdrawToken(address _token, address _recipient, uint256 _amount) external onlyGov {
         _withdrawToken(_token, _recipient, _amount);
-        emit Withdrawal(_token, _recipient, _amount);
     }
 
     /**
@@ -224,10 +200,6 @@ contract Rewards is IRewards {
      * @param _recipient The address to receive old token balance
      * @dev Changes the reward token and withdraws any remaining balance of the old token.
      * Updates the genesis timestamp for the new reward token.
-     * 
-     * Emits a Withdrawal event for old token balance and a RewardTokenChange event.
-     * 
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function setRewardToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external onlyGov {
         address _oldRewardToken = rewardToken;
@@ -237,10 +209,9 @@ contract Rewards is IRewards {
 
         if (_oldTokenContractBalance != 0) {
             _withdrawToken(_oldRewardToken, _recipient, _oldTokenContractBalance);
-            emit Withdrawal(_oldRewardToken, _recipient, _oldTokenContractBalance);
         }
 
-        emit RewardTokenChange(_oldRewardToken, _rewardToken);
+        emit TokenUpdated(Token.Reward, _oldRewardToken, _rewardToken);
     }
 
     /**
@@ -248,10 +219,6 @@ contract Rewards is IRewards {
      * @param _feeToken The new fee token address
      * @param _recipient The address to receive old token balance
      * @dev Changes the fee token and withdraws any remaining balance of the old token.
-     * 
-     * Emits a Withdrawal event for old token balance and a FeeTokenChange event.
-     * 
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function setFeeToken(address _feeToken, address _recipient) external onlyGov {
         address _oldFeeToken = feeToken;
@@ -260,28 +227,51 @@ contract Rewards is IRewards {
 
         if (_oldTokenContractBalance != 0) {
             _withdrawToken(_oldFeeToken, _recipient, _oldTokenContractBalance);
-            emit Withdrawal(_oldFeeToken, _recipient, _oldTokenContractBalance);
         }
 
-        emit FeeTokenChange(_oldFeeToken, _feeToken);
+        emit TokenUpdated(Token.Fee, _oldFeeToken, _feeToken);
     }
 
     /**
-     * @notice Sets the fee per byte for reward token (governance only)
+     * @notice Sets the fee per byte for reward token
+     * @param _fee The new fee per byte for reward token
+     * @dev Updates the fee rate for reward token calculations.
+     * @dev Only callable by governance
+     */
+    function setFeePerByteRewardToken(uint256 _fee) external onlyGov {
+        _setFeePerByteRewardToken(_fee);
+    }
+
+    /**
+     * @notice Sets the fee per byte for reward token
      * @param _fee The new fee per byte for reward token
      * @dev Updates the fee rate for reward token calculations.
      */
-    function setFeePerByteRewardToken(uint256 _fee) external onlyGov {
+    function _setFeePerByteRewardToken(uint256 _fee) internal {
+        uint256 oldFee = feePerByteRewardToken;
         feePerByteRewardToken = _fee;
+        emit FeeUpdated(Token.Reward, oldFee, _fee);
     }
 
     /**
-     * @notice Sets the fee per byte for fee token (governance only)
+     * @notice Sets the fee per byte for fee token
+     * @param _fee The new fee per byte for fee token
+     * @dev Updates the fee rate for fee token calculations.
+     * @dev Only callable by governance
+     */
+    function setFeePerByteFeeToken(uint256 _fee) external onlyGov {
+        _setFeePerByteFeeToken(_fee);
+    }
+
+    /**
+     * @notice Sets the fee per byte for fee token
      * @param _fee The new fee per byte for fee token
      * @dev Updates the fee rate for fee token calculations.
      */
-    function setFeePerByteFeeToken(uint256 _fee) external onlyGov {
+    function _setFeePerByteFeeToken(uint256 _fee) internal {
+        uint256 oldFee = feePerByteFeeToken;
         feePerByteFeeToken = _fee;
+        emit FeeUpdated(Token.Fee, oldFee, _fee);
     }
 
     /**
@@ -294,15 +284,6 @@ contract Rewards is IRewards {
     }
 
     /**
-     * @notice Enables or disables swap functionality (governance only)
-     * @param _enabled True to enable swaps, false to disable
-     * @dev Controls whether fee tokens can be swapped for reward tokens.
-     */
-    function setSwapEnabled(bool _enabled) external onlyGov {
-        _swapEnabled = _enabled;
-    }
-
-    /**
      * @notice Receives fees from cross-chain transfers
      * @param _token The address of the token received
      * @param _amount The amount of tokens received
@@ -310,12 +291,6 @@ contract Rewards is IRewards {
      * @dev Allows the contract to receive fees from other chains.
      * Only accepts fee tokens or reward tokens.
      * Prevents duplicate fee receipts from the same chain at the same timestamp.
-     * 
-     * Emits a FeesReceived event on successful receipt.
-     * 
-     * @custom:error Rewards_InvalidToken When token is not fee token or reward token
-     * @custom:error Rewards_FeesAlreadyReceivedFromChain When fees already received from this chain
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
         if (_token != feeToken && _token != rewardToken) {
@@ -345,54 +320,11 @@ contract Rewards is IRewards {
     }
 
     /**
-     * @notice Swaps fee tokens for reward tokens using Uniswap V3. Can be called by anyone.
-     * @param _amountIn The amount of fee tokens to swap
-     * @param _uniFeeWETH The Uniswap fee tier for WETH pair
-     * @param _uniFeeReward The Uniswap fee tier for reward token pair
-     * @return _amountOut The amount of reward tokens received
-     * @dev Performs a swap from fee tokens to reward tokens via WETH.
-     * Uses the contract's balance if requested amount exceeds available balance.
-     *
-     * Emits a Swap event on successful swap.
-     *
-     * @custom:error Rewards_SwapDisabled When swap functionality is disabled
-     */
-    function swapFeeToReward(uint256 _amountIn, uint256 _uniFeeWETH, uint256 _uniFeeReward)
-        external
-        returns (uint256 _amountOut)
-    {
-        if (!_swapEnabled) {
-            revert Rewards_SwapDisabled();
-        }
-
-        uint256 _contractBalance = IERC20(feeToken).balanceOf(address(this));
-
-        if (_amountIn > _contractBalance) {
-            _amountIn = _contractBalance;
-        }
-
-        IERC20(feeToken).approve(swapRouter, _amountIn);
-
-        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
-            path: abi.encodePacked(feeToken, _uniFeeWETH, WETH, _uniFeeReward, rewardToken),
-            recipient: address(this),
-            amountIn: _amountIn,
-            amountOutMinimum: 0
-        });
-
-        _amountOut = ISwapRouter(swapRouter).exactInput(params);
-
-        emit Swap(feeToken, rewardToken, _amountIn, _amountOut);
-    }
-
-    /**
      * @notice Compounds claimed rewards back into the voting escrow
      * @param _tokenId The ID of the veCTM token
      * @return The amount of rewards compounded
      * @dev Claims rewards for the token and immediately deposits them back into the voting escrow,
      * extending the lock duration and increasing voting power.
-     * 
-     * @custom:error Rewards_NoUnclaimedRewards When no rewards are available to claim
      */
     function compoundLockRewards(uint256 _tokenId) external returns (uint256) {
         uint256 _rewards = claimRewards(_tokenId, address(this));
@@ -449,13 +381,6 @@ contract Rewards is IRewards {
      * @return The amount of rewards claimed
      * @dev Claims all unclaimed rewards for the token and transfers them to the recipient.
      * Updates the last claim timestamp to prevent double-claiming.
-     * 
-     * Emits a Claim event on successful claim.
-     * 
-     * @custom:error Rewards_OnlyAuthorized When caller is not the token owner
-     * @custom:error Rewards_NoUnclaimedRewards When no rewards are available to claim
-     * @custom:error Rewards_InsufficientContractBalance When contract balance is insufficient
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
         if (msg.sender != IERC721(ve).ownerOf(_tokenId)) {
@@ -535,21 +460,19 @@ contract Rewards is IRewards {
      * @param _recipient The address to receive the tokens
      * @param _amount The amount of tokens to withdraw
      * @dev Internal function to handle token withdrawals with error handling.
-     * 
-     * @custom:error Rewards_TransferFailed When token transfer fails
      */
     function _withdrawToken(address _token, address _recipient, uint256 _amount) internal {
         if (!IERC20(_token).transfer(_recipient, _amount)) {
             revert Rewards_TransferFailed();
         }
+        emit Withdrawal(_token, _recipient, _amount);
     }
 
     /**
      * @notice Sets the base emission rate with checkpointing
      * @param _baseEmissionRate The new base emission rate
      * @dev Internal function to update base emission rate with validation and checkpointing.
-     * 
-     * @custom:error Rewards_EmissionRateChangeTooHigh When emission rate exceeds 1% of multiplier
+     * The emission rate cannot exceed 1% of the multiplier to prevent excessive inflation.
      */
     function _setBaseEmissionRate(uint256 _baseEmissionRate) internal {
         if (_baseEmissionRate > MULTIPLIER / 100) {
@@ -558,15 +481,14 @@ contract Rewards is IRewards {
         uint208 _baseEmissionRate208 = SafeCast.toUint208(_baseEmissionRate);
         (uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate) =
             _baseEmissionRates.push(IERC6372(ve).clock(), _baseEmissionRate208);
-        emit BaseEmissionRateChange(_oldBaseEmissionRate, _newBaseEmissionRate);
+        emit BaseEmissionRateUpdated(_oldBaseEmissionRate, _newBaseEmissionRate);
     }
 
     /**
      * @notice Sets the node emission rate with checkpointing
      * @param _nodeEmissionRate The new node emission rate
      * @dev Internal function to update node emission rate with validation and checkpointing.
-     * 
-     * @custom:error Rewards_EmissionRateChangeTooHigh When emission rate exceeds 1% of multiplier
+     * The emission rate cannot exceed 1% of the multiplier to prevent excessive inflation.
      */
     function _setNodeEmissionRate(uint256 _nodeEmissionRate) internal {
         if (_nodeEmissionRate > MULTIPLIER / 100) {
@@ -575,7 +497,7 @@ contract Rewards is IRewards {
         uint208 _nodeEmissionRate208 = SafeCast.toUint208(_nodeEmissionRate);
         (uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate) =
             _nodeEmissionRates.push(IERC6372(ve).clock(), _nodeEmissionRate208);
-        emit NodeEmissionRateChange(_oldNodeEmissionRate, _newNodeEmissionRate);
+        emit NodeEmissionRateUpdated(_oldNodeEmissionRate, _newNodeEmissionRate);
     }
 
     /**
@@ -587,7 +509,7 @@ contract Rewards is IRewards {
         uint208 _nodeRewardThreshold208 = SafeCast.toUint208(_nodeRewardThreshold);
         (uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold) =
             _nodeRewardThresholds.push(IERC6372(ve).clock(), _nodeRewardThreshold208);
-        emit NodeRewardThresholdChange(_oldNodeRewardThreshold, _newNodeRewardThreshold);
+        emit NodeRewardThresholdUpdated(_oldNodeRewardThreshold, _newNodeRewardThreshold);
     }
 
     /**
@@ -609,7 +531,7 @@ contract Rewards is IRewards {
      * - Node emission rates and quality scores
      * - Token voting power over time
      * - Token expiration and creation times
-     * 
+     *
      * Assumes _latestMidnight is up-to-date.
      */
     function _calculateRewardsOf(uint256 _tokenId, uint48 _latestMidnight) internal view returns (uint256) {
@@ -688,7 +610,7 @@ contract Rewards is IRewards {
      * @return The calculated reward amount
      * @dev Calculates rewards using the formula:
      * votingPower * (baseRewards + (quality * nodeRewards / 10)) / MULTIPLIER
-     * 
+     *
      * The quality score acts as a multiplier for node rewards, with 10 being optimal performance.
      */
     function _calculateRewards(uint256 _votingPower, uint256 _baseRewards, uint256 _nodeRewards, uint256 _quality)

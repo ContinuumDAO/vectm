@@ -174,7 +174,7 @@ Creates a voting lock for a specified address.
 **Access Control:**
 - Public function - any address can call
 
-#### `create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256)`
+#### `create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) public returns (uint256)`
 
 Creates a non-voting lock for a specified address.
 
@@ -191,6 +191,7 @@ Creates a non-voting lock for a specified address.
 - Lock duration is rounded down to the nearest week
 - Maximum lock duration is 4 years
 - Transfers CTM tokens from caller to contract
+- Uses nonreentrant modifier for security
 
 **Access Control:**
 - Public function - any address can call
@@ -459,6 +460,7 @@ Initializes contract addresses for integration.
 **Behavior:**
 - Sets up integration contract addresses
 - Can only be called once
+- Reverts with InvalidInitialization if governor is already set
 
 **Access Control:**
 - Public function - can only be called once

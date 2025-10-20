@@ -1,15 +1,17 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity 0.8.27;
 
-import { Governor } from "./oz/Governor.sol";
-import { IGovernor } from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {Governor} from "./oz/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 error GovernorDeltaInvalidProposal(uint256 nOptions, uint256 nWinners, bytes metadata);
 error GovernorDeltaInvalidVoteParams(bytes params);
 error GovernorNonIncrementingOptionIndices(uint256 nOptions, bytes metadata);
 
 /**
+ * @title GovernorCountingMultiple
+ * @author @patrickcure for ContinuumDAO
  * @dev Extension of {Governor} for multiple-option (Delta) proposals and voting configurations.
  * Proposals can have an arbitrary number of options, each containing arbitrary operations to perform on-chain.
  * These proposals are accompanied by a number of 'winners', meaning the top 'x' voted-for options are executed.
@@ -53,22 +55,24 @@ abstract contract GovernorCountingMultiple is Governor {
         Abstain
     }
 
-    /// @dev Stored for every proposal
+    /// @notice Proposal data stored for every proposal
     struct ProposalVote {
         uint256 totalVotes; // INFO: this is included for quorum validation
         mapping(uint256 option => uint256) votes;
         mapping(address voter => bool) hasVoted;
     }
 
-    /// @dev Stored for every proposal
+    /// @notice Metadata describing the number of options and number of winners, stored for multiple-option proposals
     struct ProposalConfig {
         uint256 nOptions;
         uint256 nWinners;
     }
 
-    /// NOTE: only ever exists in memory.
-    /// @dev optionIndices contains the starting index of each option's data in the overall
-    /// targets/values/calldatas arrays. winningIndices contains the the top nWinners by vote option starting indices.
+    /**
+     * @notice Data structure used in memory to describe proposal data between operations
+     * @dev `optionIndices` contains the starting index of each option's data in the overall targets/values/calldatas
+     * arrays. winningIndices contains the top nWinners by vote option starting indices.
+     */
     struct Metadata {
         uint256 nOptions;
         uint256 nWinners;
@@ -77,29 +81,32 @@ abstract contract GovernorCountingMultiple is Governor {
         uint256[] winningIndices;
     }
 
-    /// NOTE: only ever exists in memory
-    /// @dev Used to pass operations between functions
+    /// @notice Data structure used in memory to communicate operations efficiently between functions
     struct Operations {
         address[] targets;
         uint256[] values;
         bytes[] calldatas;
     }
 
-    // Proposal ID => Proposal Votes
+    /// @notice Mapping of proposal ID => Proposal Vote (proposal voting data)
     mapping(uint256 => ProposalVote) private _proposalVotes;
-    // Proposal ID => Proposal Configuration (nOptions, nWinners)
+    /// @notice Mapping of proposal ID => Proposal Configuration (nOptions, nWinners)
     mapping(uint256 => ProposalConfig) private _proposalConfig;
 
     /**
-     * @dev Override of the {Governor-propose} to incorporate multiple-option (Delta) proposals.
-     * In multiple-option (Delta) voting, each option has its own set of on-chain operations (targets/values/calldatas).
-     *
-     * Proposal metadata standard introduced:
-     * `calldatas[0]` is reserved to store the number of options and number of winners (execute top x of n).
+     * @notice Override of {Governor-propose} to incorporate multiple-option (Delta) proposals.
+     * @param targets Target addresses for every possible outcome. targets[0] should be address(0) if using Delta.
+     * @param values Values (ETH) attached for every possible outcome. values[0] should be 0 if using Delta.
+     * @param calldatas Calldatas to execute for every possible outcome. In the case of Delta proposals, calldatas[0]
+     * should be reserved to store the number of options and number of winners (execute top x of n).
+     * @param description The string description for the proposal, eg. for first proposal "#1: Do XYZ."
+     * @dev In multiple-option (Delta) voting, each option has its own set of on-chain operations
+     * (targets/values/calldatas). Proposal metadata (calldatas[0]) standard introduced:
      * The first bytes32 is used to store the number of options.
      * The second bytes32 is used to store the number of winning options.
      * The subsequent elements contain the starting indices of the option data in the `targets`, `values` and
      * `calldatas` arrays.
+     * @return The proposal ID.
      */
     function propose(
         address[] memory targets,
@@ -147,7 +154,15 @@ abstract contract GovernorCountingMultiple is Governor {
         return proposalId;
     }
 
-    /// @notice Override of {Governor-execute} to include Delta proposal execution.
+    /**
+     * @notice Override of {Governor-execute} to include Delta proposal execution.
+     * @param targets Target addresses for every possible outcome. targets[0] should be address(0) if using Delta.
+     * @param values Values (ETH) attached for every possible outcome. values[0] should be 0 if using Delta.
+     * @param calldatas Calldatas to execute for every possible outcome. In the case of Delta proposals, calldatas[0]
+     * should be reserved to store the number of options and number of winners (execute top x of n).
+     * @param descriptionHash The keccak256 hash of the description hash.
+     * @return The proposal ID.
+     */
     function execute(
         address[] memory targets,
         uint256[] memory values,
@@ -205,13 +220,21 @@ abstract contract GovernorCountingMultiple is Governor {
         return proposalId;
     }
 
-    /// @notice Override of {Governor-queue} to include Delta proposal queueing.
-    function queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
-        public
-        virtual
-        override
-        returns (uint256)
-    {
+    /**
+     * @notice Override of {Governor-queue} to include Delta proposal queueing.
+     * @param targets Target addresses for every possible outcome. targets[0] should be address(0) if using Delta.
+     * @param values Values (ETH) attached for every possible outcome. values[0] should be 0 if using Delta.
+     * @param calldatas Calldatas to execute for every possible outcome. In the case of Delta proposals, calldatas[0]
+     * should be reserved to store the number of options and number of winners (execute top x of n).
+     * @param descriptionHash The keccak256 hash of the description hash.
+     * @return The proposal ID.
+     */
+    function queue(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public virtual override returns (uint256) {
         uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
         // Bravo proposal (referencing _proposalConfig because metadata is not yet defined)
@@ -253,7 +276,9 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /**
-     * @dev Accessor to the internal vote counts.
+     * @notice Accessor to the internal vote counts.
+     * @param proposalId The proposal ID in question.
+     * @return The number of votes cast for each option and the total number of votes for the proposal.
      */
     function proposalVotes(uint256 proposalId) public view virtual returns (uint256[] memory, uint256) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
@@ -269,18 +294,27 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /**
-     * @dev Number of options and number of winning options in a proposal.
+     * @notice Number of options and number of winning options in a proposal.
+     * @param proposalId The proposal ID in question.
+     * @return The number of options and number of top options that will be executed for a proposal.
      */
     function proposalConfiguration(uint256 proposalId) public view virtual returns (ProposalConfig memory) {
         return _proposalConfig[proposalId];
     }
 
     /**
-     * @dev Override of the {Governor-_countVote} to handle voting on Delta proposals.
-     * Support is redundant for Delta voting, as it is already encoded in the params field. It is still used for Bravo.
-     * When using weighted voting, there may be minor precision loss due to integer division in the weight calculation
+     * @notice Override of the {Governor-_countVote} to handle voting on Delta proposals.
+     * @param proposalId The proposal ID in question.
+     * @param account The address of the voter.
+     * @param support Redundant for Delta voting, as it is already encoded in the params field.
+     * Support is still used for Bravo-type voting.
+     * @param totalWeight The total weight of the voter, used as the denominator when using Delta-type voting.
+     * @param params In Delta-type voting, `params` serves as the numerators (coefficients) to cast for each option.
+     * The params bytes string should be passed in as ABI-encoded uint256 values.
+     * @dev When using weighted voting, there may be minor precision loss due to integer division in the weight calculation
      * (totalWeight * weights[i] / weightDenominator). This can be mitigated by selecting weightings whose denominator
      * add up to a factor of `totalWeight`.
+     * @return The total weight cast during this operation
      */
     function _countVote(uint256 proposalId, address account, uint8 support, uint256 totalWeight, bytes memory params)
         internal
@@ -354,9 +388,11 @@ abstract contract GovernorCountingMultiple is Governor {
         return totalWeight;
     }
 
-    /// @inheritdoc Governor
-    /// @dev In this module, quorum is considered to be reached if the total votes cast across every option on the
-    /// proposal surpass the quorum at snapshot.
+    /**
+     * @inheritdoc Governor
+     * @dev In this module, quorum is considered to be reached if the total votes cast across every option on the
+     * proposal surpass the quorum at snapshot.
+     */
     function _quorumReached(uint256 proposalId) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
 
@@ -364,10 +400,13 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /**
-     * @dev See {Governor-_voteSucceeded}. This module is a superset of {GovernorCountingSimple}, with multiple-option
-     * (Delta) proposals not having such a clear-cut definition of 'success'. Therefore, any Delta proposal that votes
-     * have been cast on at all is deemed 'successful'. Bravo proposals are successful if the 'for' votes exceed the
-     * 'against' votes.
+     * @notice Determines whether a vote has succeeded.
+     * @param proposalId The proposal ID in question.
+     * @dev See {Governor-_voteSucceeded}. This module is a superset of {GovernorCountingSimple}, with
+     * multiple-option (Delta) proposals not having such a clear-cut definition of 'success'. Therefore, any Delta
+     * proposal that votes have been cast on at all is deemed 'successful'. Bravo proposals are successful if the 'for'
+     * votes exceed the 'against' votes.
+     * @return True if the proposal has succeeded, false otherwise.
      */
     function _voteSucceeded(uint256 proposalId) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
@@ -379,7 +418,12 @@ abstract contract GovernorCountingMultiple is Governor {
         }
     }
 
-    // Load the vote count for each option into memory
+    /**
+     * @notice Loads the vote count for each option into memory
+     * @param proposalId The proposal ID in question.
+     * @param nOptions The number of options in the proposal.
+     * @return The number of votes cast for each option in the proposal.
+     */
     function _getProposalVotes(uint256 proposalId, uint256 nOptions) internal view returns (uint256[] memory) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
         uint256[] memory votes = new uint256[](nOptions);
@@ -392,7 +436,10 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /**
-     * @dev Validates the dimensions of the proposal's execution data.
+     * @notice Validates the dimensions of the proposal's execution data.
+     * @param nTargets The number of target addresses for every option in the proposal.
+     * @param nValues The number of values attached for every option in the proposal.
+     * @param nCalldatas The number of calldatas executable for every option in the proposal.
      */
     function _validateProposalDimensions(uint256 nTargets, uint256 nValues, uint256 nCalldatas) internal pure {
         if (nTargets != nValues || nValues != nCalldatas) {
@@ -401,10 +448,12 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /**
-     * @dev Validates the proposal's configuration regarding number of options and number of winners.
-     * The following cases must be true: nOptions > 1, nWinners > 0, nWinners < nOptions.
-     * No upper limit is imposed on the number of options or winners.
-     * NOTE: @param metadata is included here because it is useful for debugging.
+     * @notice Validates the proposal's configuration, regarding number of options and number of winners.
+     * @param nOptions The number of options in the proposal.
+     * @param nWinners The number of winners in the proposal.
+     * @param metadata This is included here because it is useful for debugging.
+     * @dev The following cases must be true: nOptions > 1, nWinners > 0, nWinners < nOptions.
+     * @dev No upper limit is imposed on the number of options or winners.
      */
     function _validateProposalConfiguration(uint256 nOptions, uint256 nWinners, bytes memory metadata) internal pure {
         if (nOptions < 2 || nWinners == 0 || nWinners >= nOptions) {
@@ -412,7 +461,11 @@ abstract contract GovernorCountingMultiple is Governor {
         }
     }
 
-    // Deconstruct the incoming `calldatas[0]` into a metadata object
+    /**
+     * @notice Deconstruct the incoming `calldatas[0]` bytes string into a metadata object.
+     * @param metadataBytes The bytes string encoded with number of options, number of winners and location indices.
+     * @return metadata The decoded metadata object.
+     */
     function _extractMetadata(bytes memory metadataBytes) internal pure returns (Metadata memory metadata) {
         // extract first 32 bytes for nOptions and next 32 bytes for nWinners
         bytes32 nOptionsBytes;
@@ -453,7 +506,13 @@ abstract contract GovernorCountingMultiple is Governor {
         }
     }
 
-    /// @dev Get the top `nWinners` voted-for option indices
+    /**
+     * @notice Get the top `nWinners` option indices, ordered by the number of votes each option obtained.
+     * @param votes The array of amount of votes cast for each option
+     * @param optionIndices The index of each option as it is structured in the (targets/values/calldatas) arrays.
+     * @param nWinners The number of winners declarable for this proposal.
+     * @return winningIndices The indices of the winning options for this proposal.
+     */
     function _getWinningIndices(uint256[] memory votes, uint256[] memory optionIndices, uint256 nWinners)
         internal
         pure
@@ -476,8 +535,14 @@ abstract contract GovernorCountingMultiple is Governor {
         }
     }
 
-    /// @dev Using the winning indices, extract the corresponding members of the targets/values/calldatas arrays and
-    /// prepare them for queueing/execution
+    /**
+     * @notice Using the winning indices, extract the corresponding members of the targets/values/calldatas arrays and
+     * prepare them for queueing/execution.
+     * @param allOps The total list of all operations that were presented for this proposal, made up of constituent
+     * (targets/values/calldatas) arrays.
+     * @param metadata The object with proposal metadata (nOptions/nWinners) decoded from the metadata bytes string.
+     * @return winningOps The extracted list of `nWinners` operations that were successful and eligible for execution.
+     */
     function _buildOperations(Operations memory allOps, Metadata memory metadata)
         internal
         pure
@@ -511,8 +576,14 @@ abstract contract GovernorCountingMultiple is Governor {
         }
     }
 
-    /// @dev A length is needed to initialize the successful operations arrays.
-    /// This function finds the length of the successful on-chain operations.
+    /**
+     * @notice Finds the length of the successful on-chain operations.
+     * @param allOpsLength The total list of operations combined across all proposal options.
+     * @param metadata The object with proposal metadata (nOptions/nWinners) decoded from the metadata bytes string.
+     * @return winningOpsLength The total number of operations that were successful in the
+     * voting round and are eligible for execution.
+     * @dev This is required to enable building of the executable operations.
+     */
     function _countOperations(uint256 allOpsLength, Metadata memory metadata)
         internal
         pure

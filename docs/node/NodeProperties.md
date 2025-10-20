@@ -136,18 +136,19 @@ Sets the node removal request status for a token.
 
 ### Quality Management
 
-#### `setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external`
+#### `setNodeQualityOf(uint256 _tokenId, uint8 _nodeQualityOf) external`
 
 Sets the quality score for a node (governance only).
 
 **Parameters:**
 - `_tokenId` (uint256): The ID of the veCTM token associated with the node
-- `_nodeQualityOf` (uint256): The quality score to assign (0-10 scale)
+- `_nodeQualityOf` (uint8): The quality score to assign (0-10 scale)
 
 **Behavior:**
 - Governance can set node quality scores based on performance metrics
 - Quality scores are checkpointed with timestamps for historical tracking
 - Quality scores range from 0-10, where 10 represents optimal performance
+- Emits NodeQualityUpdated event
 
 **Requirements:**
 - Quality score must not exceed 10
@@ -158,19 +159,20 @@ Sets the quality score for a node (governance only).
 
 ### Contract Initialization
 
-#### `initContracts(address _rewards) external`
+#### `setRewards(address _rewards) external`
 
-Initializes the rewards contract address (one-time setup).
+Sets the rewards contract address (governance only).
 
 **Parameters:**
 - `_rewards` (address): The address of the rewards contract
 
 **Behavior:**
 - Sets up the rewards contract address for threshold checking
-- Can only be called once
+- Reverts if the rewards address is zero
+- Emits RewardsUpdated event
 
 **Access Control:**
-- Public function - can only be called once
+- Only governance can call this function
 
 ### View Functions
 

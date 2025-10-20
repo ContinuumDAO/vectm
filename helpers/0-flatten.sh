@@ -1,25 +1,27 @@
 #!/bin/bash
 
-# remove old flattened files
-rm -r flattened/
+# remove old build files
+rm -r build/
 
 # create folders
-mkdir -p flattened/
-mkdir -p flattened/gov/
-mkdir -p flattened/node/
-mkdir -p flattened/token/
-mkdir -p flattened/utils/
+mkdir -p build/
+mkdir -p build/gov/
+mkdir -p build/node/
+mkdir -p build/token/
+mkdir -p build/utils/
+
+echo -e "\n📄 Flattening src/ to build/..."
 
 # gov
-forge flatten src/gov/CTMDAOGovernor.sol --output flattened/gov/CTMDAOGovernor.sol
+forge flatten src/gov/CTMDAOGovernor.sol --output build/gov/CTMDAOGovernor.sol
 
 # node
-forge flatten src/node/NodeProperties.sol --output flattened/node/NodeProperties.sol
-forge flatten src/node/Rewards.sol --output flattened/node/Rewards.sol
+forge flatten src/node/NodeProperties.sol --output build/node/NodeProperties.sol
+forge flatten src/node/Rewards.sol --output build/node/Rewards.sol
 
 # token
-forge flatten src/token/CTM.sol --output flattened/token/CTM.sol
-forge flatten src/token/VotingEscrow.sol --output flattened/token/VotingEscrow.sol
+forge flatten src/token/CTM.sol --output build/token/CTM.sol
+forge flatten src/token/VotingEscrow.sol --output build/token/VotingEscrow.sol
 
 # utils
-forge flatten src/utils/VotingEscrowProxy.sol --output flattened/utils/VotingEscrowProxy.sol
+forge flatten src/utils/VotingEscrowProxy.sol --output build/utils/VotingEscrowProxy.sol

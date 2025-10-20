@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity 0.8.27;
 
@@ -6,24 +6,25 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @notice Modified version of OpenZeppelin's Checkpoints library that tracks arrays instead of single values.
+ * @author OpenZeppelin, modified for arrays by @patrickcure
  * @dev While the original library contained some assembly which allows `_unsafeAccess` of a checkpoint array, here it
  * is removed because it causes problems when the checkpoints contain dynamic sized arrays.
  */
 library ArrayCheckpoints {
     /**
-     * @dev An array was attempted to be inserted on a past checkpoint.
+     * @notice An array was attempted to be inserted on a past checkpoint.
      */
     error CheckpointUnorderedInsertion();
 
     /**
-     * @dev Trace where checkpoints can be stored.
+     * @notice Trace where checkpoints can be stored.
      */
     struct TraceArray {
         CheckpointArray[] _checkpoints;
     }
 
     /**
-     * @dev Checkpoint that tracks a `_key` which is associated with an array of `_values`.
+     * @notice Checkpoint that tracks a `_key` which is associated with an array of `_values`.
      */
     struct CheckpointArray {
         uint256 _key;
@@ -31,7 +32,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Pushes a (`key`, `values`) pair into a Trace so that it is stored as the checkpoint.
+     * @notice Pushes a (`key`, `values`) pair into a Trace so that it is stored as the checkpoint.
      *
      * Returns previous values array length and new values array length.
      *
@@ -43,7 +44,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or
+     * @notice Returns the values array in the first (oldest) checkpoint with key greater or equal than the search key, or
      * an
      * empty array if there is none.
      */
@@ -54,7 +55,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
+     * @notice Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
      * if there is none.
      */
     function upperLookup(TraceArray storage self, uint256 key) internal view returns (uint256[] memory) {
@@ -64,7 +65,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
+     * @notice Returns the value in the last (most recent) checkpoint with key lower or equal than the search key, or zero
      * if there is none.
      *
      * NOTE: This is a variant of {upperLookup} that is optimised to find "recent" checkpoint (checkpoints with high
@@ -91,7 +92,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the value in the most recent checkpoint, or zero if there are no checkpoints.
+     * @notice Returns the value in the most recent checkpoint, or zero if there are no checkpoints.
      */
     function latest(TraceArray storage self) internal view returns (uint256[] memory) {
         uint256 pos = self._checkpoints.length;
@@ -99,7 +100,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
+     * @notice Returns whether there is a checkpoint in the structure (i.e. it is not empty), and if so the key and values
      * in the most recent checkpoint.
      */
     function latestCheckpoint(TraceArray storage self)
@@ -117,21 +118,21 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Returns the number of checkpoints.
+     * @notice Returns the number of checkpoints.
      */
     function length(TraceArray storage self) internal view returns (uint256) {
         return self._checkpoints.length;
     }
 
     /**
-     * @dev Returns checkpoint at given position.
+     * @notice Returns checkpoint at given position.
      */
     function at(TraceArray storage self, uint32 pos) internal view returns (CheckpointArray memory) {
         return self._checkpoints[pos];
     }
 
     /**
-     * @dev Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
+     * @notice Pushes a (`key`, `values`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
     function _insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values)
@@ -153,17 +154,17 @@ library ArrayCheckpoints {
             if (last._key == key) {
                 _unsafeAccess(self, pos - 1)._values = values;
             } else {
-                self.push(CheckpointArray({ _key: key, _values: values }));
+                self.push(CheckpointArray({_key: key, _values: values}));
             }
             return (last._values.length, values.length);
         } else {
-            self.push(CheckpointArray({ _key: key, _values: values }));
+            self.push(CheckpointArray({_key: key, _values: values}));
             return (0, values.length);
         }
     }
 
     /**
-     * @dev Return the index of the last (most recent) checkpoint with key lower or equal than the search key, or `high`
+     * @notice Return the index of the last (most recent) checkpoint with key lower or equal than the search key, or `high`
      * if there is none. `low` and `high` define a section where to do the search, with inclusive `low` and exclusive
      * `high`.
      *
@@ -186,7 +187,7 @@ library ArrayCheckpoints {
     }
 
     /**
-     * @dev Return the index of the first (oldest) checkpoint with key is greater or equal than the search key, or
+     * @notice Return the index of the first (oldest) checkpoint with key is greater or equal than the search key, or
      * `high` if there is none. `low` and `high` define a section where to do the search, with inclusive `low` and
      * exclusive `high`.
      *

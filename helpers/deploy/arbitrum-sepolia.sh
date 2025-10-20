@@ -15,14 +15,14 @@ forge script script/DeployVotingEscrow.s.sol \
 
 # Check if the simulation succeeded
 if [ $? -ne 0 ]; then
-    echo "Simulation failed. Exiting."
+    echo "❌ Simulation failed. Exiting."
     exit 1
 fi
 
 read -p "Continue with deployment? [Y/n] " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! $REPLY =~ ^$ ]]; then
-    echo "Deployment cancelled."
+    echo "❌ Deployment cancelled."
     exit 1
 fi
 
@@ -38,4 +38,4 @@ forge script script/DeployVotingEscrow.s.sol \
 --chain arbitrum-sepolia \
 --broadcast
 
-echo "Deployment and verification complete."
+echo "✅ Deployment and verification complete."

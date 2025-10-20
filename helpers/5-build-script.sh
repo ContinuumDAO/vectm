@@ -1,4 +1,4 @@
 #!/bin/bash
 
-echo -e "\nBuilding script..."
+echo -e "\n🔨 Compiling script..."
 forge build script/

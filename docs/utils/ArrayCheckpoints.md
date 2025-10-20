@@ -133,6 +133,35 @@ Gets a specific checkpoint at a given position.
 - Returns the checkpoint at the specified position
 - Reverts if position is out of bounds
 
+### `latestCheckpoint(TraceArray storage self) internal view returns (bool exists, uint256 _key, uint256[] memory _values)`
+
+Gets the most recent checkpoint with existence check.
+
+**Parameters:**
+- `self` (TraceArray storage): The trace array to query
+
+**Returns:**
+- `exists` (bool): Whether there is a checkpoint in the structure
+- `_key` (uint256): The key of the most recent checkpoint
+- `_values` (uint256[]): The values array of the most recent checkpoint
+
+**Behavior:**
+- Returns whether there is a checkpoint in the structure and if so, the key and values in the most recent checkpoint
+- Returns (false, 0, empty array) if no checkpoints exist
+
+### `length(TraceArray storage self) internal view returns (uint256)`
+
+Gets the number of checkpoints.
+
+**Parameters:**
+- `self` (TraceArray storage): The trace array to query
+
+**Returns:**
+- `uint256`: The number of checkpoints
+
+**Behavior:**
+- Returns the total number of checkpoints stored in the trace array
+
 ## Internal Functions
 
 ### `_insert(CheckpointArray[] storage self, uint256 key, uint256[] memory values) private returns (uint256, uint256)`

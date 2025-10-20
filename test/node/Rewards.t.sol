@@ -2,20 +2,21 @@
 
 pragma solidity 0.8.27;
 
-import { console } from "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 
-import { IRewards } from "../../src/node/IRewards.sol";
-import { NodeProperties } from "../../src/node/NodeProperties.sol";
-import { Rewards } from "../../src/node/Rewards.sol";
+import {Rewards} from "../../src/node/Rewards.sol";
+import {IRewards} from "../../src/node/IRewards.sol";
+import {NodeProperties} from "../../src/node/NodeProperties.sol";
+import {INodeProperties} from "../../src/node/INodeProperties.sol";
 
-import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
-import { VotingEscrow } from "../../src/token/VotingEscrow.sol";
-import { VotingEscrowProxy } from "../../src/utils/VotingEscrowProxy.sol";
+import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
+import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
 
-import { VotingEscrowErrorParam } from "../../src/utils/VotingEscrowUtils.sol";
+import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
 
-import { Helpers } from "../helpers/Helpers.sol";
-import { TestERC20 } from "../helpers/mocks/TestERC20.sol";
+import {Helpers} from "../helpers/Helpers.sol";
+import {TestERC20} from "../helpers/mocks/TestERC20.sol";
 
 contract TestRewards is Helpers {
     uint256 constant MAXTIME = 4 * 365 * 86_400;
@@ -31,17 +32,20 @@ contract TestRewards is Helpers {
     }
 
     function _attachTokenId(uint256 _tokenId, address _sender) internal prank(_sender) {
+        uint16 _0 = uint16(0);
         nodeProperties.attachNode(
             _tokenId,
-            NodeProperties.NodeInfo(
+            INodeProperties.NodeInfo(
                 // string forumHandle;
                 "@myhandle",
                 // string email
                 "john.doe@mail.com",
                 // bytes32 nodeId
                 keccak256(abi.encode("Example Node ID")),
-                // uint8[4] ip;
+                // uint8[4] ipv4
                 [0, 0, 0, 0],
+                // uint16[8] ipv6
+                [_0, _0, _0, _0, _0, _0, _0, _0],
                 // string vpsProvider;
                 "Contabo",
                 // uint256 ramInstalled;
@@ -58,7 +62,7 @@ contract TestRewards is Helpers {
         );
     }
 
-    function _setQualityOf(uint256 _tokenId, uint256 _quality) internal prank(address(ctmDaoGovernor)) {
+    function _setQualityOf(uint256 _tokenId, uint8 _quality) internal prank(address(ctmDaoGovernor)) {
         nodeProperties.setNodeQualityOf(_tokenId, _quality);
     }
 
@@ -128,7 +132,7 @@ contract TestRewards is Helpers {
         vm.prank(admin);
         uint256 tokenId = ve.create_lock(_lockAmount, MAXTIME);
         _attachTokenId(tokenId, admin);
-        _setQualityOf(tokenId, _quality);
+        _setQualityOf(tokenId, uint8(_quality));
         skip(_claimTime);
         uint256 unclaimedBefore = rewards.unclaimedRewards(tokenId);
         vm.prank(admin);

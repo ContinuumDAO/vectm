@@ -1,12 +1,12 @@
 [profile.default]
-src = "build"
-out = "out"
-libs = ["lib"]
-optimizer = true
-optimizer_runs = 100
-viaIR = true
-solc = "0.8.27"
-evm_version = "cancun"
+ src = "src"
+ out = "out"
+ libs = ["lib"]
+ solc = "0.8.27"
+ optimizer = true
+ optimizer_runs = 100
+ evm_version = "cancun"
+ viaIR = true
 
 remappings = [
     "forge-std/=lib/forge-std/src/",
@@ -15,10 +15,18 @@ remappings = [
     "@c3caller/=lib/c3caller/src/"
 ]
 
+[lint]
+lint_on_build = false
+
 [rpc_endpoints]
  arbitrum-sepolia-rpc-url = "${ARBITRUM_SEPOLIA_RPC_URL}"
 
 [etherscan]
  arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
+
+[invariant]
+runs = 256
+depth = 500
+show_progress = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { Accounts } from "./Accounts.sol";
-import { Deployer } from "./Deployer.sol";
+import {Accounts} from "./Accounts.sol";
+import {Deployer} from "./Deployer.sol";
 
 contract Helpers is Test, Accounts, Deployer {
     uint256 constant CTM_TS = 100_000_000 ether;
@@ -31,8 +31,6 @@ contract Helpers is Test, Accounts, Deployer {
         vm.stopPrank();
 
         _deployC3Caller();
-        _deployWETH();
-        _deploySwapRouter();
         _deployVotingEscrow();
         _deployCTMDAOGovernor();
         _deployNodeProperties();

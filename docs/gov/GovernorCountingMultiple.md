@@ -91,6 +91,7 @@ Creates a new proposal with support for both Bravo and Delta voting mechanisms.
 - Validates proposal configuration (nOptions > 1, nWinners > 0, nWinners < nOptions)
 - Ensures proposal dimensions are consistent
 - Stores proposal configuration for voting tracking
+- Checks description restrictions for proposer
 
 **Delta Proposal Metadata Format:**
 - `calldatas[0]` contains metadata in the following format:
@@ -101,6 +102,8 @@ Creates a new proposal with support for both Bravo and Delta voting mechanisms.
 **Access Control:**
 - Requires proposer to meet voting power threshold
 - Validates description restrictions
+- Reverts with `GovernorRestrictedProposer` if description is invalid
+- Reverts with `GovernorInsufficientProposerVotes` if proposer doesn't meet threshold
 
 ### `execute(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public payable virtual override returns (uint256)`
 
