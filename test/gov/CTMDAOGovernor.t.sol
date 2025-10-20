@@ -2,14 +2,14 @@
 
 pragma solidity 0.8.27;
 
-import { console } from "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 
-import { CTMDAOGovernor } from "../../src/gov/CTMDAOGovernor.sol";
+import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
 
-import { NodeProperties } from "../../src/node/NodeProperties.sol";
-import { IVotingEscrow, VotingEscrow } from "../../src/token/VotingEscrow.sol";
-import { VotingEscrowProxy } from "../../src/utils/VotingEscrowProxy.sol";
-import { Helpers } from "../helpers/Helpers.sol";
+import {NodeProperties} from "../../src/node/NodeProperties.sol";
+import {IVotingEscrow, VotingEscrow} from "../../src/token/VotingEscrow.sol";
+import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
 enum VoteType {
     Against,

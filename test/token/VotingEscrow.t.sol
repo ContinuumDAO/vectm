@@ -2,16 +2,16 @@
 
 pragma solidity 0.8.27;
 
-import { console } from "forge-std/console.sol";
-import { StdInvariant } from "forge-std/StdInvariant.sol";
+import {console} from "forge-std/console.sol";
+import {StdInvariant} from "forge-std/StdInvariant.sol";
 
-import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
-import { VotingEscrowErrorParam } from "../../src/utils/VotingEscrowUtils.sol";
-import { ArrayCheckpoints } from "../../src/utils/ArrayCheckpoints.sol";
-import { Helpers } from "../helpers/Helpers.sol";
+import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
+import {ArrayCheckpoints} from "../../src/utils/ArrayCheckpoints.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
 contract VotingEscrowTest is Helpers {
     uint256 id1;
@@ -47,9 +47,7 @@ contract VotingEscrowTest is Helpers {
         tokenId = ve.create_lock(amount, endpoint);
     }
 
-    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease)
-        public
-    {
+    function testFuzz_IncreaseLockAmount(uint256 amount, uint256 endpoint, uint256 amountIncrease) public {
         amount = bound(amount, 1, _100_000 - 1);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
         amountIncrease = bound(amountIncrease, 1, _100_000 - amount);
@@ -420,7 +418,7 @@ contract VotingEscrowTest is Helpers {
         assertEq(votesAfterEth, 0);
         assertEq(balanceUserAfterEth, balanceUserBeforeEth + 87); // should be 5/8s of original lock = 87.5 (truncation)
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5
-            // (truncation)
+        // (truncation)
     }
 
     function test_LiquidateAfter4Years() public {
@@ -710,7 +708,9 @@ contract VotingEscrowTest is Helpers {
     }
 
     function test_TokenURIForNonExistentToken() public {
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Owner));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Owner)
+        );
         ve.tokenURI(999);
     }
 
@@ -831,7 +831,7 @@ contract VotingEscrowTest is Helpers {
         vm.prank(user2);
         ve.deposit_for(id1, 500 ether);
 
-        (int128 amount, ) = ve.locked(id1);
+        (int128 amount,) = ve.locked(id1);
         assertEq(uint256(int256(amount)), 1500 ether);
     }
 
@@ -840,7 +840,9 @@ contract VotingEscrowTest is Helpers {
         id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
 
         vm.prank(user2);
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value)
+        );
         ve.deposit_for(id1, 0);
     }
 
@@ -969,7 +971,9 @@ contract VotingEscrowTest is Helpers {
         vm.startPrank(user1);
         id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
 
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value)
+        );
         ve.increase_amount(id1, 0);
         vm.stopPrank();
     }
@@ -1025,13 +1029,17 @@ contract VotingEscrowTest is Helpers {
     // Test create_lock with zero value
     function test_CreateLockZeroValue() public {
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value)
+        );
         ve.create_lock(0, block.timestamp + MAXTIME);
     }
 
     function test_CreateLockInvalidDuration() public {
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_InvalidUnlockTime.selector, 0, block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_InvalidUnlockTime.selector, 0, block.timestamp)
+        );
         ve.create_lock(1000 ether, 0);
     }
 
@@ -1049,13 +1057,21 @@ contract VotingEscrowTest is Helpers {
         vm.prank(user1);
         id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
 
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_FutureLookup.selector, block.timestamp + 1, block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVotingEscrow.VotingEscrow_FutureLookup.selector, block.timestamp + 1, block.timestamp
+            )
+        );
         ve.getPastVotes(user1, block.timestamp + 1);
     }
 
     // Test getPastTotalSupply with future timepoint
     function test_GetPastTotalSupplyFutureTimepoint() public {
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_FutureLookup.selector, block.timestamp + 1, block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVotingEscrow.VotingEscrow_FutureLookup.selector, block.timestamp + 1, block.timestamp
+            )
+        );
         ve.getPastTotalSupply(block.timestamp + 1);
     }
 
@@ -1112,7 +1128,7 @@ contract VotingEscrowTest is Helpers {
     // function test_BalanceOfAtNFT() public {
     //     vm.prank(user1);
     //     id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
-    //     
+    //
     //     uint256 balanceAt = ve.balanceOfAtNFT(id1, block.number);
     //     assertGt(balanceAt, 0);
     // }
@@ -1176,7 +1192,13 @@ contract VotingEscrowTest is Helpers {
 
     function test_SetBaseURINotGov() public {
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_OnlyAuthorized.selector, VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Governor));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVotingEscrow.VotingEscrow_OnlyAuthorized.selector,
+                VotingEscrowErrorParam.Sender,
+                VotingEscrowErrorParam.Gov
+            )
+        );
         ve.setBaseURI("https://example.com/");
     }
 
@@ -1470,7 +1492,7 @@ contract VotingEscrowTest is Helpers {
         // Delegate
         ve.delegate(user2);
         assertEq(ve.delegates(user1), user2);
- 
+
         skip(1);
 
         // Split

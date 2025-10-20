@@ -157,7 +157,7 @@ Changes the reward token and handles old token withdrawal (governance only).
 **Behavior:**
 - Changes the reward token and withdraws any remaining balance of the old token
 - Updates the genesis timestamp for the new reward token
-- Emits Withdrawal and RewardTokenChange events
+- Emits Withdrawal and TokenUpdated events
 
 **Access Control:**
 - Only governance can call this function
@@ -172,7 +172,7 @@ Changes the fee token and handles old token withdrawal (governance only).
 
 **Behavior:**
 - Changes the fee token and withdraws any remaining balance of the old token
-- Emits Withdrawal and FeeTokenChange events
+- Emits Withdrawal and TokenUpdated events
 
 **Access Control:**
 - Only governance can call this function

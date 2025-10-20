@@ -2,15 +2,16 @@
 
 pragma solidity 0.8.27;
 
-import { Script } from "forge-std/Script.sol";
-import { console } from "forge-std/console.sol";
+import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
-import { CTM } from "../build/token/CTM.sol";
-import { VotingEscrow, IVotingEscrow } from "../build/token/VotingEscrow.sol";
-import { VotingEscrowProxy } from "../build/utils/VotingEscrowProxy.sol";
-import { CTMDAOGovernor } from "../build/gov/CTMDAOGovernor.sol";
-import { NodeProperties, INodeProperties } from "../build/node/NodeProperties.sol";
-import { Rewards } from "../build/node/Rewards.sol";
+import {CTM} from "../src/token/CTM.sol";
+import {VotingEscrow, IVotingEscrow} from "../src/token/VotingEscrow.sol";
+import {VotingEscrowProxy} from "../src/utils/VotingEscrowProxy.sol";
+import {CTMDAOGovernor} from "../src/gov/CTMDAOGovernor.sol";
+import {NodeProperties} from "../src/node/NodeProperties.sol";
+import {INodeProperties} from "../src/node/INodeProperties.sol";
+import {Rewards} from "../src/node/Rewards.sol";
 
 contract DeployVotingEscrow is Script {
     address feeToken;
@@ -40,7 +41,9 @@ contract DeployVotingEscrow is Script {
         console.log("CTM Token deployed at:", address(ctm));
 
         VotingEscrow votingEscrowImpl = new VotingEscrow();
-        bytes memory votingEscrowInitData = abi.encodeWithSelector(VotingEscrow.initialize.selector, address(ctm), "https://api.continuumdao.org/voting-escrow/");
+        bytes memory votingEscrowInitData = abi.encodeWithSelector(
+            VotingEscrow.initialize.selector, address(ctm), "https://api.continuumdao.org/voting-escrow/"
+        );
         address votingEscrow = address(new VotingEscrowProxy(address(votingEscrowImpl), votingEscrowInitData));
 
         console.log("VotingEscrow deployed at:", address(votingEscrow));
@@ -52,23 +55,23 @@ contract DeployVotingEscrow is Script {
         console.log("NodeProperties deployed at:", address(nodeProperties));
 
         Rewards rewards = new Rewards(
-            1755043200,                 // _firstMidnight,
-            address(votingEscrow),      // _ve
-            address(ctmDAOGovernor),    // _gov
-            address(ctm),               // _rewardToken
-            feeToken,                   // _feeToken
-            address(nodeProperties),    // _nodeProperties
-            1 ether / 2000,             // _baseEmissionRate
-            1 ether / 1000,             // _nodeEmissionRate
-            5000 ether,                 // _nodeRewardThreshold
-            7_812_500 gwei,             // _feePerByteRewardToken
-            3125                        // _feePerByteFeeToken
+            1755043200, // _firstMidnight,
+            address(votingEscrow), // _ve
+            address(ctmDAOGovernor), // _gov
+            address(ctm), // _rewardToken
+            feeToken, // _feeToken
+            address(nodeProperties), // _nodeProperties
+            1 ether / 2000, // _baseEmissionRate
+            1 ether / 1000, // _nodeEmissionRate
+            5000 ether, // _nodeRewardThreshold
+            7_812_500 gwei, // _feePerByteRewardToken
+            3125 // _feePerByteFeeToken
         );
         console.log("Rewards deployed at:", address(rewards));
 
-
-        INodeProperties(nodeProperties).initContracts(address(rewards));
-        IVotingEscrow(votingEscrow).initContracts(address(ctmDAOGovernor), address(nodeProperties), address(rewards), treasury);
+        INodeProperties(nodeProperties).setRewards(address(rewards));
+        IVotingEscrow(votingEscrow)
+            .initContracts(address(ctmDAOGovernor), address(nodeProperties), address(rewards), treasury);
 
         vm.stopBroadcast();
     }

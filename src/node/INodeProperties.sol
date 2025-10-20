@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 /**
  * @notice Interface for use with the Node Properties contract, where node runners can attach their veCTM to gain extra
@@ -26,7 +26,8 @@ interface INodeProperties {
         string forumHandle;
         string email;
         bytes32 nodeId;
-        uint8[4] ip;
+        uint8[4] ipv4;
+        uint16[8] ipv6;
         string vpsProvider;
         uint256 ramInstalled;
         uint256 cpuCores;
@@ -37,6 +38,11 @@ interface INodeProperties {
 
     event Attachment(uint256 indexed _tokenId, bytes32 indexed _nodeId);
     event Detachment(uint256 indexed _tokenId, bytes32 indexed _nodeId);
+    event NodeRemovalStatusUpdated(uint256 indexed _tokenId, bool _oldStatus, bool _newStatus, address indexed _sender);
+    event NodeQualityUpdated(
+        uint256 indexed _tokenId, bytes32 indexed _nodeId, uint256 _oldQuality, uint256 _newQuality
+    );
+    event RewardsUpdated(address _oldRewards, address _newRewards);
 
     error NodeProperties_TokenIDNotAttached(uint256 _tokenId);
     error NodeProperties_NodeIDAlreadyAttached(bytes32 _nodeId);
@@ -47,15 +53,15 @@ interface INodeProperties {
     error NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error NodeProperties_InvalidInitialization();
 
-    function governor() external view returns (address);
+    function gov() external view returns (address);
     function rewards() external view returns (address);
     function ve() external view returns (address);
 
     function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external;
     function detachNode(uint256 _tokenId) external;
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external;
-    function setNodeQualityOf(uint256 _tokenId, uint256 _nodeQualityOf) external;
-    function initContracts(address _rewards) external;
+    function setNodeQualityOf(uint256 _tokenId, uint8 _nodeQualityOf) external;
+    function setRewards(address _rewards) external;
     function nodeInfo(uint256 _tokenId, address _account) external view returns (NodeInfo memory);
     function attachedNodeId(uint256 _tokenId) external view returns (bytes32);
     function attachedTokenId(bytes32 _nodeId) external view returns (uint256);

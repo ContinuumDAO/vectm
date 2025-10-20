@@ -1,20 +1,26 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.27;
 
-import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 /**
  * @notice Interface for use with the Rewards contract, where node runners can claim their rewards.
  */
 interface IRewards {
-    event BaseEmissionRateChange(uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate);
-    event NodeEmissionRateChange(uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate);
-    event NodeRewardThresholdChange(uint256 _oldMinimumThreshold, uint256 _newMinimumThreshold);
-    event RewardTokenChange(address indexed _oldRewardToken, address indexed _newRewardToken);
-    event FeeTokenChange(address indexed _oldFeeToken, address indexed _newFeeToken);
+    enum Token {
+        Fee,
+        Reward
+    }
+
     event Claim(uint256 indexed _tokenId, uint256 _claimedReward, address indexed _rewardToken);
     event Withdrawal(address indexed _token, address indexed _recipient, uint256 _amount);
     event FeesReceived(address indexed _token, uint256 _amount, uint256 indexed _fromChainId);
+
+    event BaseEmissionRateUpdated(uint256 _oldBaseEmissionRate, uint256 _newBaseEmissionRate);
+    event NodeEmissionRateUpdated(uint256 _oldNodeEmissionRate, uint256 _newNodeEmissionRate);
+    event NodeRewardThresholdUpdated(uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold);
+    event TokenUpdated(Token indexed _tokenType, address _oldToken, address _newToken);
+    event FeeUpdated(Token indexed _tokenType, uint256 oldFee, uint256 _fee);
 
     error Rewards_NoUnclaimedRewards();
     error Rewards_InsufficientContractBalance(uint256 _balance, uint256 _required);

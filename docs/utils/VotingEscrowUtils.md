@@ -39,7 +39,7 @@ This enumeration defines the different types of parameters that can be reference
 - **Sender**: The address of the transaction sender
 - **Admin**: The address of the administrator
 - **Owner**: The address of the token owner
-- **Governor**: The address of the governance contract
+- **Gov**: The address of the governance contract
 - **Value**: A numeric value parameter
 - **Approved**: The address of an approved operator
 - **ApprovedOrOwner**: Either an approved operator or the owner

@@ -2,11 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import { ArrayCheckpoints } from "../utils/ArrayCheckpoints.sol";
-import { VotingEscrowErrorParam } from "../utils/VotingEscrowUtils.sol";
+import {ArrayCheckpoints} from "../utils/ArrayCheckpoints.sol";
+import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 
 interface IVotingEscrow {
-    /// @notice Type declarations
     struct Point {
         int128 bias;
         int128 slope; // # -dweight / dt
@@ -28,7 +27,6 @@ interface IVotingEscrow {
         SPLIT_TYPE
     }
 
-    /// @notice Events
     event Deposit(
         address indexed _provider,
         uint256 _tokenId,
@@ -43,7 +41,6 @@ interface IVotingEscrow {
     event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
 
-    /// @notice Errors
     error VotingEscrow_Reentrant();
     error VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error VotingEscrow_NodeAttached(uint256 _tokenId);
@@ -51,7 +48,6 @@ interface IVotingEscrow {
     error VotingEscrow_NoExistingLock();
     error VotingEscrow_InvalidUnlockTime(uint256 _unlockTime, uint256 _maxTime);
     error VotingEscrow_LockExpired(uint256 _end);
-    error VotingEscrow_InvalidMerge(uint256 _from, uint256 _to);
     error VotingEscrow_VotingAndNonVotingMerge(uint256 _from, uint256 _to);
     error VotingEscrow_SameToken(uint256 _from, uint256 _to);
     error VotingEscrow_DifferentOwners(uint256 _from, uint256 _to);
@@ -67,7 +63,6 @@ interface IVotingEscrow {
     error VotingEscrow_InvalidAccountNonce(address _account, uint256 _currentNonce);
     error VotingEscrow_NonERC721Receiver();
 
-    /// @notice Storage
     function token() external view returns (address);
     function governor() external view returns (address);
     function nodeProperties() external view returns (address);
@@ -88,14 +83,14 @@ interface IVotingEscrow {
     function liquidationsEnabled() external view returns (bool);
 
     /// @notice IERC721Metadata
-    function name() external view returns (string memory); // IERC721Metadata
-    function symbol() external view returns (string memory); // IERC721Metadata
-    function tokenURI(uint256 _tokenid) external view returns (string memory); // IERC721Metadata
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function tokenURI(uint256 _tokenid) external view returns (string memory);
 
     /// @notice IERC721Enumerable
-    function totalSupply() external view returns (uint256); // IERC721Enumerable
-    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256); // IERC721Enumerable
-    function tokenByIndex(uint256 _index) external view returns (uint256); // IERC721Enumerable
+    function totalSupply() external view returns (uint256);
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256);
+    function tokenByIndex(uint256 _index) external view returns (uint256);
 
     /// @notice UUPSUpgradeable
     function initialize(address _token_addr, string memory _base_uri) external;
@@ -103,9 +98,7 @@ interface IVotingEscrow {
     /// @notice VotingEscrow Core
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
-        external
-        returns (uint256);
+    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
     function increase_amount(uint256 _tokenId, uint256 _value) external;
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;
@@ -114,7 +107,7 @@ interface IVotingEscrow {
 
     function balanceOfNFT(uint256 _tokenid) external view returns (uint256);
     function balanceOfNFTAt(uint256 _tokenid, uint256 _t) external view returns (uint256);
-    // function balanceOfAtNFT(uint256 _tokenid, uint256 _block) external view returns (uint256);
+    // function balanceOfAtNFT(uint256 _tokenid, uint256 _block) external view returns (uint256); WARN: no block-based
     function isApprovedOrOwner(address _spender, uint256 _tokenid) external view returns (bool);
     function get_last_user_slope(uint256 _tokenid) external view returns (int128);
     function user_point_history__ts(uint256 _tokenid, uint256 _idx) external view returns (uint256);
@@ -130,7 +123,7 @@ interface IVotingEscrow {
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);
-    // function totalPowerAt(uint256 _block) external view returns (uint256);
+    // function totalPowerAt(uint256 _block) external view returns (uint256); WARN: no block-based
     function tokenIdsDelegatedTo(address _account) external view returns (uint256[] memory);
     function tokenIdsDelegatedToAt(address _account, uint256 _timepoint) external view returns (uint256[] memory);
     function checkpoints(address _account, uint256 _index)

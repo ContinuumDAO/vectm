@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import { Utils } from "./Utils.sol";
+import {Utils} from "./Utils.sol";
 
-import { ITestERC20 } from "./mocks/ITestERC20.sol";
-import { TestERC20 } from "./mocks/TestERC20.sol";
+import {ITestERC20} from "./mocks/ITestERC20.sol";
+import {TestERC20} from "./mocks/TestERC20.sol";
 
 contract Accounts is Utils {
     address admin;

@@ -38,6 +38,27 @@ Initializes the CTMDAOGovernor contract with the specified token and predefined 
 
 ## External Functions
 
+### `propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public override returns (uint256)`
+
+Creates a new governance proposal.
+
+**Parameters:**
+- `targets` (address[]): Array of target addresses for the proposal actions
+- `values` (uint256[]): Array of ETH values to send with each action
+- `calldatas` (bytes[]): Array of calldata for each action
+- `description` (string): Human-readable description of the proposal
+
+**Returns:**
+- `uint256`: The ID of the newly created proposal
+
+**Behavior:**
+- Creates a new governance proposal that can be voted on by veCTM token holders
+- The proposer must meet the minimum proposal threshold requirement
+- Delegates to the parent GovernorCountingMultiple contract
+
+**Access Control:**
+- Public function - any address can create proposals if they meet the threshold
+
 ### `execute(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public payable override returns (uint256)`
 
 Executes a successful proposal that has been voted on and queued.
@@ -54,13 +75,34 @@ Executes a successful proposal that has been voted on and queued.
 **Behavior:**
 - Executes a proposal that has been successfully voted on and queued
 - Can only be called after the proposal has passed voting and been queued in the timelock contract
-- Delegates to the parent Governor contract's execute function
+- Delegates to the parent GovernorCountingMultiple contract
 
 **Access Control:**
 - Public function - any address can execute successful proposals
 
 **Events Emitted:**
 - Inherited from OpenZeppelin Governor contract
+
+### `queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) public override returns (uint256)`
+
+Queues a successful proposal for execution.
+
+**Parameters:**
+- `targets` (address[]): Array of target addresses for the proposal actions
+- `values` (uint256[]): Array of ETH values to send with each action
+- `calldatas` (bytes[]): Array of calldata for each action
+- `descriptionHash` (bytes32): Hash of the proposal description
+
+**Returns:**
+- `uint256`: The proposal ID that was queued
+
+**Behavior:**
+- Queues a proposal that has been successfully voted on for execution in the timelock contract
+- This is required before the proposal can be executed
+- Delegates to the parent GovernorCountingMultiple contract
+
+**Access Control:**
+- Public function - any address can queue successful proposals
 
 ### `proposalDeadline(uint256 proposalId) public view override returns (uint256)`
 
@@ -76,6 +118,19 @@ Gets the deadline for a proposal, which may be extended by the late quorum preve
 - Returns the deadline for a proposal
 - The deadline may be extended by the late quorum prevention mechanism if the quorum is reached late in the voting period
 - Delegates to the parent GovernorPreventLateQuorum contract
+
+### `proposalThreshold() public view override returns (uint256)`
+
+Gets the current proposal threshold as a percentage of total voting power.
+
+**Returns:**
+- `uint256`: The proposal threshold as a percentage of total voting power
+
+**Behavior:**
+- Returns the proposal threshold which is calculated as a percentage of the total voting power at the time of proposal creation
+- The threshold is set to 1% of total voting power (1000 basis points)
+- This function ensures that the proposal threshold is always a meaningful percentage of the current total voting power, preventing proposals from being created when voting power is too low
+- Uses the past total supply from the voting token to calculate the threshold
 
 ## Governance Features
 

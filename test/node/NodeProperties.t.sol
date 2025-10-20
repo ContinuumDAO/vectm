@@ -2,15 +2,16 @@
 
 pragma solidity 0.8.27;
 
-import { INodeProperties } from "../../src/node/INodeProperties.sol";
-import { NodeProperties } from "../../src/node/NodeProperties.sol";
-import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
-import { Helpers } from "../helpers/Helpers.sol";
+import {INodeProperties} from "../../src/node/INodeProperties.sol";
+import {NodeProperties} from "../../src/node/NodeProperties.sol";
+import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
 contract TestNodeProperties is Helpers {
     uint256 constant MAXTIME = 4 * 365 * 86_400;
     uint256 id1;
     uint256 id2;
+    uint16 _0 = uint16(0);
 
     NodeProperties.NodeInfo submittedNodeInfo = INodeProperties.NodeInfo(
         // string forumHandle;
@@ -19,8 +20,10 @@ contract TestNodeProperties is Helpers {
         "john.doe@mail.com",
         // bytes32 nodeId
         keccak256(abi.encode("Example Node ID")),
-        // uint8[4] ip;
+        // uint8[4] ipv4;
         [0, 0, 0, 0],
+        // uint16[8] ipv6
+        [_0, _0, _0, _0, _0, _0, _0, _0],
         // string vpsProvider;
         "Contabo",
         // uint256 ramInstalled;

@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.27;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { VotingEscrowProxy } from "../../src/utils/VotingEscrowProxy.sol";
+import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
 
 contract Utils is Test {
     function getRevert(bytes calldata _payload) external pure returns (bytes memory) {

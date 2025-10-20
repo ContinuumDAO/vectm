@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.27;
 
-import { VotingEscrowErrorParam } from "../../../src/utils/VotingEscrowUtils.sol";
-import { ITestERC20 } from "./ITestERC20.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {VotingEscrowErrorParam} from "../../../src/utils/VotingEscrowUtils.sol";
+import {ITestERC20} from "./ITestERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TestERC20 is ERC20, ITestERC20 {
     uint8 _decimals;

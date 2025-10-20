@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.27;
 
-import { console } from "forge-std/console.sol";
-import { StdInvariant } from "forge-std/StdInvariant.sol";
-import { Test } from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
+import {StdInvariant} from "forge-std/StdInvariant.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { Helpers } from "../helpers/Helpers.sol";
+import {Helpers} from "../helpers/Helpers.sol";
 
-import { IVotingEscrow } from "../../src/token/IVotingEscrow.sol";
+import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 
 // BUG: #5 Structural week-ratcheting suppresses intended decay
 // TESTING:
@@ -103,22 +103,12 @@ contract InvariantVotingEscrow is StdInvariant, Helpers {
         // target selectors merge and split
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = MergeSplitHandler.execOp.selector;
-        targetSelector(
-            FuzzSelector({
-                addr: address(mergeSplitHandler),
-                selectors: selectors
-            })
-        );
+        targetSelector(FuzzSelector({addr: address(mergeSplitHandler), selectors: selectors}));
 
         // target interface IVotingEscrow
         string[] memory artifacts = new string[](1);
         artifacts[0] = "MergeSplitHandler";
-        targetInterface(
-            FuzzInterface({
-                addr: address(mergeSplitHandler),
-                artifacts: artifacts
-            })
-        );
+        targetInterface(FuzzInterface({addr: address(mergeSplitHandler), artifacts: artifacts}));
 
         // target sender user1
         targetSender(user1);
@@ -132,7 +122,7 @@ contract InvariantVotingEscrow is StdInvariant, Helpers {
         uint256 latestEnd1 = mergeSplitHandler.latestEnd1();
         assertLe(referenceEnd, latestEnd1);
 
-        // NOTE: last operation was a split -> tokenId 2 
+        // NOTE: last operation was a split -> tokenId 2
         if (nextOp == 1) {
             uint256 latestEnd2 = mergeSplitHandler.latestEnd2();
             assertLe(referenceEnd, latestEnd2);
