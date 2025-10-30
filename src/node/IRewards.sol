@@ -34,7 +34,6 @@ interface IRewards {
     function setNodeEmissionRate(uint256 _nodeEmissionRate) external;
     function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external;
     function withdrawToken(address _token, address _recipient, uint256 _amount) external;
-    function setRewardToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external;
     function setFeeToken(address _feeToken, address _recipient) external;
     function setFeePerByteRewardToken(uint256 _fee) external;
     function setFeePerByteFeeToken(uint256 _fee) external;
