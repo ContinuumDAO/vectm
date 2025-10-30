@@ -38,7 +38,7 @@ contract TestCTMDAOGovernor is Helpers {
         super.setUp();
         vm.prank(user1);
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        ve.create_lock(1 ether, WEEK_4_YEARS);
+        ve.create_lock(10_000 ether, WEEK_4_YEARS);
         skip(2 * 1 weeks);
         currentTime += 2 * 1 weeks;
     }
@@ -87,14 +87,13 @@ contract TestCTMDAOGovernor is Helpers {
 
     function test_InitialSettings() public prank(user1) {
         skip(1);
-        uint256 totalPower = ve.getPastTotalSupply(block.timestamp - 1);
         uint256 votingDelay = ctmDaoGovernor.votingDelay();
         uint256 votingPeriod = ctmDaoGovernor.votingPeriod();
         uint256 proposalThreshold = ctmDaoGovernor.proposalThreshold();
         uint256 quorum = ctmDaoGovernor.quorumNumerator(block.timestamp);
         assertEq(votingDelay, 5 days);
         assertEq(votingPeriod, 10 days);
-        assertEq(proposalThreshold, totalPower / 100);
+        assertEq(proposalThreshold, 1000 ether);
         assertEq(quorum, 20); // 20%
     }
 
@@ -120,7 +119,7 @@ contract TestCTMDAOGovernor is Helpers {
 
     function test_ProposalThresholdChanges() public prank(user1) {
         uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        ve.create_lock(1 ether, WEEK_4_YEARS);
+        ve.create_lock(110_000 ether, WEEK_4_YEARS);
         skip(1);
         currentTime += 1;
         uint256 totalVotePowerBefore = ve.getPastTotalSupply(currentTime - 1);

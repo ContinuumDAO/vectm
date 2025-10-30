@@ -54,18 +54,19 @@ contract CTMDAOGovernor is
      * @dev Sets up the governance contract with predefined parameters:
      * - Voting delay: 5 days
      * - Voting period: 10 days
-     * - Proposal threshold: 1% of total voting power
+     * - Proposal threshold: 1% of total voting power (with a minimum of 1000 CTM @ 4 years)
      * - Quorum threshold: 20% of total voting power
      * - Late quorum extension: 2 days
      */
     constructor(address _token)
-        Governor("CTMDAOGovernor")
+        Governor("ContinuumDAO")
         GovernorSettings(
             432_000,
             /* 5 days */
             864_000,
             /* 10 days */
-            1000 /* 1000x % of total voting power: 1000 => 1% */
+            1000 ether
+            /* This acts as a minimum voting power threshold */
         )
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
@@ -189,10 +190,15 @@ contract CTMDAOGovernor is
      * being created when voting power is too low.
      */
     function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
-        // proposal threshold is always a percentage of current total voting power
-        uint256 proposalThresholdTsPercentage = super.proposalThreshold();
-        uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * proposalThresholdTsPercentage / 100_000;
-        assert(totalVotingPower > 0);
+        // proposal threshold is always a percentage of current total voting power, with a minimum constant value
+        // ISSUE: #13
+        uint256 thresholdNum = 1000;
+        uint256 thresholdDenom = 100_000;
+        uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * thresholdNum / thresholdDenom;
+        uint256 thresholdBase = super.proposalThreshold();
+        if (totalVotingPower < thresholdBase) {
+            totalVotingPower = thresholdBase;
+        }
         return totalVotingPower;
     }
 }
