@@ -82,6 +82,7 @@ interface IVotingEscrow {
     function LIQ_PENALTY_NUM() external view returns (uint256);
     function LIQ_PENALTY_DEN() external view returns (uint256);
     function liquidationsEnabled() external view returns (bool);
+    function minimumLock() external view returns (uint256);
 
     /// @notice IERC721Metadata
     function name() external view returns (string memory);
@@ -121,6 +122,7 @@ interface IVotingEscrow {
     function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function setBaseURI(string memory _baseURI) external;
     function setLiquidationsEnabled(bool _liquidationsEnabled) external;
+    function setMinimumLock(uint256 _min) external;
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);

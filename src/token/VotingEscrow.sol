@@ -71,7 +71,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Base URI for NFT metadata
     string public baseURI;
     /// @notice Minimum amount of CTM lockable (default 1 ether)
-    uint256 public minimumLock = 1 ether;
+    uint256 public minimumLock;
     /// @notice Reentrancy guard state (1 = not entered, 2 = entered)
     uint8 internal _entered_state;
     /// @notice Total locked token supply
@@ -221,6 +221,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         baseURI = base_uri;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
+        minimumLock = 1 ether;
 
         supportedInterfaces[ERC165_INTERFACE_ID] = true;
         supportedInterfaces[ERC721_INTERFACE_ID] = true;

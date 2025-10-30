@@ -36,6 +36,7 @@ contract VotingEscrowTest is Helpers {
         vm.startPrank(address(ctmDaoGovernor));
         rewards.setBaseEmissionRate(0);
         rewards.setNodeEmissionRate(0);
+        ve.setMinimumLock(1);
         vm.stopPrank();
     }
 
@@ -1030,9 +1031,20 @@ contract VotingEscrowTest is Helpers {
     function test_CreateLockZeroValue() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value)
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, 0)
         );
-        ve.create_lock(0, block.timestamp + MAXTIME);
+        id1 = ve.create_lock(0, block.timestamp + MAXTIME);
+    }
+
+    function test_CreateLockBelowMin() public {
+        vm.prank(address(ctmDaoGovernor));
+        ve.setMinimumLock(1 ether);
+        vm.prank(user1);
+        uint256 valueLtMin = 1 ether - 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, valueLtMin)
+        );
+        ve.create_lock(valueLtMin, block.timestamp + MAXTIME);
     }
 
     function test_CreateLockInvalidDuration() public {
