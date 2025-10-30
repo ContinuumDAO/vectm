@@ -62,6 +62,7 @@ interface IVotingEscrow {
     error VotingEscrow_FutureLookup(uint256 _timepoint, uint256 _currentTimepoint);
     error VotingEscrow_InvalidAccountNonce(address _account, uint256 _currentNonce);
     error VotingEscrow_NonERC721Receiver();
+    error VotingEscrow_LockBelowMin(uint256 _value);
 
     function token() external view returns (address);
     function governor() external view returns (address);

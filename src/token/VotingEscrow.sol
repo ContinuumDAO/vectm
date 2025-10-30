@@ -70,6 +70,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     uint256 public epoch;
     /// @notice Base URI for NFT metadata
     string public baseURI;
+    /// @notice Minimum amount of CTM lockable (default 1 ether)
+    uint256 public minimumLock = 1 ether;
     /// @notice Reentrancy guard state (1 = not entered, 2 = entered)
     uint8 internal _entered_state;
     /// @notice Total locked token supply
@@ -99,6 +101,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     mapping(address => uint256) internal ownerToNFTokenCount;
     /// @notice Mapping from owner address to index-to-tokenId mapping
     mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList;
+    /// @notice Mapping from owner address to array of tokenIds
+    mapping(address => uint256[]) internal ownerToAllNFTokenIds; // ISSUE: #14
     /// @notice Mapping from NFT ID to owner's token index
     mapping(uint256 => uint256) internal tokenToOwnerIndex;
     /// @notice Mapping from owner address to operator approval status
@@ -368,12 +372,12 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
-        uint256 ceilWeighted = ((weightedEnd / WEEK) * WEEK) + WEEK;
-        uint256 unlock_time = _locked1.end; // default to current _to end
+        uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
+        // uint256 unlock_time = _locked1.end; // default to current _to end
         // ISSUE: #15
-        if (ceilWeighted > unlock_time) {
-            unlock_time = ceilWeighted;
-        }
+        // if (ceilWeighted > unlock_time) {
+        //     unlock_time = ceilWeighted;
+        // }
 
         // checkpoint the _from lock to zero (_from gets burned)
         locked[_from] = LockedBalance(0, 0);
@@ -636,6 +640,18 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      */
     function setBaseURI(string memory _baseURI) external onlyGov {
         baseURI = _baseURI;
+    }
+
+    /**
+     * @notice Sets a minimum CTM lock amount.
+     * @param _min The minimum amount of CTM lockable.
+     * @dev This is to prevent the creation of locks that are used solely for DoS attacks.
+     */
+    function setMinimumLock(uint256 _min) external onlyGov {
+        if (_min == 0) {
+            revert VotingEscrow_IsZero(VotingEscrowErrorParam.MinLock);
+        }
+        minimumLock = _min;
     }
 
     /**
@@ -1051,8 +1067,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // Locktime is floored to nearest whole week since UNIX epoch
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK;
 
-        if (_value == 0) {
-            revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
+        // ISSUE: #14: setting minimum lock amount to prevent DoS attacks
+        if (_value < minimumLock) {
+            revert VotingEscrow_LockBelowMin(_value);
         }
         if (unlock_time <= block.timestamp) {
             revert VotingEscrow_InvalidUnlockTime(unlock_time, block.timestamp);
@@ -1254,6 +1271,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 current_count = _balance(_to);
 
         ownerToNFTokenIdList[_to][current_count] = _tokenId;
+        ownerToAllNFTokenIds[_to].push(_tokenId); // ISSUE: #14
         tokenToOwnerIndex[_tokenId] = current_count;
     }
 
@@ -1270,6 +1288,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         if (current_count == current_index) {
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_count] = 0;
+            ownerToAllNFTokenIds[_from].pop(); // ISSUE: #14
             // update tokenToOwnerIndex
             tokenToOwnerIndex[_tokenId] = 0;
         } else {
@@ -1278,12 +1297,14 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             // Add
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_index] = lastTokenId;
+            ownerToAllNFTokenIds[_from][current_index] = lastTokenId; // ISSUE: #14
             // update tokenToOwnerIndex
             tokenToOwnerIndex[lastTokenId] = current_index;
 
             // Delete
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_count] = 0;
+            ownerToAllNFTokenIds[_from].pop(); // ISSUE: #14
             // update tokenToOwnerIndex
             tokenToOwnerIndex[_tokenId] = 0;
         }
@@ -1685,7 +1706,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      */
     function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal view returns (uint256) {
         uint256 cumulativeVotingPower;
-        for (uint8 i = 0; i < _tokenIds.length; i++) {
+        // ISSUE: #14: change loop iterations from uint8 to uint256
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
             // increment cumulativeVePower by the voting power of each token ID at time _t
             if (nonVoting[_tokenIds[i]]) {
                 continue;
@@ -1715,11 +1737,12 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * @dev This does not count token IDs delegated to `account`, only tokens they own.
      */
     function _getVotingUnits(address account) internal view returns (uint256[] memory tokenList) {
-        uint256 tokenCount = _balance(account);
-        tokenList = new uint256[](tokenCount);
-        for (uint256 i = 0; i < tokenCount; i++) {
-            tokenList[i] = ownerToNFTokenIdList[account][i];
-        }
+        // uint256 tokenCount = _balance(account);
+        // tokenList = new uint256[](tokenCount);
+        // for (uint256 i = 0; i < tokenCount; i++) {
+        //     tokenList[i] = ownerToNFTokenIdList[account][i];
+        // }
+        return ownerToAllNFTokenIds[account]; // ISSUE: #14
     }
 
     /**
