@@ -8,6 +8,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 error GovernorDeltaInvalidProposal(uint256 nOptions, uint256 nWinners, bytes metadata);
 error GovernorDeltaInvalidVoteParams(bytes params);
 error GovernorNonIncrementingOptionIndices(uint256 nOptions, bytes metadata);
+error GovernorDeltaOutOfBounds(uint256 limit, uint256 index);
 
 /**
  * @title GovernorCountingMultiple
@@ -143,6 +144,13 @@ abstract contract GovernorCountingMultiple is Governor {
             (nOptions, nWinners) = (metadata.nOptions, metadata.nWinners);
             // Ensures the proposal configuration is valid
             _validateProposalConfiguration(nOptions, nWinners, calldatas[0]);
+            // Ensures none of the indices reference an array location out of bounds
+            // ISSUE: #12
+            for (uint8 i = 0; i < metadata.nOptions; i++) {
+                if (metadata.optionIndices[i] >= targets.length) {
+                    revert GovernorDeltaOutOfBounds(targets.length, metadata.optionIndices[i]);
+                }
+            }
         }
 
         // Ensures each option's targets/values/calldatas are equisized
