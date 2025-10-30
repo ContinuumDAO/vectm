@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
@@ -38,6 +39,7 @@ import {IRewards} from "./IRewards.sol";
  */
 contract Rewards is IRewards {
     using Checkpoints for Checkpoints.Trace208;
+    using SafeERC20 for IERC20;
 
     /**
      * @notice Structure for tracking fee receipts from different chains
@@ -149,7 +151,8 @@ contract Rewards is IRewards {
         _setNodeRewardThreshold(_nodeRewardThreshold);
         _setFeePerByteRewardToken(_feePerByteRewardToken);
         _setFeePerByteFeeToken(_feePerByteFeeToken);
-        IERC20(_rewardToken).approve(_ve, type(uint256).max);
+        // ISSUE: #2
+        IERC20(_rewardToken).forceApprove(_ve, type(uint256).max);
     }
 
     /**
@@ -282,9 +285,8 @@ contract Rewards is IRewards {
             revert Rewards_FeesAlreadyReceivedFromChain();
         }
 
-        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) {
-            revert Rewards_TransferFailed();
-        }
+        // ISSUE: #2
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         _feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
