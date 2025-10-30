@@ -336,10 +336,10 @@ abstract contract GovernorCountingMultiple is Governor {
                 proposalVote.votes[uint8(VoteTypeSimple.Against)] += totalWeight;
             } else if (support == uint8(VoteTypeSimple.For)) {
                 proposalVote.votes[uint8(VoteTypeSimple.For)] += totalWeight;
-                proposalVote.totalVotes += totalWeight;
+                proposalVote.totalVotes += totalWeight; // ISSUE: #21
             } else if (support == uint8(VoteTypeSimple.Abstain)) {
                 proposalVote.votes[uint8(VoteTypeSimple.Abstain)] += totalWeight;
-                proposalVote.totalVotes += totalWeight;
+                proposalVote.totalVotes += totalWeight; // ISSUE: #21
             } else {
                 revert GovernorInvalidVoteType();
             }
