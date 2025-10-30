@@ -336,8 +336,10 @@ abstract contract GovernorCountingMultiple is Governor {
                 proposalVote.votes[uint8(VoteTypeSimple.Against)] += totalWeight;
             } else if (support == uint8(VoteTypeSimple.For)) {
                 proposalVote.votes[uint8(VoteTypeSimple.For)] += totalWeight;
+                proposalVote.totalVotes += totalWeight;
             } else if (support == uint8(VoteTypeSimple.Abstain)) {
                 proposalVote.votes[uint8(VoteTypeSimple.Abstain)] += totalWeight;
+                proposalVote.totalVotes += totalWeight;
             } else {
                 revert GovernorInvalidVoteType();
             }
@@ -380,10 +382,10 @@ abstract contract GovernorCountingMultiple is Governor {
 
             // Ensure the total vote weights applied are not greater than the voter's total weight
             assert(totalAppliedWeight <= totalWeight);
-        }
 
-        // Even if precision loss did occur, this shouldn't affect quorum
-        proposalVote.totalVotes += totalWeight;
+            // Increment totalVotes by totalAppliedWeight to take into account possible precision loss
+            proposalVote.totalVotes += totalAppliedWeight; // ISSUE: #22
+        }
 
         return totalWeight;
     }
