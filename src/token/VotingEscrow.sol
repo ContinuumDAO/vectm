@@ -364,10 +364,16 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         LockedBalance memory _locked1 = locked[_to];
         uint256 value0 = uint256(int256(_locked0.amount));
         uint256 value1 = uint256(int256(_locked1.amount));
+
         // value-weighted end timestamp
         uint256 weightedEnd = (value0 * _locked0.end + value1 * _locked1.end) / (value0 + value1);
         // round down to week and then add one week to prevent rounding down exploit
-        uint256 unlock_time = ((weightedEnd / WEEK) * WEEK) + WEEK;
+        uint256 ceilWeighted = ((weightedEnd / WEEK) * WEEK) + WEEK;
+        uint256 unlock_time = _locked1.end; // default to current _to end
+        // ISSUE: #15
+        if (ceilWeighted > unlock_time) {
+            unlock_time = ceilWeighted;
+        }
 
         // checkpoint the _from lock to zero (_from gets burned)
         locked[_from] = LockedBalance(0, 0);
