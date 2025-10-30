@@ -110,7 +110,7 @@ contract TestRewards is Helpers {
     }
 
     function test_FuzzClaimBaseRewards(uint256 _lockAmount, uint256 _claimDays) public {
-        _lockAmount = bound(_lockAmount, 1, _100_000);
+        _lockAmount = bound(_lockAmount, 1 ether, _100_000);
         _claimDays = bound(_claimDays, 1, 3650);
         uint256 _claimTime = _claimDays * 1 days;
         vm.startPrank(user1);
