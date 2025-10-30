@@ -53,7 +53,6 @@ interface IVotingEscrow {
     error VotingEscrow_DifferentOwners(uint256 _from, uint256 _to);
     error VotingEscrow_FlashProtection();
     error VotingEscrow_InvalidValue();
-    error VotingEscrow_TransferFailed();
     error VotingEscrow_LiquidationsDisabled();
     error VotingEscrow_LockNotExpired(uint256 _end);
     error VotingEscrow_IsZero(VotingEscrowErrorParam _account);

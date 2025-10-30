@@ -7,6 +7,7 @@ import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -55,6 +56,7 @@ import {IVotingEscrow} from "./IVotingEscrow.sol";
 contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPSUpgradeable {
     using ArrayCheckpoints for ArrayCheckpoints.TraceArray;
     using Strings for uint256;
+    using SafeERC20 for IERC20;
 
     /// @notice Address of the underlying CTM token
     address public token;
@@ -503,12 +505,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
-        if (!IERC20(token).transfer(owner, value - penalty)) {
-            revert VotingEscrow_TransferFailed();
-        }
-        if (!IERC20(token).transfer(treasury, penalty)) {
-            revert VotingEscrow_TransferFailed();
-        }
+        // ISSUE: #10
+        IERC20(token).safeTransfer(owner, value - penalty);
+        IERC20(token).safeTransfer(treasury, penalty);
 
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
