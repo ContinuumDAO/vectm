@@ -193,26 +193,7 @@ contract Rewards is IRewards {
         _withdrawToken(_token, _recipient, _amount);
     }
 
-    /**
-     * @notice Changes the reward token and handles old token withdrawal (governance only)
-     * @param _rewardToken The new reward token address
-     * @param _firstMidnight The new genesis timestamp
-     * @param _recipient The address to receive old token balance
-     * @dev Changes the reward token and withdraws any remaining balance of the old token.
-     * Updates the genesis timestamp for the new reward token.
-     */
-    function setRewardToken(address _rewardToken, uint48 _firstMidnight, address _recipient) external onlyGov {
-        address _oldRewardToken = rewardToken;
-        rewardToken = _rewardToken;
-        genesis = _firstMidnight;
-        uint256 _oldTokenContractBalance = IERC20(_oldRewardToken).balanceOf(address(this));
-
-        if (_oldTokenContractBalance != 0) {
-            _withdrawToken(_oldRewardToken, _recipient, _oldTokenContractBalance);
-        }
-
-        emit TokenUpdated(Token.Reward, _oldRewardToken, _rewardToken);
-    }
+    // ISSUE: #19
 
     /**
      * @notice Changes the fee token and handles old token withdrawal (governance only)
