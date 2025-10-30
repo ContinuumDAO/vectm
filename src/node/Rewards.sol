@@ -193,7 +193,7 @@ contract Rewards is IRewards {
         _withdrawToken(_token, _recipient, _amount);
     }
 
-    // ISSUE: #19
+    // ISSUE: #19 & #18
 
     /**
      * @notice Changes the fee token and handles old token withdrawal (governance only)
