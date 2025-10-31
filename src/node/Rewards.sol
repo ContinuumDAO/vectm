@@ -389,9 +389,7 @@ contract Rewards is IRewards {
 
         _lastClaimOf[_tokenId] = _latestMidnight;
 
-        if (!IERC20(_rewardToken).transfer(_to, _reward)) {
-            revert Rewards_TransferFailed();
-        }
+        IERC20(_rewardToken).safeTransfer(_to, _reward);
 
         emit Claim(_tokenId, _reward, _rewardToken);
 
@@ -445,9 +443,7 @@ contract Rewards is IRewards {
      * @dev Internal function to handle token withdrawals with error handling.
      */
     function _withdrawToken(address _token, address _recipient, uint256 _amount) internal {
-        if (!IERC20(_token).transfer(_recipient, _amount)) {
-            revert Rewards_TransferFailed();
-        }
+        IERC20(_token).safeTransfer(_recipient, _amount);
         emit Withdrawal(_token, _recipient, _amount);
     }
 
