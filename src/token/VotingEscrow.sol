@@ -104,7 +104,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Mapping from owner address to index-to-tokenId mapping
     mapping(address => mapping(uint256 => uint256)) internal ownerToNFTokenIdList;
     /// @notice Mapping from owner address to array of tokenIds
-    mapping(address => uint256[]) internal ownerToAllNFTokenIds; // ISSUE: #14
+    mapping(address => uint256[]) internal ownerToAllNFTokenIds;
     /// @notice Mapping from NFT ID to owner's token index
     mapping(uint256 => uint256) internal tokenToOwnerIndex;
     /// @notice Mapping from owner address to operator approval status
@@ -505,7 +505,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
-        // ISSUE: #10
         IERC20(token).safeTransfer(owner, value - penalty);
         IERC20(token).safeTransfer(treasury, penalty);
 
@@ -1067,7 +1066,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // Locktime is floored to nearest whole week since UNIX epoch
         uint256 unlock_time = ((block.timestamp + _lock_duration) / WEEK) * WEEK;
 
-        // ISSUE: #14: setting minimum lock amount to prevent DoS attacks
         if (_value < minimumLock) {
             revert VotingEscrow_LockBelowMin(_value);
         }
@@ -1154,7 +1152,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _delegatee[account] = delegatee;
 
         emit DelegateChanged(account, oldDelegate, delegatee);
-        _moveDelegateVotes(oldDelegate, delegatee, _getVotingUnits(account));
+        _moveDelegateVotes(oldDelegate, delegatee, ownerToAllNFTokenIds[account]);
     }
 
     /**
@@ -1271,7 +1269,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 current_count = _balance(_to);
 
         ownerToNFTokenIdList[_to][current_count] = _tokenId;
-        ownerToAllNFTokenIds[_to].push(_tokenId); // ISSUE: #14
+        ownerToAllNFTokenIds[_to].push(_tokenId);
         tokenToOwnerIndex[_tokenId] = current_count;
     }
 
@@ -1288,7 +1286,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         if (current_count == current_index) {
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_count] = 0;
-            ownerToAllNFTokenIds[_from].pop(); // ISSUE: #14
+            ownerToAllNFTokenIds[_from].pop();
             // update tokenToOwnerIndex
             tokenToOwnerIndex[_tokenId] = 0;
         } else {
@@ -1297,14 +1295,14 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             // Add
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_index] = lastTokenId;
-            ownerToAllNFTokenIds[_from][current_index] = lastTokenId; // ISSUE: #14
+            ownerToAllNFTokenIds[_from][current_index] = lastTokenId;
             // update tokenToOwnerIndex
             tokenToOwnerIndex[lastTokenId] = current_index;
 
             // Delete
             // update ownerToNFTokenIdList
             ownerToNFTokenIdList[_from][current_count] = 0;
-            ownerToAllNFTokenIds[_from].pop(); // ISSUE: #14
+            ownerToAllNFTokenIds[_from].pop();
             // update tokenToOwnerIndex
             tokenToOwnerIndex[_tokenId] = 0;
         }
@@ -1706,7 +1704,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      */
     function _calculateCumulativeVotingPower(uint256[] memory _tokenIds, uint256 _t) internal view returns (uint256) {
         uint256 cumulativeVotingPower;
-        // ISSUE: #14: change loop iterations from uint8 to uint256
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             // increment cumulativeVePower by the voting power of each token ID at time _t
             if (nonVoting[_tokenIds[i]]) {
@@ -1729,20 +1726,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             size := extcodesize(account)
         }
         return size > 0;
-    }
-
-    /**
-     * @notice Gets the list of token IDs currently owned by address `account`.
-     * @return tokenList The list of token IDs owned by `account`.
-     * @dev This does not count token IDs delegated to `account`, only tokens they own.
-     */
-    function _getVotingUnits(address account) internal view returns (uint256[] memory tokenList) {
-        // uint256 tokenCount = _balance(account);
-        // tokenList = new uint256[](tokenCount);
-        // for (uint256 i = 0; i < tokenCount; i++) {
-        //     tokenList[i] = ownerToNFTokenIdList[account][i];
-        // }
-        return ownerToAllNFTokenIds[account]; // ISSUE: #14
     }
 
     /**

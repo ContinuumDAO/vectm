@@ -151,7 +151,6 @@ contract Rewards is IRewards {
         _setNodeRewardThreshold(_nodeRewardThreshold);
         _setFeePerByteRewardToken(_feePerByteRewardToken);
         _setFeePerByteFeeToken(_feePerByteFeeToken);
-        // ISSUE: #2
         IERC20(_rewardToken).forceApprove(_ve, type(uint256).max);
     }
 
@@ -195,8 +194,6 @@ contract Rewards is IRewards {
     function withdrawToken(address _token, address _recipient, uint256 _amount) external onlyGov {
         _withdrawToken(_token, _recipient, _amount);
     }
-
-    // ISSUE: #19 & #18
 
     /**
      * @notice Changes the fee token and handles old token withdrawal (governance only)
@@ -285,7 +282,6 @@ contract Rewards is IRewards {
             revert Rewards_FeesAlreadyReceivedFromChain();
         }
 
-        // ISSUE: #2
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         _feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()] = Fee(_token, _amount);

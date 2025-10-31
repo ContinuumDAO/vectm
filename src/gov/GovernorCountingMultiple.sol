@@ -145,7 +145,6 @@ abstract contract GovernorCountingMultiple is Governor {
             // Ensures the proposal configuration is valid
             _validateProposalConfiguration(nOptions, nWinners, calldatas[0]);
             // Ensures none of the indices reference an array location out of bounds
-            // ISSUE: #12
             for (uint8 i = 0; i < metadata.nOptions; i++) {
                 if (metadata.optionIndices[i] >= targets.length) {
                     revert GovernorDeltaOutOfBounds(targets.length, metadata.optionIndices[i]);
@@ -344,10 +343,10 @@ abstract contract GovernorCountingMultiple is Governor {
                 proposalVote.votes[uint8(VoteTypeSimple.Against)] += totalWeight;
             } else if (support == uint8(VoteTypeSimple.For)) {
                 proposalVote.votes[uint8(VoteTypeSimple.For)] += totalWeight;
-                proposalVote.totalVotes += totalWeight; // ISSUE: #21
+                proposalVote.totalVotes += totalWeight;
             } else if (support == uint8(VoteTypeSimple.Abstain)) {
                 proposalVote.votes[uint8(VoteTypeSimple.Abstain)] += totalWeight;
-                proposalVote.totalVotes += totalWeight; // ISSUE: #21
+                proposalVote.totalVotes += totalWeight;
             } else {
                 revert GovernorInvalidVoteType();
             }
@@ -392,7 +391,7 @@ abstract contract GovernorCountingMultiple is Governor {
             assert(totalAppliedWeight <= totalWeight);
 
             // Increment totalVotes by totalAppliedWeight to take into account possible precision loss
-            proposalVote.totalVotes += totalAppliedWeight; // ISSUE: #22
+            proposalVote.totalVotes += totalAppliedWeight;
         }
 
         return totalWeight;

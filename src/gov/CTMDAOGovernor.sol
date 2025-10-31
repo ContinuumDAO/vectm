@@ -191,7 +191,6 @@ contract CTMDAOGovernor is
      */
     function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
         // proposal threshold is always a percentage of current total voting power, with a minimum constant value
-        // ISSUE: #13
         uint256 thresholdNum = 1000;
         uint256 thresholdDenom = 100_000;
         uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * thresholdNum / thresholdDenom;
