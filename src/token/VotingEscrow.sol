@@ -1233,7 +1233,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         // Both can have >= 0 amount
         _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
 
-        assert(IERC20(token).transfer(owner, value));
+        IERC20(token).safeTransfer(owner, value);
 
         // checkpoint the owner's balance to remove _from ID
         uint256[] memory _votingUnit = new uint256[](1);
