@@ -534,8 +534,9 @@ contract VotingEscrowTest is Helpers {
             ((_end1Before * _value1Before) + (_end2Before * _value2Before)) / (_value1Before + _value2Before);
         // uint256 unlockTime = (((block.timestamp + weightedEnd) / WEEK) * WEEK) + WEEK;
         uint256 unlockTime = ((weightedEnd / 1 weeks) * 1 weeks) + 1 weeks;
-        if (unlockTime > MAX_LOCK) {
-            unlockTime -= 1 weeks;
+        uint256 greaterEndBefore = _end1Before > _end2Before ? _end1Before : _end2Before;
+        if (unlockTime > greaterEndBefore) {
+            unlockTime = greaterEndBefore;
         }
 
         assertEq(_value1After, 0);
