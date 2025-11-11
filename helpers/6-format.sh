@@ -2,8 +2,9 @@
 
 echo -e "\nFormatting codebase..."
 
-forge fmt src/gov/CTMDAOGovernor.sol
-forge fmt src/gov/GovernorCountingMultiple.sol
+forge fmt src/governance/ContinuumDAO.sol
+forge fmt src/governance/GovernorCountingMultiple.sol
+forge fmt src/governance/IContinuumDAO.sol
 forge fmt src/node
 forge fmt src/token
 forge fmt src/utils

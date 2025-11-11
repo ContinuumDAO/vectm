@@ -82,7 +82,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function setUp() public override {
         super.setUp();
-        vm.startPrank(address(ctmDaoGovernor));
+        vm.startPrank(address(continuumDAO));
         rewards.setBaseEmissionRate(0);
         rewards.setNodeEmissionRate(0);
         vm.stopPrank();
@@ -91,8 +91,8 @@ contract VotingEscrowUpgradesTest is Helpers {
 
         // Deal tokens to this contract first, then transfer to governor
         deal(address(ctm), address(this), CTM_TS, true);
-        ctm.transfer(address(ctmDaoGovernor), CTM_TS);
-        vm.prank(address(ctmDaoGovernor));
+        ctm.transfer(address(continuumDAO), CTM_TS);
+        vm.prank(address(continuumDAO));
         ctm.approve(address(ve), CTM_TS);
     }
 
@@ -108,7 +108,7 @@ contract VotingEscrowUpgradesTest is Helpers {
     }
 
     function test_ValidUpgrade() public {
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
         // Base URI should remain the same since we're not reinitializing
         string memory baseURI = ve.baseURI();
@@ -139,7 +139,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         assertEq(uint256(int256(amount)), 1 ether);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Verify data is preserved
@@ -150,7 +150,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_UpgradeAddsNewFeatures() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test upgrade count
@@ -169,7 +169,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         uint256 votingPowerBefore = ve.balanceOfNFT(tokenId);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Verify voting power is preserved
@@ -191,7 +191,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         assertEq(delegatesBeforeUpgrade, user2);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         address delegatesAfterUpgrade = ve.delegates(user1);
@@ -205,7 +205,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         assertEq(ve.nonVoting(tokenId), true);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Verify non-voting status is preserved
@@ -222,7 +222,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         uint256 totalSupplyBefore = ve.totalSupply();
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Verify total supply is preserved
@@ -237,7 +237,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         ve.checkpoint();
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Verify checkpoints are preserved
@@ -247,18 +247,18 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_UpgradeNewFeaturesWork() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test increment upgrade count
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         VotingEscrowV2(address(ve)).incrementUpgradeCount();
         assertEq(VotingEscrowV2(address(ve)).getUpgradeCount(), 2);
     }
 
     function test_UpgradeUnauthorizedIncrementFails() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test unauthorized increment fails
@@ -272,7 +272,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         uint256 tokenId = ve.create_lock(1 ether, block.timestamp + 1 weeks);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test that existing functions still work
@@ -288,7 +288,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_UpgradePreservesInterface() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test that interface functions still work
@@ -296,7 +296,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         assertEq(ve.symbol(), "veCTM");
         assertEq(ve.decimals(), 18);
         assertEq(ve.token(), address(ctm));
-        assertEq(ve.governor(), address(ctmDaoGovernor));
+        assertEq(ve.governor(), address(continuumDAO));
     }
 
     function test_UpgradePreservesERC721Functions() public {
@@ -305,7 +305,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         uint256 tokenId = ve.create_lock(1 ether, block.timestamp + 1 weeks);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test ERC721 functions
@@ -321,7 +321,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         ve.delegate(user2);
 
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test voting functions - voting power might be 0 initially
@@ -333,7 +333,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_UpgradePreservesStateVariables() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test that state variables are preserved
@@ -345,7 +345,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_UpgradeNewMinimumDurationEnforced() public {
         // Upgrade
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test that new minimum duration is enforced

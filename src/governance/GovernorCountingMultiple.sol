@@ -90,9 +90,9 @@ abstract contract GovernorCountingMultiple is Governor {
     }
 
     /// @notice Mapping of proposal ID => Proposal Vote (proposal voting data)
-    mapping(uint256 => ProposalVote) private _proposalVotes;
+    mapping(uint256 => ProposalVote) internal _proposalVotes;
     /// @notice Mapping of proposal ID => Proposal Configuration (nOptions, nWinners)
-    mapping(uint256 => ProposalConfig) private _proposalConfig;
+    mapping(uint256 => ProposalConfig) internal _proposalConfig;
 
     /**
      * @notice Override of {Governor-propose} to incorporate multiple-option (Delta) proposals.
@@ -131,7 +131,7 @@ abstract contract GovernorCountingMultiple is Governor {
             }
         }
 
-        uint256 proposalId = _propose(targets, values, calldatas, description, proposer);
+        uint256 proposalId = super._propose(targets, values, calldatas, description, proposer);
 
         uint256 nOptions = 0;
         uint256 nWinners = 0;
@@ -287,7 +287,7 @@ abstract contract GovernorCountingMultiple is Governor {
      * @param proposalId The proposal ID in question.
      * @return The number of votes cast for each option and the total number of votes for the proposal.
      */
-    function proposalVotes(uint256 proposalId) public view virtual returns (uint256[] memory, uint256) {
+    function proposalVotesDelta(uint256 proposalId) public view virtual returns (uint256[] memory, uint256) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
         uint256 totalVotes = proposalVote.totalVotes;
         uint256[] memory votes = _getProposalVotes(proposalId, _proposalConfig[proposalId].nOptions);

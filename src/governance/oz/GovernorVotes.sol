@@ -3,10 +3,10 @@
 
 pragma solidity ^0.8.24;
 
-import { Governor } from "./Governor.sol";
-import { IVotes } from "./IVotes.sol";
 import { IERC5805 } from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 import { Time } from "@openzeppelin/contracts/utils/types/Time.sol";
+import { IVotes } from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import { Governor } from "./Governor.sol";
 
 /**
  * @dev Extension of {Governor} for voting weight extraction from an {ERC20Votes} token, or since v4.5 an {ERC721Votes}

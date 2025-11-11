@@ -7,7 +7,7 @@ import {C3CallerUpgradeable} from "@c3caller/upgradeable/C3CallerUpgradeable.sol
 import {C3UUIDKeeperUpgradeable} from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
 import {C3UUIDKeeper} from "@c3caller/uuid/C3UUIDKeeper.sol";
 
-import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
+import {ContinuumDAO} from "../../src/governance/ContinuumDAO.sol";
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
 import {Rewards} from "../../src/node/Rewards.sol";
 import {CTM} from "../../src/token/CTM.sol";
@@ -22,7 +22,7 @@ contract Deployer is Utils {
     TestERC20 usdc;
     CTM ctm;
     VotingEscrow ve;
-    CTMDAOGovernor ctmDaoGovernor;
+    ContinuumDAO continuumDAO;
     NodeProperties nodeProperties;
     Rewards rewards;
 
@@ -51,19 +51,19 @@ contract Deployer is Utils {
         );
     }
 
-    function _deployCTMDAOGovernor() internal {
-        ctmDaoGovernor = new CTMDAOGovernor(address(ve));
+    function _deployCTMDAOGovernor(address _proposalGuardian) internal {
+        continuumDAO = new ContinuumDAO(address(ve), _proposalGuardian);
     }
 
     function _deployNodeProperties() internal {
-        nodeProperties = new NodeProperties(address(ctmDaoGovernor), address(ve));
+        nodeProperties = new NodeProperties(address(continuumDAO), address(ve));
     }
 
     function _deployRewards() internal {
         rewards = new Rewards(
             0, // _firstMidnight,
             address(ve), // _ve
-            address(ctmDaoGovernor), // _gov
+            address(continuumDAO), // _gov
             address(ctm), // _rewardToken
             address(usdc), // _feeToken
             address(nodeProperties), // _nodeProperties
@@ -76,9 +76,9 @@ contract Deployer is Utils {
     }
 
     function _initContracts(address _treasury) internal {
-        vm.startPrank(address(ctmDaoGovernor));
+        vm.startPrank(address(continuumDAO));
         nodeProperties.setRewards(address(rewards));
-        ve.initContracts(address(ctmDaoGovernor), address(nodeProperties), address(rewards), _treasury);
+        ve.initContracts(address(continuumDAO), address(nodeProperties), address(rewards), _treasury);
         ve.setLiquidationsEnabled(true);
         vm.stopPrank();
     }

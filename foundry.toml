@@ -7,6 +7,7 @@
  optimizer_runs = 100
  evm_version = "cancun"
  viaIR = true
+ no_match_coverage = "^(build/|script/|test/|lib/)"
 
 remappings = [
     "forge-std/=lib/forge-std/src/",

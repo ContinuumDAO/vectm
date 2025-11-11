@@ -84,7 +84,7 @@ contract TestNodeProperties is Helpers {
     function test_NodeDetachment() public {
         vm.prank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDNotAttached.selector, id1));
         nodeProperties.detachNode(id1);
     }
@@ -99,7 +99,7 @@ contract TestNodeProperties is Helpers {
         vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_NodeAttached.selector, id1));
         ve.liquidate(id1);
         vm.stopPrank();
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         nodeProperties.detachNode(id1);
         vm.prank(user1);
         ve.liquidate(id1);

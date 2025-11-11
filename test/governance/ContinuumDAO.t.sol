@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 
 import {console} from "forge-std/console.sol";
 
-import {CTMDAOGovernor} from "../../src/gov/CTMDAOGovernor.sol";
+import {ContinuumDAO} from "../../src/governance/ContinuumDAO.sol";
 
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
 import {IVotingEscrow, VotingEscrow} from "../../src/token/VotingEscrow.sol";
@@ -17,7 +17,7 @@ enum VoteType {
     Abstain
 }
 
-contract TestCTMDAOGovernor is Helpers {
+contract TestContinuumDAO is Helpers {
     uint256 constant ONE_YEAR = 365 * 86_400;
     uint256 currentTime = block.timestamp;
 
@@ -53,13 +53,13 @@ contract TestCTMDAOGovernor is Helpers {
         bytes[] memory _calldatas,
         string memory description
     ) internal returns (uint256) {
-        return ctmDaoGovernor.propose(_targets, _values, _calldatas, description);
+        return continuumDAO.propose(_targets, _values, _calldatas, description);
     }
 
     function _castVote(uint256 _proposalId, uint8 support) internal returns (uint256) {
         skip(5 days + 1);
         // skip(5 minutes + 1);
-        uint256 weight = ctmDaoGovernor.castVote(_proposalId, support);
+        uint256 weight = continuumDAO.castVote(_proposalId, support);
         return weight;
     }
 
@@ -70,7 +70,7 @@ contract TestCTMDAOGovernor is Helpers {
         string memory description
     ) internal returns (uint256) {
         // skip(12 hours + 1);
-        uint256 _proposalId = ctmDaoGovernor.queue(_targets, _values, _calldatas, keccak256(bytes(description)));
+        uint256 _proposalId = continuumDAO.queue(_targets, _values, _calldatas, keccak256(bytes(description)));
         return _proposalId;
     }
 
@@ -81,16 +81,16 @@ contract TestCTMDAOGovernor is Helpers {
         string memory description
     ) internal returns (uint256) {
         skip(10 days + 1);
-        uint256 _proposalId = ctmDaoGovernor.execute(_targets, _values, _calldatas, keccak256(bytes(description)));
+        uint256 _proposalId = continuumDAO.execute(_targets, _values, _calldatas, keccak256(bytes(description)));
         return _proposalId;
     }
 
     function test_InitialSettings() public prank(user1) {
         skip(1);
-        uint256 votingDelay = ctmDaoGovernor.votingDelay();
-        uint256 votingPeriod = ctmDaoGovernor.votingPeriod();
-        uint256 proposalThreshold = ctmDaoGovernor.proposalThreshold();
-        uint256 quorum = ctmDaoGovernor.quorumNumerator(block.timestamp);
+        uint256 votingDelay = continuumDAO.votingDelay();
+        uint256 votingPeriod = continuumDAO.votingPeriod();
+        uint256 proposalThreshold = continuumDAO.proposalThreshold();
+        uint256 quorum = continuumDAO.quorumNumerator(block.timestamp);
         assertEq(votingDelay, 5 days);
         assertEq(votingPeriod, 10 days);
         assertEq(proposalThreshold, 1000 ether);
@@ -107,7 +107,7 @@ contract TestCTMDAOGovernor is Helpers {
 
         _proposeVote(_targets, _values, _calldatas, _description);
 
-        (proposalId, targets, values, calldatas, descriptionHash) = ctmDaoGovernor.proposalDetailsAt(0);
+        (proposalId, targets, values, calldatas, descriptionHash) = continuumDAO.proposalDetailsAt(0);
 
         _castVote(proposalId, uint8(VoteType.For));
 
@@ -123,7 +123,7 @@ contract TestCTMDAOGovernor is Helpers {
         skip(1);
         currentTime += 1;
         uint256 totalVotePowerBefore = ve.getPastTotalSupply(currentTime - 1);
-        uint256 thresholdBefore = ctmDaoGovernor.proposalThreshold();
+        uint256 thresholdBefore = continuumDAO.proposalThreshold();
 
         skip(4 * 1 weeks);
         currentTime += 4 * 1 weeks;
@@ -132,13 +132,13 @@ contract TestCTMDAOGovernor is Helpers {
         currentTime += 4 * 1 weeks;
 
         uint256 totalVotePowerAfter = ve.getPastTotalSupply(currentTime - 1);
-        uint256 thresholdAfter = ctmDaoGovernor.proposalThreshold();
+        uint256 thresholdAfter = continuumDAO.proposalThreshold();
         assertEq(thresholdBefore, totalVotePowerBefore / 100);
         assertEq(thresholdAfter, totalVotePowerAfter / 100);
     }
 
     function test_VoteTransferETH() public prank(user1) {
-        vm.deal(address(ctmDaoGovernor), 2000 ether);
+        vm.deal(address(continuumDAO), 2000 ether);
 
         address[] memory _targets = new address[](1);
         _targets[0] = user2;
@@ -148,15 +148,15 @@ contract TestCTMDAOGovernor is Helpers {
         string memory _description = "Proposal #2: Transfer 10 ether to user2.";
 
         uint256 bal2Before = user2.balance;
-        uint256 balGovBefore = address(ctmDaoGovernor).balance;
+        uint256 balGovBefore = address(continuumDAO).balance;
 
         _proposeVote(_targets, _values, _calldatas, _description);
-        (proposalId, targets, values, calldatas, descriptionHash) = ctmDaoGovernor.proposalDetailsAt(0);
+        (proposalId, targets, values, calldatas, descriptionHash) = continuumDAO.proposalDetailsAt(0);
         _castVote(proposalId, uint8(VoteType.For));
         _executeVote(_targets, _values, _calldatas, _description);
 
         uint256 bal2After = user2.balance;
-        uint256 balGovAfter = address(ctmDaoGovernor).balance;
+        uint256 balGovAfter = address(continuumDAO).balance;
 
         assertEq(bal2After, bal2Before + 10 ether);
         assertEq(balGovAfter, balGovBefore - 10 ether);

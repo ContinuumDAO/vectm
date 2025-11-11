@@ -5,7 +5,7 @@ rm -r build/
 
 # create folders
 mkdir -p build/
-mkdir -p build/gov/
+mkdir -p build/governance/
 mkdir -p build/node/
 mkdir -p build/token/
 mkdir -p build/utils/
@@ -13,7 +13,7 @@ mkdir -p build/utils/
 echo -e "\n📄 Flattening src/ to build/..."
 
 # gov
-forge flatten src/gov/CTMDAOGovernor.sol --output build/gov/CTMDAOGovernor.sol
+forge flatten src/governance/ContinuumDAO.sol --output build/governance/ContinuumDAO.sol
 
 # node
 forge flatten src/node/NodeProperties.sol --output build/node/NodeProperties.sol

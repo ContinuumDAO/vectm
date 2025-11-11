@@ -8,12 +8,13 @@ import {console} from "forge-std/console.sol";
 import {CTM} from "../src/token/CTM.sol";
 import {VotingEscrow, IVotingEscrow} from "../src/token/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../src/utils/VotingEscrowProxy.sol";
-import {CTMDAOGovernor} from "../src/gov/CTMDAOGovernor.sol";
+import {ContinuumDAO} from "../src/governance/ContinuumDAO.sol";
 import {NodeProperties} from "../src/node/NodeProperties.sol";
 import {INodeProperties} from "../src/node/INodeProperties.sol";
 import {Rewards} from "../src/node/Rewards.sol";
 
 contract DeployVotingEscrow is Script {
+    address deployer;
     address feeToken;
     address treasury;
 
@@ -21,6 +22,12 @@ contract DeployVotingEscrow is Script {
     string treasuryKey = string.concat("TREASURY_", vm.toString(block.chainid));
 
     function run() public {
+        try vm.envAddress("DEPLOYER") returns (address _deployer) {
+            deployer = _deployer;
+        } catch {
+            revert ("DEPLOYER not defined");
+        }
+
         try vm.envAddress(feeTokenKey) returns (address _feeToken) {
             feeToken = _feeToken;
         } catch {
@@ -48,8 +55,8 @@ contract DeployVotingEscrow is Script {
 
         console.log("VotingEscrow deployed at:", address(votingEscrow));
 
-        CTMDAOGovernor ctmDAOGovernor = new CTMDAOGovernor(address(votingEscrow));
-        console.log("CTMDAOGovernor deployed at:", address(ctmDAOGovernor));
+        ContinuumDAO ctmDAOGovernor = new ContinuumDAO(address(votingEscrow), deployer);
+        console.log("ContinuumDAO deployed at:", address(ctmDAOGovernor));
 
         NodeProperties nodeProperties = new NodeProperties(address(ctmDAOGovernor), address(votingEscrow));
         console.log("NodeProperties deployed at:", address(nodeProperties));

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo -e "\n🔨 Compiling src/gov..."
-forge build src/gov/
+echo -e "\n🔨 Compiling src/governance..."
+forge build src/governance/
 echo -e "🔨 Compiling src/node..."
 forge build src/node/
 echo -e "🔨 Compiling src/token..."

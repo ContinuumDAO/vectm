@@ -83,7 +83,7 @@ contract InvariantVotingEscrow is StdInvariant, Helpers {
 
     function setUp() public override {
         super.setUp();
-        vm.startPrank(address(ctmDaoGovernor));
+        vm.startPrank(address(continuumDAO));
         rewards.setBaseEmissionRate(0);
         rewards.setNodeEmissionRate(0);
         vm.stopPrank();

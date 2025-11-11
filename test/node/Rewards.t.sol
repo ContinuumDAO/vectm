@@ -62,11 +62,11 @@ contract TestRewards is Helpers {
         );
     }
 
-    function _setQualityOf(uint256 _tokenId, uint8 _quality) internal prank(address(ctmDaoGovernor)) {
+    function _setQualityOf(uint256 _tokenId, uint8 _quality) internal prank(address(continuumDAO)) {
         nodeProperties.setNodeQualityOf(_tokenId, _quality);
     }
 
-    function test_SetRewardsTooHigh() public prank(address(ctmDaoGovernor)) {
+    function test_SetRewardsTooHigh() public prank(address(continuumDAO)) {
         vm.expectRevert(abi.encodeWithSelector(IRewards.Rewards_EmissionRateChangeTooHigh.selector));
         rewards.setBaseEmissionRate(1 ether / uint256(99));
         vm.expectRevert(abi.encodeWithSelector(IRewards.Rewards_EmissionRateChangeTooHigh.selector));
@@ -121,7 +121,7 @@ contract TestRewards is Helpers {
     }
 
     function test_FuzzClaimNodeRewards(uint256 _lockAmount, uint256 _claimDays, uint256 _quality) public {
-        vm.startPrank(address(ctmDaoGovernor));
+        vm.startPrank(address(continuumDAO));
         rewards.setBaseEmissionRate(1 ether / 200_000);
         rewards.setNodeEmissionRate(1 ether / 100_000);
         vm.stopPrank();

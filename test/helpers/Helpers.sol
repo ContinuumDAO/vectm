@@ -13,6 +13,8 @@ contract Helpers is Test, Accounts, Deployer {
     function setUp() public virtual {
         (admin, treasury, committee, user1, user2) =
             abi.decode(abi.encode(_getAccounts()), (address, address, address, address, address));
+        (owner, proposer, voter1, voter2, voter3, voter4, other) =
+            abi.decode(abi.encode(_getGovernanceAccounts()), (address, address, address, address, address, address, address));
 
         _deployUSDC();
         _deployCTM(admin);
@@ -23,6 +25,14 @@ contract Helpers is Test, Accounts, Deployer {
         vm.deal(user1, 100 ether);
         vm.deal(user2, 100 ether);
 
+        vm.deal(owner, 100 ether);
+        vm.deal(proposer, 100 ether);
+        vm.deal(voter1, 100 ether);
+        vm.deal(voter2, 100 ether);
+        vm.deal(voter3, 100 ether);
+        vm.deal(voter4, 100 ether);
+        vm.deal(other, 100 ether);
+
         vm.startPrank(admin);
 
         _dealAllERC20(address(usdc), CTM_TS);
@@ -32,13 +42,13 @@ contract Helpers is Test, Accounts, Deployer {
 
         _deployC3Caller();
         _deployVotingEscrow();
-        _deployCTMDAOGovernor();
+        _deployCTMDAOGovernor(admin);
         _deployNodeProperties();
         _deployRewards();
 
         address[] memory spenders = new address[](4);
         spenders[0] = address(ve);
-        spenders[1] = address(ctmDaoGovernor);
+        spenders[1] = address(continuumDAO);
         spenders[2] = address(rewards);
         spenders[3] = address(nodeProperties);
         _approveAllERC20(address(usdc), spenders);

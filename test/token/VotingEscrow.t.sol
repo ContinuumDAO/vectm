@@ -33,7 +33,7 @@ contract VotingEscrowTest is Helpers {
     // UTILS
     function setUp() public override {
         super.setUp();
-        vm.startPrank(address(ctmDaoGovernor));
+        vm.startPrank(address(continuumDAO));
         rewards.setBaseEmissionRate(0);
         rewards.setNodeEmissionRate(0);
         ve.setMinimumLock(1);
@@ -887,7 +887,7 @@ contract VotingEscrowTest is Helpers {
         id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
         skip(1);
 
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.setLiquidationsEnabled(false);
 
         vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LiquidationsDisabled.selector));
@@ -1031,20 +1031,16 @@ contract VotingEscrowTest is Helpers {
     // Test create_lock with zero value
     function test_CreateLockZeroValue() public {
         vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, 0)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, 0));
         id1 = ve.create_lock(0, block.timestamp + MAXTIME);
     }
 
     function test_CreateLockBelowMin() public {
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.setMinimumLock(1 ether);
         vm.prank(user1);
         uint256 valueLtMin = 1 ether - 1;
-        vm.expectRevert(
-            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, valueLtMin)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_LockBelowMin.selector, valueLtMin));
         ve.create_lock(valueLtMin, block.timestamp + MAXTIME);
     }
 
@@ -1197,7 +1193,7 @@ contract VotingEscrowTest is Helpers {
 
     // Test setBaseURI
     function test_SetBaseURI() public {
-        vm.prank(address(ctmDaoGovernor));
+        vm.prank(address(continuumDAO));
         ve.setBaseURI("https://example.com/");
 
         assertEq(ve.baseURI(), "https://example.com/");
