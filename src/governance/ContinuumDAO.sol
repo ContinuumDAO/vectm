@@ -54,6 +54,11 @@ contract ContinuumDAO is
     GovernorProposalGuardian,
     GovernorStorage
 {
+    error GovernorInvalidProposalThreshold(uint256 _proposalThresholdNumerator, uint256 _proposalThresholdDenominator);
+
+    uint256 public proposalThresholdNumerator;
+    uint256 public proposalThresholdDenominator;
+
     /**
      * @notice Initializes the ContinuumDAO contract
      * @param _token The address of the veCTM voting token
@@ -69,23 +74,16 @@ contract ContinuumDAO is
      */
     constructor(address _token, address _proposalGuardian)
         Governor("ContinuumDAO")
-        GovernorSettings(432_000, 864_000, 1000 ether) // 10 days/5 days/minimum voting power threshold
+        GovernorSettings(5 days, 10 days, 1000 ether) // voting delay / voting period / minimum voting power threshold
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
         GovernorVotesSuperQuorumFraction(80)
-        GovernorPreventLateQuorum(172_800) // 2 days
+        GovernorPreventLateQuorum(2 days) // 2 days
         GovernorProposalGuardian()
     {
         _setProposalGuardian(_proposalGuardian);
-    }
-
-    function propose(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) public override(Governor, GovernorCountingMultiple) returns (uint256) {
-        return super.propose(targets, values, calldatas, description);
+        proposalThresholdNumerator = 1000;
+        proposalThresholdDenominator = 100_000;
     }
 
     function queue(
@@ -117,8 +115,8 @@ contract ContinuumDAO is
 
     function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
         // proposal threshold is always a percentage of current total voting power, with a minimum constant value
-        uint256 thresholdNum = 1000;
-        uint256 thresholdDenom = 100_000;
+        uint256 thresholdNum = proposalThresholdNumerator;
+        uint256 thresholdDenom = proposalThresholdDenominator;
         uint256 totalVotingPower = token().getPastTotalSupply(clock() - 1) * thresholdNum / thresholdDenom;
         uint256 thresholdBase = super.proposalThreshold();
         if (totalVotingPower < thresholdBase) {
@@ -134,11 +132,18 @@ contract ContinuumDAO is
         returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)
     {
         ProposalConfig memory proposalConfig = _proposalConfig[proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[proposalId];
+
         if (proposalConfig.nOptions == 0) {
-            ProposalVote storage proposalVote = _proposalVotes[proposalId];
+            // INFO: Bravo voting
             againstVotes = proposalVote.votes[uint8(VoteTypeSimple.Against)];
             forVotes = proposalVote.votes[uint8(VoteTypeSimple.For)];
             abstainVotes = proposalVote.votes[uint8(VoteTypeSimple.Abstain)];
+        } else {
+            // INFO: Delta voting
+            againstVotes = 0;
+            forVotes = proposalVote.totalVotes;
+            abstainVotes = 0;
         }
     }
 
@@ -157,7 +162,7 @@ contract ContinuumDAO is
         bytes[] memory calldatas,
         string memory description,
         address proposer
-    ) internal override(Governor, GovernorStorage) returns (uint256) {
+    ) internal override(Governor, GovernorStorage, GovernorCountingMultiple) returns (uint256) {
         return super._propose(targets, values, calldatas, description, proposer);
     }
 
@@ -172,5 +177,16 @@ contract ContinuumDAO is
         returns (bool)
     {
         return super._validateCancel(proposalId, caller);
+    }
+
+    function updateProposalThresholdNumerator(uint256 _proposalThresholdNumerator) external onlyGovernance {
+        if (_proposalThresholdNumerator > proposalThresholdDenominator) {
+            revert GovernorInvalidProposalThreshold(_proposalThresholdNumerator, proposalThresholdDenominator);
+        }
+        proposalThresholdNumerator = _proposalThresholdNumerator;
+    }
+
+    function updateProposalThresholdDenominator(uint256 _proposalThresholdDenominator) external onlyGovernance {
+        proposalThresholdDenominator = _proposalThresholdDenominator;
     }
 }

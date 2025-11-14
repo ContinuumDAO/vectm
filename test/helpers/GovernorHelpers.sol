@@ -19,13 +19,18 @@ contract GovernorHelpers is Helpers {
     GovernorCountingMultiple.VoteTypeSimple FOR = GovernorCountingMultiple.VoteTypeSimple.For;
     GovernorCountingMultiple.VoteTypeSimple ABSTAIN = GovernorCountingMultiple.VoteTypeSimple.Abstain;
 
+    // INFO: Save proposal metadata to storage for quick access
+    Operation[] optionsDelta;
+    string descriptionDelta;
+    uint256 nOptionsDelta;
+
     struct Operation {
         address target;
         uint256 val;
         bytes data;
     }
 
-    uint256 proposalId;
+    uint256 proposalIdDelta;
 
     uint256 initiationTs;
     uint256 snapshotTs;
@@ -39,10 +44,12 @@ contract GovernorHelpers is Helpers {
 
     // INFO: create some locks so that all DAO members can vote
     function _create_voting_locks() internal {
+        // NOTE: total power should be 20 million veCTM.
+        // quorum is 5% (=1 million) of total power in tests, super quorum is 10% (=2 million)
         vm.prank(owner);
-        ve.create_lock(10_000 ether, YEARS_4);
+        ve.create_lock(18_500_000 ether, YEARS_4);
         vm.prank(proposer);
-        ve.create_lock(10_000 ether, YEARS_4);
+        ve.create_lock(1_499_976 ether, YEARS_4);
         vm.prank(voter1);
         ve.create_lock(10 ether, YEARS_4);
         vm.prank(voter2);
@@ -95,45 +102,112 @@ contract GovernorHelpers is Helpers {
     //  - option A -> {[target1, target2], [value1, value2], [calldata1, calldata2]}
     //  - option B -> {[target1, target3], [value1, value3], [calldata1, calldata3]} etc.
     // `metadata` already contains encoded proposal information such as nOptions, nWinners & indices.
-    function _generateOptions(bytes memory _metadata, address target) internal pure returns (Operation[] memory) {
-        uint256 metadataLength = _metadata.length / 32;  // length = 6
-
-        // Decode metadata bytes string into uint256 variables
-        uint256[] memory decoded = new uint256[](metadataLength); // [4,1,1,2,3,4]
-        assembly {
-            let decodedPtr := add(decoded, 0x20) // Skip length prefix of array
-            for { let i := 0 } lt(i, metadataLength) { i := add(i, 1) } {
-                mstore(add(decodedPtr, mul(i, 0x20)), mload(add(_metadata, mul(i, 0x20))))
-            }
+    function _generateOptions(bytes memory _metadata) internal view returns (Operation[] memory) {
+        bytes32 nOptionsBytes;
+        assembly ("memory-safe") {
+            nOptionsBytes := mload(add(_metadata, 0x20)) // skip length prefix
         }
 
-        // Assign variables from decoded array
-        uint256 nOptions = decoded[0];
-        uint256 nOperations = decoded[2] - decoded[3];
+        uint256 nOptions = uint256(nOptionsBytes);
 
-        Operation[] memory options = new Operation[](nOptions);
-        options[0] = Operation(address(0), 0, _metadata);
+        uint256[] memory optionIndices = new uint256[](nOptions);
+
+        // Read indices in remainder of _metadata
+        //   0 = length prefix
+        //  32 = nOptions
+        //  64 = nWinners
+        //  96 = index of option 0
+        // 128 = index of option 1
+        // ...
+        // 96+(n*32) = index of option n
+        for (uint256 i = 0; i < nOptions; i++) {
+            uint256 offset = 96 + (i * 32);
+            bytes32 optionIndexBytes;
+            assembly ("memory-safe") {
+                optionIndexBytes := mload(add(_metadata, offset))
+            }
+            optionIndices[i] = uint256(optionIndexBytes);
+        }
+
+        // NOTE: all operations length needs to accommodate the highest option index + operations for that option
+        // Calculate nOperations from the difference between consecutive option indices
+        uint256 nOperations;
+        uint256 maxIndex = 0;
+
+        if (nOptions >= 2) {
+            // Calculate nOperations from the difference between consecutive option indices
+            // Handle non-incrementing indices (test case) by using a default value
+            if (optionIndices[1] >= optionIndices[0]) {
+                nOperations = optionIndices[1] - optionIndices[0];
+            } else {
+                // Non-incrementing indices - use a default value
+                // This allows the test to proceed and fail at the contract validation level
+                nOperations = 1;
+            }
+            // Find the maximum index to ensure array is large enough
+            for (uint256 i = 0; i < nOptions; i++) {
+                if (optionIndices[i] > maxIndex) {
+                    maxIndex = optionIndices[i];
+                }
+            }
+        } else if (nOptions == 1) {
+            // For nOptions == 1, we can't calculate from difference between options
+            // Default to 1 operation per option
+            nOperations = 1;
+            maxIndex = optionIndices[0];
+        } else {
+            // nOptions == 0: no operations needed, just metadata
+            nOperations = 0;
+            maxIndex = 0;
+        }
+
+        // Array size needs to be at least maxIndex + nOperations to accommodate all operations
+        // Add 1 for metadata at index 0
+        // For nOptions == 0, we still need at least 2 elements (metadata + one operation) 
+        // to match test expectations and allow contract validation to work
+        uint256 arraySize;
+        if (nOptions == 0) {
+            arraySize = 2; // metadata + one dummy operation for contract validation
+        } else {
+            arraySize = maxIndex > 0 ? maxIndex + nOperations + 1 : (nOptions * nOperations) + 1;
+        }
+        Operation[] memory allOperations = new Operation[](arraySize);
+        allOperations[0] = Operation(address(0), 0, _metadata);
+
+        // Counter to simulate push behavior (starts at 1 since index 0 is metadata)
+        uint256 currentIndex = 1;
 
         // NOTE: Options indices are 1-indexed because metadata occupies calldatas[0].
-        for (uint256 i = 1; i < nOptions + 1; i++) {
+        for (uint256 i = 1; i <= nOptions; i++) {
             // NOTE: Operations are also 1-indexed for sake of testing (when viewing in logs)
             for (uint256 j = 1; j <= nOperations; j++) {
                 uint256 val = 0;
                 bytes memory data =
                     abi.encodeWithSelector(CallReceiverMock.mockFunctionWithArgs.selector, i, j);
-                options[i + 1] = Operation(target, val, data);
+                allOperations[currentIndex] = Operation(address(receiver), val, data);
+                currentIndex++; // Simulate push by incrementing counter
             }
         }
 
-        return options;
+        // When nOptions == 0, add a dummy operation at index 1 to match test expectations
+        // This allows the contract to properly validate the metadata
+        if (nOptions == 0 && arraySize > 1) {
+            allOperations[1] = Operation(address(receiver), 0, abi.encodeWithSelector(CallReceiverMock.mockFunction.selector));
+        }
+
+        return allOperations;
     }
 
     // INFO: Given a number of options and an option to vote for, format the vote weights such that all are zero
     // except for the option to vote for. This will result in all available votes going towards this option.
     function _encodeSingleVote(uint256 _nOptions, uint256 _singleOption) internal pure returns (bytes memory) {
-        bytes memory params;
+        bytes memory params = new bytes(_nOptions * 32);
         for (uint256 i = 0; i < _nOptions; i++) {
-            params = abi.encode(params, i == _singleOption ? 100 : 0);
+            uint256 weight_i = i == _singleOption ? 100 : 0;
+            assembly {
+                let paramsPtr := add(params, 0x20) // Skip length prefix
+                mstore(add(paramsPtr, mul(i, 0x20)), weight_i)
+            }
         }
         return params;
     }
@@ -141,9 +215,13 @@ contract GovernorHelpers is Helpers {
     // INFO: Given a number of options, format the vote weights such that each option is attributed an equal weight.
     // This will result in their total votes being divided between each option.
     function _encodeApprovalVote(uint256 _nOptions) internal pure returns (bytes memory) {
-        bytes memory params;
+        bytes memory params = new bytes(_nOptions * 32);
         for (uint256 i = 0; i < _nOptions; i++) {
-            params = abi.encode(params, 100);
+            uint256 weight_i = 100;
+            assembly {
+                let paramsPtr := add(params, 0x20) // Skip length prefix
+                mstore(add(paramsPtr, mul(i, 0x20)), weight_i)
+            }
         }
         return params;
     }
@@ -151,118 +229,149 @@ contract GovernorHelpers is Helpers {
     // INFO: Given a number of options and a weighting array, format the vote weights according to the weighting array.
     // This allows the voter to attribute varying proportions of their available votes to different options.
     function _encodeWeightedVote(uint256 _nOptions, uint256[] memory _weights) internal pure returns (bytes memory) {
-        bytes memory params;
+        bytes memory params = new bytes(_nOptions * 32);
         for (uint256 i = 0; i < _nOptions; i++) {
-            params = abi.encode(params, _weights[i]);
+            uint256 weight_i = _weights[i];
+            assembly {
+                let paramsPtr := add(params, 0x20) // Skip length prefix
+                mstore(add(paramsPtr, mul(i, 0x20)), weight_i)
+            }
         }
         return params;
     }
 
-    function _getProposalConfiguration() internal view returns (uint256, uint256) {
-        (uint256 nOptions, uint256 nWinners) = IContinuumDAO(address(continuumDAO)).proposalConfiguration(proposalId);
-        return (nOptions, nWinners);
+    // INFO: Get proposal configuration for a delta proposal (number of options and number of winners)
+    function _getProposalConfiguration(uint256 _proposalId) internal view returns (uint256 nOptions, uint256 nWinners) {
+        (nOptions, nWinners) = IContinuumDAO(address(continuumDAO)).proposalConfiguration(_proposalId);
+    }
+
+    // INFO: Get proposal votes for each option and the total voting power cast
+    function _getProposalVotesDelta(uint256 _proposalId) internal view returns (uint256[] memory optionVotes, uint256 totalVotes) {
+        (optionVotes, totalVotes) = continuumDAO.proposalVotesDelta(_proposalId);
     }
 
     // INFO: Helper to shorten the tests where `propose` is not being tested.
     function _proposeDelta(
-        address _proposer,
         uint256 _nOptions,
         uint256 _nWinners,
         uint256 _nOperations,
-        address _target
+        string memory _description
     ) internal {
         bytes memory metadata = _buildMetadata(_nOptions, _nWinners, _nOperations);
-        Operation[] memory options = _generateOptions(metadata, _target);
-        vm.prank(_proposer);
-        _propose(options, "<proposal description>");
-        _waitForSnapshot();
+        optionsDelta = _generateOptions(metadata);
+        proposalIdDelta = _propose(proposer, optionsDelta, _description);
+        nOptionsDelta = _nOptions;
+        descriptionDelta = _description;
+        _waitForSnapshot(proposalIdDelta);
     }
 
     // INFO: Helper to shorten the tests where `castVote` is not being tested.
     function _castVoteDelta(
-        uint256 _nOptions,
         uint256 _supportSingle,
         uint256[] memory _supportWeighted
     ) internal {
-        bytes memory paramsSingle = _encodeSingleVote(_nOptions, _supportSingle);
-        bytes memory paramsApproval = _encodeApprovalVote(_nOptions);
-        bytes memory paramsWeighted = _encodeWeightedVote(_nOptions, _supportWeighted);
-        _castVoteWithReasonAndParams(voter1, AGAINST, "", paramsSingle);
-        _castVoteWithReasonAndParams(voter2, AGAINST, "", paramsApproval);
-        _castVoteWithReasonAndParams(voter3, AGAINST, "", paramsWeighted);
-        _waitForDeadline();
+        bytes memory paramsSingle = _encodeSingleVote(nOptionsDelta, _supportSingle);
+        bytes memory paramsApproval = _encodeApprovalVote(nOptionsDelta);
+        bytes memory paramsWeighted = _encodeWeightedVote(nOptionsDelta, _supportWeighted);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "", paramsSingle);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "", paramsApproval);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "", paramsWeighted);
+        _waitForDeadline(proposalIdDelta);
     }
 
-    function _propose(Operation[] memory _options, string memory _description) internal {
-        address[] memory targets = new address[](_options.length);
-        uint256[] memory values = new uint256[](_options.length);
-        bytes[] memory calldatas = new bytes[](_options.length);
-        for (uint256 i = 0; i < _options.length; i++) {
-            targets[i] = _options[i].target;
-            values[i] = _options[i].val;
-            calldatas[i] = _options[i].data;
-        }
-        proposalId = continuumDAO.propose(targets, values, calldatas, _description);
-        initiationTs = block.timestamp;
-        snapshotTs = initiationTs + continuumDAO.votingDelay();
-        completionTs = snapshotTs + continuumDAO.votingPeriod();
+    // INFO: Helper to shorted the tests where `execute` is not being tested.
+    function _executeDelta() internal {
+        _execute(proposer, optionsDelta, descriptionDelta);
     }
 
-    function _execute(Operation[] memory _options, string memory _description) internal {
-        address[] memory targets = new address[](_options.length);
-        uint256[] memory values = new uint256[](_options.length);
-        bytes[] memory calldatas = new bytes[](_options.length);
-        for (uint256 i = 0; i < _options.length; i++) {
-            targets[i] = _options[i].target;
-            values[i] = _options[i].val;
-            calldatas[i] = _options[i].data;
-        }
-        proposalId = continuumDAO.execute(targets, values, calldatas, keccak256(bytes(_description)));
+    function _propose(
+        address _proposer,
+        Operation[] memory _operations,
+        string memory _description
+    ) internal returns (uint256) {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = _operationsToArrays(_operations);
+        vm.prank(_proposer);
+        uint256 _proposalId = continuumDAO.propose(targets, values, calldatas, _description);
+        return _proposalId;
     }
 
-    function _waitForSnapshot() internal {
-        // uint256 _t = continuumDAO.votingDelay() + 1;
-        // skip(_t);
-        // currentTs += _t;
-        vm.warp(continuumDAO.proposalSnapshot(proposalId) + 1);
+    function _execute(
+        address _executor,
+        Operation[] memory _operations,
+        string memory _description
+    ) internal returns (uint256) {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = _operationsToArrays(_operations);
+        vm.prank(_executor);
+        return continuumDAO.execute(targets, values, calldatas, keccak256(bytes(_description)));
     }
 
-    function _waitForDeadline() internal {
-        // uint256 _t = continuumDAO.votingPeriod() + 10;
-        // skip(_t);
-        // currentTs += _t;
-        vm.warp(continuumDAO.proposalDeadline(proposalId) + 1);
+    // INFO: GovernorStorage utility to execute functions by ID instead of by targets/values/calldatas/descriptionHash
+    function _executeById(address _executor, uint256 _proposalId) internal {
+        vm.prank(_executor);
+        continuumDAO.execute(_proposalId);
     }
 
+    // INFO: Skip the time between proposal creation and snapshot (votingDelay)
+    function _waitForSnapshot(uint256 _proposalId) internal {
+        uint256 waitTime = continuumDAO.proposalSnapshot(_proposalId);
+        currentTs += waitTime;
+        vm.warp(waitTime + 1);
+    }
+
+    // INFO: Skip the the between proposal snapshot and deadline (votingPeriod)
+    function _waitForDeadline(uint256 _proposalId) internal {
+        uint256 waitTime = continuumDAO.proposalDeadline(_proposalId);
+        currentTs += waitTime;
+        vm.warp(waitTime + 1);
+    }
+
+    // INFO: Skip time
     function _advanceTime(uint256 _time) internal {
         currentTs += _time;
         skip(_time);
     }
 
     function _castVote(
+        uint256 _proposalId,
         address _voter,
         GovernorCountingMultiple.VoteTypeSimple _support
     ) internal returns (uint256) {
         vm.prank(_voter);
-        return continuumDAO.castVote(proposalId, uint8(_support));
+        return continuumDAO.castVote(_proposalId, uint8(_support));
     }
 
     function _castVoteWithReason(
+        uint256 _proposalId,
         address _voter,
         GovernorCountingMultiple.VoteTypeSimple _support,
         string memory _reason
     ) internal returns (uint256) {
         vm.prank(_voter);
-        return continuumDAO.castVoteWithReason(proposalId, uint8(_support), _reason);
+        return continuumDAO.castVoteWithReason(_proposalId, uint8(_support), _reason);
     }
 
     function _castVoteWithReasonAndParams(
+        uint256 _proposalId,
         address _voter,
         GovernorCountingMultiple.VoteTypeSimple _support,
         string memory _reason,
         bytes memory _params
     ) internal returns (uint256) {
         vm.prank(_voter);
-        return continuumDAO.castVoteWithReasonAndParams(proposalId, uint8(_support), _reason, _params);
+        return continuumDAO.castVoteWithReasonAndParams(_proposalId, uint8(_support), _reason, _params);
+    }
+
+    function _operationsToArrays(
+        Operation[] memory _operations
+    ) internal pure returns (address[] memory, uint256[] memory, bytes[] memory) {
+        address[] memory targets = new address[](_operations.length);
+        uint256[] memory values = new uint256[](_operations.length);
+        bytes[] memory calldatas = new bytes[](_operations.length);
+        for (uint256 i = 0; i < _operations.length; i++) {
+            targets[i] = _operations[i].target;
+            values[i] = _operations[i].val;
+            calldatas[i] = _operations[i].data;
+        }
+        return (targets, values, calldatas);
     }
 }

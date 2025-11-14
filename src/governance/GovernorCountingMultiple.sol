@@ -95,12 +95,13 @@ abstract contract GovernorCountingMultiple is Governor {
     mapping(uint256 => ProposalConfig) internal _proposalConfig;
 
     /**
-     * @notice Override of {Governor-propose} to incorporate multiple-option (Delta) proposals.
+     * @notice Override of {Governor-_propose} to incorporate multiple-option (Delta) proposals.
      * @param targets Target addresses for every possible outcome. targets[0] should be address(0) if using Delta.
      * @param values Values (ETH) attached for every possible outcome. values[0] should be 0 if using Delta.
      * @param calldatas Calldatas to execute for every possible outcome. In the case of Delta proposals, calldatas[0]
      * should be reserved to store the number of options and number of winners (execute top x of n).
      * @param description The string description for the proposal, eg. for first proposal "#1: Do XYZ."
+     * @param proposer The address of the creator of the proposal.
      * @dev In multiple-option (Delta) voting, each option has its own set of on-chain operations
      * (targets/values/calldatas). Proposal metadata (calldatas[0]) standard introduced:
      * The first bytes32 is used to store the number of options.
@@ -109,28 +110,13 @@ abstract contract GovernorCountingMultiple is Governor {
      * `calldatas` arrays.
      * @return The proposal ID.
      */
-    function propose(
+    function _propose(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        string memory description
-    ) public virtual override returns (uint256) {
-        address proposer = _msgSender();
-
-        // check description restriction
-        if (!_isValidDescriptionForProposer(proposer, description)) {
-            revert GovernorRestrictedProposer(proposer);
-        }
-
-        // check proposal threshold
-        uint256 votesThreshold = proposalThreshold();
-        if (votesThreshold > 0) {
-            uint256 proposerVotes = getVotes(proposer, clock() - 1);
-            if (proposerVotes < votesThreshold) {
-                revert GovernorInsufficientProposerVotes(proposer, proposerVotes, votesThreshold);
-            }
-        }
-
+        string memory description,
+        address proposer
+    ) internal virtual override returns (uint256) {
         uint256 proposalId = super._propose(targets, values, calldatas, description, proposer);
 
         uint256 nOptions = 0;
@@ -400,7 +386,7 @@ abstract contract GovernorCountingMultiple is Governor {
     /**
      * @inheritdoc Governor
      * @dev In this module, quorum is considered to be reached if the total votes cast across every option on the
-     * proposal surpass the quorum at snapshot.
+     * proposal surpasses the quorum at snapshot.
      */
     function _quorumReached(uint256 proposalId) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
