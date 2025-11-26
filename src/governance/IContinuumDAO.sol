@@ -193,10 +193,7 @@ interface IContinuumDAO {
     function hasVoted(uint256 proposalId, address account) external view returns (bool);
     function proposalVotesDelta(uint256 proposalId) external view returns (uint256[] memory, uint256);
     function COUNTING_MODE() external pure returns (string memory);
-    function proposalConfiguration(uint256 proposalId)
-        external
-        view
-        returns (uint256, uint256);
+    function proposalConfiguration(uint256 proposalId) external view returns (uint256, uint256);
     // function _proposalVotes;
     // function _proposalConfig;
     // function _countVote;

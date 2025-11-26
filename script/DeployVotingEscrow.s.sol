@@ -25,7 +25,7 @@ contract DeployVotingEscrow is Script {
         try vm.envAddress("DEPLOYER") returns (address _deployer) {
             deployer = _deployer;
         } catch {
-            revert ("DEPLOYER not defined");
+            revert("DEPLOYER not defined");
         }
 
         try vm.envAddress(feeTokenKey) returns (address _feeToken) {

@@ -61,11 +61,11 @@ contract GovernorHelpers is Helpers {
     }
 
     // INFO: Builds metadata with either a single operation or multiple operations per option.
-    function _buildMetadata(
-        uint256 _nOptions,
-        uint256 _nWinners,
-        uint256 _nOperations
-    ) internal pure returns (bytes memory) {
+    function _buildMetadata(uint256 _nOptions, uint256 _nWinners, uint256 _nOperations)
+        internal
+        pure
+        returns (bytes memory)
+    {
         // the first two 32-bytes chunks in metadata are reserved for nOptions and nWinners.
         // first 32-bytes is number of options; second 32-bytes is number of winners
         // Create bytes memory with exact size: (_nOptions + 2) * 32 bytes
@@ -163,7 +163,7 @@ contract GovernorHelpers is Helpers {
 
         // Array size needs to be at least maxIndex + nOperations to accommodate all operations
         // Add 1 for metadata at index 0
-        // For nOptions == 0, we still need at least 2 elements (metadata + one operation) 
+        // For nOptions == 0, we still need at least 2 elements (metadata + one operation)
         // to match test expectations and allow contract validation to work
         uint256 arraySize;
         if (nOptions == 0) {
@@ -182,8 +182,7 @@ contract GovernorHelpers is Helpers {
             // NOTE: Operations are also 1-indexed for sake of testing (when viewing in logs)
             for (uint256 j = 1; j <= nOperations; j++) {
                 uint256 val = 0;
-                bytes memory data =
-                    abi.encodeWithSelector(CallReceiverMock.mockFunctionWithArgs.selector, i, j);
+                bytes memory data = abi.encodeWithSelector(CallReceiverMock.mockFunctionWithArgs.selector, i, j);
                 allOperations[currentIndex] = Operation(address(receiver), val, data);
                 currentIndex++; // Simulate push by incrementing counter
             }
@@ -192,7 +191,8 @@ contract GovernorHelpers is Helpers {
         // When nOptions == 0, add a dummy operation at index 1 to match test expectations
         // This allows the contract to properly validate the metadata
         if (nOptions == 0 && arraySize > 1) {
-            allOperations[1] = Operation(address(receiver), 0, abi.encodeWithSelector(CallReceiverMock.mockFunction.selector));
+            allOperations[1] =
+                Operation(address(receiver), 0, abi.encodeWithSelector(CallReceiverMock.mockFunction.selector));
         }
 
         return allOperations;
@@ -246,17 +246,18 @@ contract GovernorHelpers is Helpers {
     }
 
     // INFO: Get proposal votes for each option and the total voting power cast
-    function _getProposalVotesDelta(uint256 _proposalId) internal view returns (uint256[] memory optionVotes, uint256 totalVotes) {
+    function _getProposalVotesDelta(uint256 _proposalId)
+        internal
+        view
+        returns (uint256[] memory optionVotes, uint256 totalVotes)
+    {
         (optionVotes, totalVotes) = continuumDAO.proposalVotesDelta(_proposalId);
     }
 
     // INFO: Helper to shorten the tests where `propose` is not being tested.
-    function _proposeDelta(
-        uint256 _nOptions,
-        uint256 _nWinners,
-        uint256 _nOperations,
-        string memory _description
-    ) internal {
+    function _proposeDelta(uint256 _nOptions, uint256 _nWinners, uint256 _nOperations, string memory _description)
+        internal
+    {
         bytes memory metadata = _buildMetadata(_nOptions, _nWinners, _nOperations);
         optionsDelta = _generateOptions(metadata);
         proposalIdDelta = _propose(proposer, optionsDelta, _description);
@@ -266,10 +267,7 @@ contract GovernorHelpers is Helpers {
     }
 
     // INFO: Helper to shorten the tests where `castVote` is not being tested.
-    function _castVoteDelta(
-        uint256 _supportSingle,
-        uint256[] memory _supportWeighted
-    ) internal {
+    function _castVoteDelta(uint256 _supportSingle, uint256[] memory _supportWeighted) internal {
         bytes memory paramsSingle = _encodeSingleVote(nOptionsDelta, _supportSingle);
         bytes memory paramsApproval = _encodeApprovalVote(nOptionsDelta);
         bytes memory paramsWeighted = _encodeWeightedVote(nOptionsDelta, _supportWeighted);
@@ -284,22 +282,20 @@ contract GovernorHelpers is Helpers {
         _execute(proposer, optionsDelta, descriptionDelta);
     }
 
-    function _propose(
-        address _proposer,
-        Operation[] memory _operations,
-        string memory _description
-    ) internal returns (uint256) {
+    function _propose(address _proposer, Operation[] memory _operations, string memory _description)
+        internal
+        returns (uint256)
+    {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = _operationsToArrays(_operations);
         vm.prank(_proposer);
         uint256 _proposalId = continuumDAO.propose(targets, values, calldatas, _description);
         return _proposalId;
     }
 
-    function _execute(
-        address _executor,
-        Operation[] memory _operations,
-        string memory _description
-    ) internal returns (uint256) {
+    function _execute(address _executor, Operation[] memory _operations, string memory _description)
+        internal
+        returns (uint256)
+    {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = _operationsToArrays(_operations);
         vm.prank(_executor);
         return continuumDAO.execute(targets, values, calldatas, keccak256(bytes(_description)));
@@ -331,11 +327,10 @@ contract GovernorHelpers is Helpers {
         skip(_time);
     }
 
-    function _castVote(
-        uint256 _proposalId,
-        address _voter,
-        GovernorCountingMultiple.VoteTypeSimple _support
-    ) internal returns (uint256) {
+    function _castVote(uint256 _proposalId, address _voter, GovernorCountingMultiple.VoteTypeSimple _support)
+        internal
+        returns (uint256)
+    {
         vm.prank(_voter);
         return continuumDAO.castVote(_proposalId, uint8(_support));
     }
@@ -361,9 +356,11 @@ contract GovernorHelpers is Helpers {
         return continuumDAO.castVoteWithReasonAndParams(_proposalId, uint8(_support), _reason, _params);
     }
 
-    function _operationsToArrays(
-        Operation[] memory _operations
-    ) internal pure returns (address[] memory, uint256[] memory, bytes[] memory) {
+    function _operationsToArrays(Operation[] memory _operations)
+        internal
+        pure
+        returns (address[] memory, uint256[] memory, bytes[] memory)
+    {
         address[] memory targets = new address[](_operations.length);
         uint256[] memory values = new uint256[](_operations.length);
         bytes[] memory calldatas = new bytes[](_operations.length);

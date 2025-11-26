@@ -7,7 +7,7 @@ import {GovernorHelpers} from "../helpers/GovernorHelpers.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {CallReceiverMock} from "../helpers/mocks/CallReceiverMock.sol";
-import { GovernorCountingMultiple } from "../../src/governance/GovernorCountingMultiple.sol";
+import {GovernorCountingMultiple} from "../../src/governance/GovernorCountingMultiple.sol";
 
 contract TestGovernorPreventLateQuorum is GovernorHelpers {
     uint48 votingDelay = 4;
@@ -19,7 +19,7 @@ contract TestGovernorPreventLateQuorum is GovernorHelpers {
         continuumDAO.setProposalThreshold(1);
         continuumDAO.setVotingDelay(votingDelay);
         continuumDAO.setVotingPeriod(votingPeriod);
-        continuumDAO.updateQuorumNumerator(5);      // set quorum to 5% of total supply
+        continuumDAO.updateQuorumNumerator(5); // set quorum to 5% of total supply
         continuumDAO.updateSuperQuorumNumerator(10); // set super quorum to 10% of total supply
         continuumDAO.setLateQuorumVoteExtension(5);
         vm.stopPrank();

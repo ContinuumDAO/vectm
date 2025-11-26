@@ -45,9 +45,7 @@ contract TestGovernorSettings is GovernorHelpers {
         vm.startPrank(address(continuumDAO));
         vm.expectRevert(
             abi.encodeWithSelector(
-                ContinuumDAO.GovernorInvalidProposalThreshold.selector,
-                invalidDenominator,
-                proposalThresholdDenominator
+                ContinuumDAO.GovernorInvalidProposalThreshold.selector, invalidDenominator, proposalThresholdDenominator
             )
         );
         continuumDAO.updateProposalThresholdNumerator(invalidDenominator);

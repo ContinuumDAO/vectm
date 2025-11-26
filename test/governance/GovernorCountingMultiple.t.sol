@@ -7,7 +7,11 @@ import {GovernorHelpers} from "../helpers/GovernorHelpers.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {CallReceiverMock} from "../helpers/mocks/CallReceiverMock.sol";
-import {GovernorDeltaInvalidVoteParams, GovernorDeltaInvalidProposal, GovernorNonIncrementingOptionIndices} from "../../src/governance/GovernorCountingMultiple.sol";
+import {
+    GovernorDeltaInvalidVoteParams,
+    GovernorDeltaInvalidProposal,
+    GovernorNonIncrementingOptionIndices
+} from "../../src/governance/GovernorCountingMultiple.sol";
 
 contract TestGovernorCountingMultiple is GovernorHelpers {
     uint48 votingDelay = 4;
@@ -118,7 +122,9 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         // for voter3, this should equal 5/2 = 2.5 CTM each to option 1 and option 3
 
         _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "I like the this option", paramsSingle);
-        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval);
+        _castVoteWithReasonAndParams(
+            proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval
+        );
         _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "I like these options only", paramsWeighted);
 
         (uint256[] memory optionVotes, uint256 totalVotes) = _getProposalVotesDelta(proposalIdDelta);
@@ -126,10 +132,10 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         assertApproxEqRel(totalVotes, 22 ether, 0.1 ether);
         // PASSED: 4.25 + 1.75 + 14.25 + 1.75 = 22.0 CTM
 
-        assertApproxEqRel(optionVotes[0], 4.25 ether, 0.1 ether);   // 1.75 + 2.5 = 4.25
-        assertApproxEqRel(optionVotes[1], 1.75 ether, 0.1 ether);   // 1.75
-        assertApproxEqRel(optionVotes[2], 14.25 ether, 0.1 ether);  // 10 + 1.75 + 2.5 = 14.25 winner
-        assertApproxEqRel(optionVotes[3], 1.75 ether, 0.1 ether);   // 1.75
+        assertApproxEqRel(optionVotes[0], 4.25 ether, 0.1 ether); // 1.75 + 2.5 = 4.25
+        assertApproxEqRel(optionVotes[1], 1.75 ether, 0.1 ether); // 1.75
+        assertApproxEqRel(optionVotes[2], 14.25 ether, 0.1 ether); // 10 + 1.75 + 2.5 = 14.25 winner
+        assertApproxEqRel(optionVotes[3], 1.75 ether, 0.1 ether); // 1.75
     }
 
     function test_4Options1Winner_ExecuteWinner() public {
@@ -230,7 +236,9 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         // for voter3, this should equal 5/4 = 1.25 CTM each to options 1, 3, 5, 7
 
         _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "I like the this option", paramsSingle);
-        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval);
+        _castVoteWithReasonAndParams(
+            proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval
+        );
         _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "I like these options only", paramsWeighted);
 
         (uint256[] memory optionVotes, uint256 totalVotes) = _getProposalVotesDelta(proposalIdDelta);
@@ -363,7 +371,9 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         // for voter3, this should equal 5/8 = 0.625 CTM each to options 1, 3, 5, 7, 9, 11, 13, 15
 
         _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "I like the this option", paramsSingle);
-        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval);
+        _castVoteWithReasonAndParams(
+            proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval
+        );
         _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "I like these options only", paramsWeighted);
 
         (uint256[] memory optionVotes, uint256 totalVotes) = _getProposalVotesDelta(proposalIdDelta);
@@ -473,7 +483,9 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         // for voter3, this should equal 5/4 = 1.25 CTM to option 1, 5*3/4 = 3.75 CTM to option 2
 
         _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "I like the this option", paramsSingle);
-        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval);
+        _castVoteWithReasonAndParams(
+            proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval
+        );
         _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "I like these options only", paramsWeighted);
 
         (uint256[] memory optionVotes, uint256 totalVotes) = _getProposalVotesDelta(proposalIdDelta);
@@ -598,7 +610,9 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         // for voter3, this should equal 5/8 = 0.625 CTM each to options 1, 3, 5, 7, 9, 11, 13, 15
 
         _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "I like the this option", paramsSingle);
-        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval);
+        _castVoteWithReasonAndParams(
+            proposalIdDelta, voter2, AGAINST, "I want to distribute votes among all options", paramsApproval
+        );
         _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "I like these options only", paramsWeighted);
 
         (uint256[] memory optionVotes, uint256 totalVotes) = _getProposalVotesDelta(proposalIdDelta);
@@ -739,12 +753,7 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         _proposeDelta(2, 1, 1, "<proposal description>");
 
         vm.prank(voter1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                GovernorDeltaInvalidVoteParams.selector,
-                hex"00"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(GovernorDeltaInvalidVoteParams.selector, hex"00"));
         continuumDAO.castVoteWithReasonAndParams(proposalIdDelta, uint8(AGAINST), "", hex"00");
     }
 
@@ -752,12 +761,7 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         _proposeDelta(4, 2, 1, "<proposal description>");
 
         vm.prank(voter1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                GovernorDeltaInvalidVoteParams.selector,
-                hex""
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(GovernorDeltaInvalidVoteParams.selector, hex""));
         continuumDAO.castVote(proposalIdDelta, uint8(AGAINST));
     }
 

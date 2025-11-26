@@ -19,7 +19,7 @@ contract TestGovernorProposalGuardian is GovernorHelpers {
         continuumDAO.setProposalThreshold(1);
         continuumDAO.setVotingDelay(votingDelay);
         continuumDAO.setVotingPeriod(votingPeriod);
-        continuumDAO.updateQuorumNumerator(5);      // set quorum to 5% of total supply
+        continuumDAO.updateQuorumNumerator(5); // set quorum to 5% of total supply
         continuumDAO.updateSuperQuorumNumerator(10); // set super quorum to 10% of total supply
         continuumDAO.setLateQuorumVoteExtension(5);
         vm.stopPrank();

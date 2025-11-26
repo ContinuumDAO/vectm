@@ -13,8 +13,9 @@ contract Helpers is Test, Accounts, Deployer {
     function setUp() public virtual {
         (admin, treasury, committee, user1, user2) =
             abi.decode(abi.encode(_getAccounts()), (address, address, address, address, address));
-        (owner, proposer, voter1, voter2, voter3, voter4, other) =
-            abi.decode(abi.encode(_getGovernanceAccounts()), (address, address, address, address, address, address, address));
+        (owner, proposer, voter1, voter2, voter3, voter4, other) = abi.decode(
+            abi.encode(_getGovernanceAccounts()), (address, address, address, address, address, address, address)
+        );
 
         _deployUSDC();
         _deployCTM(admin);
