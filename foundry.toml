@@ -3,10 +3,10 @@
  out = "out"
  libs = ["lib"]
  solc = "0.8.27"
+ via_ir = true
  optimizer = true
- optimizer_runs = 100
+ optimizer_runs = 4_294_967_295
  evm_version = "cancun"
- viaIR = true
  no_match_coverage = "^(build/|script/|test/|lib/)"
 
 remappings = [
