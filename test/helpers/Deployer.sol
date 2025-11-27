@@ -6,6 +6,8 @@ import {C3Caller} from "@c3caller/C3Caller.sol";
 import {C3CallerUpgradeable} from "@c3caller/upgradeable/C3CallerUpgradeable.sol";
 import {C3UUIDKeeperUpgradeable} from "@c3caller/upgradeable/uuid/C3UUIDKeeperUpgradeable.sol";
 import {C3UUIDKeeper} from "@c3caller/uuid/C3UUIDKeeper.sol";
+import {C3DAppManagerUpgradeable} from "@c3caller/upgradeable/dapp/C3DAppManagerUpgradeable.sol";
+import {C3DAppManager} from "@c3caller/dapp/C3DAppManager.sol";
 
 import {ContinuumDAO} from "../../src/governance/ContinuumDAO.sol";
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
@@ -17,7 +19,8 @@ import {TestERC20} from "./mocks/TestERC20.sol";
 import {Utils} from "./Utils.sol";
 
 contract Deployer is Utils {
-    C3UUIDKeeper c3UUIDKeeper;
+    C3UUIDKeeper uuidKeeper;
+    C3DAppManager dappManager;
     C3Caller c3caller;
     TestERC20 usdc;
     CTM ctm;
@@ -35,13 +38,20 @@ contract Deployer is Utils {
     }
 
     function _deployC3Caller() internal {
-        address c3UUIDKeeperImpl = address(new C3UUIDKeeperUpgradeable());
-        c3UUIDKeeper =
-            C3UUIDKeeper(_deployProxy(c3UUIDKeeperImpl, abi.encodeCall(C3UUIDKeeperUpgradeable.initialize, ())));
+        address uuidKeeperImpl = address(new C3UUIDKeeperUpgradeable());
+        uuidKeeper = C3UUIDKeeper(_deployProxy(uuidKeeperImpl, abi.encodeCall(C3UUIDKeeperUpgradeable.initialize, ())));
+        address dappManagerImpl = address(new C3DAppManagerUpgradeable());
+        dappManager =
+            C3DAppManager(_deployProxy(dappManagerImpl, abi.encodeCall(C3DAppManagerUpgradeable.initialize, ())));
         address c3callerImpl = address(new C3CallerUpgradeable());
         c3caller = C3Caller(
-            _deployProxy(c3callerImpl, abi.encodeCall(C3CallerUpgradeable.initialize, (address(c3UUIDKeeper))))
+            _deployProxy(
+                c3callerImpl,
+                abi.encodeCall(C3CallerUpgradeable.initialize, (address(uuidKeeper), address(dappManager)))
+            )
         );
+        uuidKeeper.setC3Caller(address(c3caller));
+        dappManager.setC3Caller(address(c3caller));
     }
 
     function _deployVotingEscrow() internal {

@@ -80,12 +80,9 @@ interface IContinuumDAO {
     function getVotesWithParams(address account, uint256 timepoint, bytes memory params) external view returns (uint256);
     function castVote(uint256 proposalId, uint8 support) external returns (uint256);
     function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) external returns (uint256);
-    function castVoteWithReasonAndParams(
-        uint256 proposalId,
-        uint8 support,
-        string calldata reason,
-        bytes memory params
-    ) external returns (uint256);
+    function castVoteWithReasonAndParams(uint256 proposalId, uint8 support, string calldata reason, bytes memory params)
+        external
+        returns (uint256);
     function castVoteBySig(uint256 proposalId, uint8 support, address voter, bytes memory signature)
         external
         returns (uint256);
@@ -184,12 +181,9 @@ interface IContinuumDAO {
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) external payable returns (uint256);
-    function queue(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) external returns (uint256);
+    function queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        external
+        returns (uint256);
     function hasVoted(uint256 proposalId, address account) external view returns (bool);
     function proposalVotesDelta(uint256 proposalId) external view returns (uint256[] memory, uint256);
     function COUNTING_MODE() external pure returns (string memory);

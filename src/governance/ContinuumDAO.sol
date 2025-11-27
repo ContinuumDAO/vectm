@@ -86,12 +86,11 @@ contract ContinuumDAO is
         proposalThresholdDenominator = 100_000;
     }
 
-    function queue(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public override(Governor, GovernorCountingMultiple) returns (uint256) {
+    function queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        public
+        override(Governor, GovernorCountingMultiple)
+        returns (uint256)
+    {
         return super.queue(targets, values, calldatas, descriptionHash);
     }
 

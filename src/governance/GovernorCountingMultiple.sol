@@ -222,12 +222,12 @@ abstract contract GovernorCountingMultiple is Governor {
      * @param descriptionHash The keccak256 hash of the description hash.
      * @return The proposal ID.
      */
-    function queue(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public virtual override returns (uint256) {
+    function queue(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        public
+        virtual
+        override
+        returns (uint256)
+    {
         uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
         // Bravo proposal (referencing _proposalConfig because metadata is not yet defined)

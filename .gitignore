@@ -25,3 +25,7 @@ src/VotingEscrowOld.sol
 
 # Bash scripts
 flatten.sh
+
+
+# Soldeer
+/dependencies
