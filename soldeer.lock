@@ -1,8 +1,9 @@
 [[dependencies]]
 name = "@c3caller"
-version = "v0.1"
-git = "git@github.com:ContinuumDAO/c3caller.git"
-rev = "5e4bceeb1e6d8e0713d403489f7e61414c503d9f"
+version = "0.1.0"
+url = "https://soldeer-revisions.s3.amazonaws.com/@c3caller/0_1_0_28-11-2025_18:39:21_src.zip"
+checksum = "fd7192d2ca07066c052c996b8b8776d64f186b22bf506b0ff3432907209dc3a0"
+integrity = "15c1cb04ebac80b416bda62acf013e34e46ccce556df83c8c1d4d2b0b6d86a3b"
 
 [[dependencies]]
 name = "@openzeppelin-contracts"

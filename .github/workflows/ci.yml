@@ -1,8 +1,9 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -10,7 +11,7 @@ jobs:
   test-and-coverage:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # For README badge updates
+      contents: write  # For auto-updating coverage badge
 
     steps:
       - name: Checkout repository
@@ -24,17 +25,7 @@ jobs:
           version: stable
 
       # -------------------------------------------------
-      # Manual HTTPS clone for c3caller (no SSH, public repo)
-      # -------------------------------------------------
-      - name: Clone c3caller via HTTPS (key-free)
-        run: |
-          rm -rf dependencies/c3caller  # Clean if exists
-          git clone --depth 1 --branch main https://github.com/ContinuumDAO/c3caller.git dependencies/c3caller
-          # --depth 1: Shallow clone (fast, no full history)
-          # --branch main: Pins to your branch
-
-      # -------------------------------------------------
-      # Soldeer: Installs other deps (skips c3caller as local)
+      # Soldeer: Installs ALL deps cleanly (including c3caller!)
       # -------------------------------------------------
       - name: Install Soldeer dependencies
         run: |
@@ -50,9 +41,9 @@ jobs:
           npm install -g lcov-badge-generator
 
       # -------------------------------------------------
-      # Your build pipeline
+      # Your build pipeline (via-IR + flattening)
       # -------------------------------------------------
-      - name: Run full build pipeline (helpers/all.sh)
+      - name: Run full build pipeline
         run: |
           chmod +x helpers/*.sh
           ./helpers/all.sh
@@ -60,17 +51,21 @@ jobs:
           FOUNDRY_PROFILE: default
 
       # -------------------------------------------------
-      # Tests & Coverage (unchanged)
+      # Tests
       # -------------------------------------------------
       - name: Run tests
         run: forge test -vvv
 
+      # -------------------------------------------------
+      # Coverage + badge
+      # -------------------------------------------------
       - name: Generate coverage
         run: |
           forge coverage --report lcov --report-file lcov.info --via-ir
+          # Strip external noise
           sed -i '/lib\/openzeppelin/d' lcov.info || true
           sed -i '/lib\/forge-std/d' lcov.info || true
-          sed -i '/dependencies\/c3caller/d' lcov.info || true  # Optional: Exclude noise
+          sed -i '/dependencies\/c3caller/d' lcov.info || true
 
       - name: Compute coverage badge
         id: coverage
@@ -98,12 +93,12 @@ jobs:
           git commit -m "chore: update coverage badge [skip ci]" || exit 0
           git push
 
-      - name: Upload artifacts (for debugging)
+      - name: Upload artifacts (debug)
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ci-artifacts
           path: |
             lcov.info
-            dependencies/c3caller/  # Verify clone
+            dependencies/
             cache/
