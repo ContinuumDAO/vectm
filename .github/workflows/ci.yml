@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -8,10 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test-and-coverage:
+  tests:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # For auto-updating coverage badge
 
     steps:
       - name: Checkout repository
@@ -25,25 +22,17 @@ jobs:
           version: stable
 
       # -------------------------------------------------
-      # Soldeer: Installs ALL deps cleanly (including c3caller!)
+      # Soldeer — now works perfectly because c3caller is public
       # -------------------------------------------------
       - name: Install Soldeer dependencies
         run: |
           forge soldeer install --clean
           forge soldeer update
 
-      - name: Install Node.js & coverage tools
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: |
-          sudo apt-get update && sudo apt-get install -y lcov bc
-          npm install -g lcov-badge-generator
-
       # -------------------------------------------------
-      # Your build pipeline (via-IR + flattening)
+      # Your full via-IR + flattening pipeline
       # -------------------------------------------------
-      - name: Run full build pipeline
+      - name: Build & format
         run: |
           chmod +x helpers/*.sh
           ./helpers/all.sh
@@ -51,54 +40,25 @@ jobs:
           FOUNDRY_PROFILE: default
 
       # -------------------------------------------------
-      # Tests
+      # Tests (this is the only thing that can fail the CI)
       # -------------------------------------------------
       - name: Run tests
         run: forge test -vvv
 
       # -------------------------------------------------
-      # Coverage + badge
+      # Optional: upload coverage as artifact (for manual download)
       # -------------------------------------------------
-      - name: Generate coverage
-        run: |
-          forge coverage --report lcov --report-file lcov.info --ir-minimum
-          # Strip external noise
-          sed -i '/lib\/openzeppelin/d' lcov.info || true
-          sed -i '/lib\/forge-std/d' lcov.info || true
-          sed -i '/dependencies\/c3caller/d' lcov.info || true
-
-      - name: Compute coverage badge
-        id: coverage
-        run: |
-          coverage=$(lcov-badge-generator lcov.info | grep -o '[0-9]\+\.[0-9]\+%' || echo "0%")
-          percent=$(echo $coverage | tr -d '%')
-
-          if   (( $(echo "$percent >= 95" | bc -l) )); then color="brightgreen"
-          elif (( $(echo "$percent >= 90" | bc -l) )); then color="green"
-          elif (( $(echo "$percent >= 80" | bc -l) )); then color="yellowgreen"
-          elif (( $(echo "$percent >= 70" | bc -l) )); then color="yellow"
-          else color="red"
-          fi
-
-          badge="https://img.shields.io/badge/coverage-$coverage-$color?style=flat-square"
-          echo "badge_url=$badge" >> $GITHUB_OUTPUT
-
-      - name: Update coverage badge in README
-        if: github.ref == 'refs/heads/main'
-        run: |
-          sed -i "s|https://img.shields.io/badge/coverage-[^ ]*-[^ ]*|${{ steps.coverage.outputs.badge_url }}|g" README.md
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "chore: update coverage badge [skip ci]" || exit 0
-          git push
-
-      - name: Upload artifacts (debug)
-        uses: actions/upload-artifact@v4
+      - name: Generate coverage report (optional artifact)
         if: always()
+        run: |
+          forge coverage --report lcov --report-file lcov.info --ir-minimum || true
+          mkdir -p coverage-artifacts
+          cp lcov.info coverage-artifacts/ || true
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: ci-artifacts
-          path: |
-            lcov.info
-            dependencies/
-            cache/
+          name: coverage-report
+          path: coverage-artifacts/
+          if-no-files-found: ignore
