@@ -1,9 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSL-1.1
+
+// IContinuumDAO - interface for the ContinuumDAO contract
+// Copyright (c) 2025 ContinuumDAO
 
 pragma solidity 0.8.27;
 
-import {Governor} from "./oz/Governor.sol";
-import {GovernorCountingMultiple} from "./GovernorCountingMultiple.sol";
+import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {IERC5805} from "@openzeppelin/contracts/interfaces/IERC5805.sol";
 
 interface IContinuumDAO {

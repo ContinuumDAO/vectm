@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -97,7 +97,7 @@ contract VotingEscrowUpgradesTest is Helpers {
     }
 
     // BASIC UPGRADE TESTS
-    function test_InitializedStateEqualToInput() public {
+    function test_InitializedStateEqualToInput() public view {
         string memory baseURI = ve.baseURI();
         assertEq(baseURI, BASE_URI_V1);
     }

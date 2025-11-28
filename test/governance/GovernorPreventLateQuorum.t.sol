@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -41,7 +41,7 @@ contract TestGovernorPreventLateQuorum is GovernorHelpers {
         return _proposalId;
     }
 
-    function test_PreventLateQuorum_LateQuorumExtension() public {
+    function test_PreventLateQuorum_LateQuorumExtension() public view {
         uint256 lateQuorumVoteExtension = continuumDAO.lateQuorumVoteExtension();
         assertEq(lateQuorumVoteExtension, 5);
     }

@@ -1,53 +1,37 @@
-GPL-3.0-or-later License (Used solely for VotingEscrow.sol)
+Business Source License 1.1
 
-Copyright (c) 2022 Solidly
+Parameters
 
-https://www.gnu.org/licenses/gpl-3.0.txt
+Licensor:             ContinuumDAO
+Licensed Work:        ContinuumDAO - Voting Escrow & Governance Contracts
+Additional Use Grant: You may use the Licensed Work for development, testing, and any non-production environment (including testnets and local forks) without limitation.
+Change Date:          2030-01-01
+Change License:       MIT
 
+------------------------------------------------------------
 
+Terms
 
+The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work. The Licensor may make an Additional Use Grant, above, permitting limited production use.
 
-MIT License (Used solely for GovernorCountingAdvanced.sol)
+Effective on the Change Date, or the fourth anniversary of the first publicly available distribution of a specific version of the Licensed Work under this License, whichever comes first, the Licensor irrevocably grants you a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to use the Licensed Work under the Change License (MIT).
 
-Copyright (c) 2016-2025 Zeppelin Group Ltd
+You may distribute the Licensed Work or derivative works only under the terms of this License or another license explicitly permitted by the Licensor.
 
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
+THIS LICENSED WORK IS PROVIDED "AS IS". THE LICENSOR MAKES NO WARRANTIES AND DISCLAIMS ALL LIABILITY.
 
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
+------------------------------------------------------------
+Additional Licensing Information
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+This repository contains files under multiple licenses:
 
+• GovernorCountingMultiple.sol, ContinuumDAO.sol and IContinuumDAO.sol
+  → Business Source License 1.1 (this file)
 
+• VotingEscrow.sol (modified from Solidly Exchange / Curve Finance)
+  → MIT License
 
+• All other Governor-related contracts copied and modified from OpenZeppelin Contracts
+  → MIT License
 
-Business Source License 1.1 (For all other contracts in this repository)
-
-Copyright (c) 2025 ContinuumDAO
-
-Licensor: ContinuumDAO
-
-Licensed under the Business Source License v1.1 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at https://mariadb.com/bsl11/.
-
-Software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
-IMPORTANT NOTE: This license will automatically transition to the GNU General Public License v3.0 or later on January 1, 2030. After this date, all contracts (except CTMRWA1.sol) will be licensed under GPL-3.0-or-later.
-
-For the full text of the GNU General Public License v3.0, see:
-https://www.gnu.org/licenses/gpl-3.0.txt
-
-CHANGE DATE: 2030-01-01
-
-CHANGE LICENSE: GPL-3.0-or-later
+See the SPDX-License-Identifier header at the top of each source file for the exact license that applies to that file.

@@ -1,4 +1,7 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSL-1.1
+
+// ContinuumDAO - main Governor contract
+// Copyright (c) 2025 ContinuumDAO
 
 pragma solidity 0.8.27;
 

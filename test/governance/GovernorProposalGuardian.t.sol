@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -27,7 +27,7 @@ contract TestGovernorProposalGuardian is GovernorHelpers {
         _advanceTime(1 weeks);
     }
 
-    function test_ProposalGuardian_State() public {
+    function test_ProposalGuardian_State() public view {
         address guardian = continuumDAO.proposalGuardian();
         assertEq(guardian, admin);
     }

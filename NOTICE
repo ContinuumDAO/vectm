@@ -1,0 +1,20 @@
+ContinuumDAO - Voting Escrow & Governance Contracts
+Copyright (c) 2025 ContinuumDAO
+
+This repository contains code under multiple licenses:
+
+1. Business Source License 1.1
+   Applies to:
+   - GovernorCountingMultiple.sol
+   - ContinuumDAO.sol
+
+2. MIT License
+   Applies to:
+   - VotingEscrow.sol (originally authored by Curve Finance / Solidly Exchange)
+   - All OpenZeppelin-derived Governor contracts and extensions, except GovernorCountingMultiple.sol
+
+The MIT-licensed portions retain their original copyright notices in the respective files.
+
+Full license texts are provided in this directory:
+- LICENSE (Business Source License 1.1)
+- Individual source files contain SPDX headers

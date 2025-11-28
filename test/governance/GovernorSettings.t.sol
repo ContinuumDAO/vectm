@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -13,7 +13,7 @@ contract TestGovernorSettings is GovernorHelpers {
         _advanceTime(1 weeks);
     }
 
-    function test_Settings_Defaults() public {
+    function test_Settings_Defaults() public view {
         uint256 votingPeriod = continuumDAO.votingPeriod();
         uint256 votingDelay = continuumDAO.votingDelay();
         uint256 proposalThresholdNumerator = continuumDAO.proposalThresholdNumerator();

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -696,7 +696,7 @@ contract VotingEscrowTest is Helpers {
     // ========== COMPREHENSIVE TESTS FOR UNTESTED FUNCTIONALITY ==========
 
     // Test ERC721 functionality
-    function test_ERC721Metadata() public {
+    function test_ERC721Metadata() public view {
         assertEq(ve.name(), "Voting Escrow Continuum");
         assertEq(ve.symbol(), "veCTM");
         assertEq(ve.decimals(), 18);
@@ -1171,7 +1171,7 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test supportsInterface
-    function test_SupportsInterface() public {
+    function test_SupportsInterface() public view {
         assertTrue(ve.supportsInterface(0x01ffc9a7)); // ERC165
         assertTrue(ve.supportsInterface(0x80ac58cd)); // ERC721
         assertTrue(ve.supportsInterface(0x5b5e139f)); // ERC721Metadata
@@ -1183,11 +1183,11 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test clock and CLOCK_MODE
-    function test_Clock() public {
+    function test_Clock() public view {
         assertEq(ve.clock(), block.timestamp);
     }
 
-    function test_ClockMode() public {
+    function test_ClockMode() public view {
         assertEq(ve.CLOCK_MODE(), "mode=timestamp");
     }
 
@@ -1246,7 +1246,7 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test ERC721Receiver
-    function test_ERC721Receiver() public {
+    function test_ERC721Receiver() public view {
         bytes4 selector = ve.onERC721Received(address(0), address(0), 0, "");
         assertEq(uint32(selector), 0x150b7a02);
     }
@@ -1451,12 +1451,12 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test error handling for invalid parameters
-    function test_ErrorHandling_InvalidTokenId() public {
+    function test_ErrorHandling_InvalidTokenId() public view {
         address owner = ve.ownerOf(999);
         assertEq(owner, address(0));
     }
 
-    function test_ErrorHandling_InvalidIndex() public {
+    function test_ErrorHandling_InvalidIndex() public view {
         uint256 tokenId1 = ve.tokenOfOwnerByIndex(user1, 0);
         assertEq(tokenId1, 0);
     }

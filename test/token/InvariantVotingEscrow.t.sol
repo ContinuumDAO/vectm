@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -114,7 +114,7 @@ contract InvariantVotingEscrow is StdInvariant, Helpers {
         targetSender(user1);
     }
 
-    function invariant_LockEndDoesNotIncrease() public {
+    function invariant_LockEndDoesNotIncrease() public view {
         uint8 nextOp = mergeSplitHandler.op();
 
         // NOTE: last operation was a merge or a split -> tokenId 1 always exists

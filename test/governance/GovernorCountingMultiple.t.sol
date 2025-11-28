@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.27;
 
@@ -29,7 +29,7 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         _advanceTime(1 weeks);
     }
 
-    function test_DeploymentCheck() public {
+    function test_DeploymentCheck() public view {
         assertEq(continuumDAO.COUNTING_MODE(), "support=bravo&quorum=for,abstain;support=delta&quorum=for");
     }
 

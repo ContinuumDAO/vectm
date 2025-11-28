@@ -5,11 +5,10 @@
 [![Solidity](https://img.shields.io/badge/Solidity-v0.8.27-#363636?style=for-the-badge&logo=solidity)](https://soliditylang.org)
 [![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-v5.4.0-#4e5ee4?style=for-the-badge&logo=openzeppelin)](https://docs.openzeppelin.com/contracts/5.x)
 [![Tests](https://img.shields.io/github/actions/workflow/status/ContinuumDAO/vectm/ci.yml?branch=main&label=tests&style=for-the-badge)](https://github.com/ContinuumDAO/vectm/actions)
+[![Coverage](https://img.shields.io/badge/coverage-0%25-red?style=flat-square)](https://github.com/ContinuumDAO/vectm/actions)
 [![Audit](https://img.shields.io/badge/Audit-In-Progress-brightgreen?style=for-the-badge)](https://github.com/ContinuumDAO/vectm/tree/main/audits)
 [![License](https://img.shields.io/github/license/ContinuumDAO/vectm?style=for-the-badge)](https://github.com/ContinuumDAO/vectm/blob/main/LICENSE)
 [![Foundry](https://img.shields.io/badge/Built%20with-Foundry-ff3366?style=for-the-badge&logo=foundry)](https://github.com/foundry-rs/foundry)
-
-# [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)](https://coverage.yourproject.com)
 
 ## Lock CTM tokens for a period of up to four years to become a DAO member
 

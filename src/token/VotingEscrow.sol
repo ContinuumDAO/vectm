@@ -1,4 +1,7 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
+
+// VotingEscrow - voting escrow (ve) logic
+// Originally ve.sol by Andre Cronje / Solidly Exchange (2022)
 
 pragma solidity 0.8.27;
 
@@ -21,7 +24,6 @@ import {IVotingEscrow} from "./IVotingEscrow.sol";
 
 /**
  * @title Voting Escrow
- * @author Curve Finance, Solidly, w/ OpenZeppelin contracts
  * @author Modified for ContinuumDAO by @patrickcure
  * @notice Time-weighted voting escrow system for veCTM tokens
  * @dev This contract implements a time-weighted voting escrow system where users lock CTM tokens

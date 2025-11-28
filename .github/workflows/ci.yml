@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                   # needed to push updated README badge
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry (nightly with via-IR support)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Node.js 20 (for badge generation)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install lcov utilities + badge generator
+        run: |
+          sudo apt-get update && sudo apt-get install -y lcov
+          npm install -g lcov-badge-generator
+
+      - name: Run full build & formatting pipeline (your helpers/all.sh)
+        run: |
+          chmod +x helpers/*.sh
+          ./helpers/all.sh
+        env:
+          FOUNDRY_PROFILE: default
+
+      - name: Run tests
+        run: forge test -vvv --via-ir
+
+      - name: Generate coverage report
+        run: |
+          forge coverage --report lcov --report-file lcov.info --via-ir
+
+      - name: Compute coverage percentage & generate badge
+        id: coverage
+        run: |
+          coverage=$(lcov-badge-generator lcov.info | grep -o '[0-9]\+\.[0-9]\+%' || echo "0%")
+          percent=$(echo $coverage | tr -d '%')
+          echo "Coverage: $coverage"
+
+          if   (( $(echo "$percent >= 95" | bc -l) )); then color="brightgreen"
+          elif (( $(echo "$percent >= 90" | bc -l) )); then color="green"
+          elif (( $(echo "$percent >= 80" | bc -l) )); then color="yellowgreen"
+          elif (( $(echo "$percent >= 70" | bc -l) )); then color="yellow"
+          else                                         color="red"
+          fi
+
+          badge="https://img.shields.io/badge/coverage-$coverage-$color?style=flat-square"
+          echo "badge_url=$badge" >> $GITHUB_OUTPUT
+          echo "coverage_percent=$percent" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------
+      # Auto-update README badge (only on main branch)
+      # -------------------------------------------------
+      - name: Update coverage badge in README
+        if: github.ref == 'refs/heads/main'
+        run: |
+          sed -i "s|https://img.shields.io/badge/coverage-[^_]*|${{ steps.coverage.outputs.badge_url }}|g" README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: update coverage badge [skip ci]" || exit 0
+          git push
+
+      # -------------------------------------------------
+      # Optional: static "Tests" badge (always up to date)
+      # -------------------------------------------------
+      - name: Upload test results (so the badge stays green/red correctly)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            test-results/
+            cache/
