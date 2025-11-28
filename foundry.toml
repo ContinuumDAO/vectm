@@ -33,6 +33,6 @@
 forge-std = "1.11.0"
 "@openzeppelin-contracts" = "5.4.0"
 "@openzeppelin-contracts-upgradeable" = "5.4.0"
-"@c3caller" = { version = "v0.1", git = "https://github.com/ContinuumDAO/c3caller.git", rev = "5e4bceeb1e6d8e0713d403489f7e61414c503d9f" }
+"@c3caller" = { version = "v0.1", git = "https://github.com/ContinuumDAO/c3caller.git", branch = "main", rev = "5e4bceeb1e6d8e0713d403489f7e61414c503d9f" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

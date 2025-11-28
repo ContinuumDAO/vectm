@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -11,28 +10,31 @@ jobs:
   test-and-coverage:
     runs-on: ubuntu-latest
     permissions:
-      contents: write           # needed for auto-updating README badge
+      contents: write  # For README badge updates
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive  # Fallback for any remaining git deps
 
-      # -------------------------------------------------
-      # Latest Stable Foundry
-      # -------------------------------------------------
-      - name: Install Foundry
+      - name: Install Foundry (latest stable)
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
 
       # -------------------------------------------------
-      # Install Soldeer dependencies via built-in forge soldeer
+      # Soldeer: Clean install + explicit Git for c3caller
       # -------------------------------------------------
       - name: Install Soldeer dependencies
-        run: forge soldeer install --clean
-        # or `forge soldeer update` if you want to cache for future
+        run: |
+          # Fresh clean install
+          forge soldeer install --clean
+          # Standard update for non-Git deps
+          forge soldeer update
+          # Explicit Git for c3caller (fixes "cannot install")
+          forge soldeer install c3caller --git https://github.com/ContinuumDAO/c3caller.git --branch main --recursive-deps
+        # If pinning: add --rev <commit-hash> above
 
       - name: Install Node.js & coverage tools
         uses: actions/setup-node@v4
@@ -43,7 +45,7 @@ jobs:
           npm install -g lcov-badge-generator
 
       # -------------------------------------------------
-      # Your existing build pipeline (via-IR + flattening)
+      # Your build pipeline
       # -------------------------------------------------
       - name: Run full build pipeline (helpers/all.sh)
         run: |
@@ -53,7 +55,7 @@ jobs:
           FOUNDRY_PROFILE: default
 
       # -------------------------------------------------
-      # Tests & Coverage
+      # Tests & Coverage (unchanged)
       # -------------------------------------------------
       - name: Run tests
         run: forge test -vvv
@@ -61,10 +63,9 @@ jobs:
       - name: Generate coverage
         run: |
           forge coverage --report lcov --report-file lcov.info --via-ir
-          # Remove noise from external libs
           sed -i '/lib\/openzeppelin/d' lcov.info || true
           sed -i '/lib\/forge-std/d' lcov.info || true
-          sed -i '/dependencies/d' lcov.info || true
+          sed -i '/dependencies\/c3caller/d' lcov.info || true  # Exclude c3caller noise
 
       - name: Compute coverage badge
         id: coverage
@@ -81,11 +82,7 @@ jobs:
 
           badge="https://img.shields.io/badge/coverage-$coverage-$color?style=flat-square"
           echo "badge_url=$badge" >> $GITHUB_OUTPUT
-          echo "coverage_percent=$percent" >> $GITHUB_OUTPUT
 
-      # -------------------------------------------------
-      # Auto-update README badge (only on main)
-      # -------------------------------------------------
       - name: Update coverage badge in README
         if: github.ref == 'refs/heads/main'
         run: |
@@ -96,11 +93,12 @@ jobs:
           git commit -m "chore: update coverage badge [skip ci]" || exit 0
           git push
 
-      - name: Upload artifacts (debug)
+      - name: Upload artifacts (for debugging)
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ci-artifacts
           path: |
             lcov.info
+            dependencies/  # Inspect c3caller install
             cache/
