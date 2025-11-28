@@ -22,4 +22,3 @@ $$P = a \times {t_l \over t_{max}}$$
 - OpenZeppelin [UUPS Proxy](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) patterns are used, complying to ERC-1967.
 
 ---
-
