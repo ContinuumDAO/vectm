@@ -28,13 +28,8 @@ jobs:
       # -------------------------------------------------
       - name: Install Soldeer dependencies
         run: |
-          # Fresh clean install
-          forge soldeer install --clean
-          # Standard update for non-Git deps
-          forge soldeer update
-          # Explicit Git for c3caller (fixes "cannot install")
-          forge soldeer install c3caller --git https://github.com/ContinuumDAO/c3caller.git --branch main --recursive-deps
-        # If pinning: add --rev <commit-hash> above
+          forge soldeer install --clean --no-git
+          forge soldeer update --no-git # This now works perfectly for c3caller
 
       - name: Install Node.js & coverage tools
         uses: actions/setup-node@v4
