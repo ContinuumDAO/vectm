@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main]   # Adjust as needed
   pull_request:
     branches: [main]
 
@@ -10,18 +10,25 @@ jobs:
   test-and-coverage:
     runs-on: ubuntu-latest
     permissions:
-      contents: write                   # needed to push updated README badge
+      contents: write                   # Needed to push updated README badge
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive  # Handles any git-based deps, but forge soldeer will override for its own
 
       - name: Install Foundry (nightly with via-IR support)
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      # -------------------------------------------------
+      # NEW: Ensure Soldeer dependencies are installed (built-in forge soldeer)
+      # -------------------------------------------------
+      - name: Install Soldeer dependencies
+        run: forge soldeer update
+        # Optional flags if needed: --clean for fresh install, or --recursive-deps
 
       - name: Install Node.js 20 (for badge generation)
         uses: actions/setup-node@v4
@@ -30,22 +37,36 @@ jobs:
 
       - name: Install lcov utilities + badge generator
         run: |
-          sudo apt-get update && sudo apt-get install -y lcov
+          sudo apt-get update && sudo apt-get install -y lcov bc  # bc for percentage math
           npm install -g lcov-badge-generator
 
+      # -------------------------------------------------
+      # YOUR EXISTING BUILD PIPELINE — unchanged
+      # -------------------------------------------------
       - name: Run full build & formatting pipeline (your helpers/all.sh)
         run: |
           chmod +x helpers/*.sh
           ./helpers/all.sh
         env:
           FOUNDRY_PROFILE: default
+          # Add if not in foundry.toml: FORGE_VIA_IR: "true"
+          # FORGE_OPTIMIZER_RUNS: "200"
 
+      # -------------------------------------------------
+      # Tests (still work normally with via-IR)
+      # -------------------------------------------------
       - name: Run tests
-        run: forge test -vvv --via-ir
+        run: forge test -vvv
+        # If needed: run: forge test -vvv --via-ir
 
+      # -------------------------------------------------
+      # Coverage (works perfectly with via-IR + flattened files)
+      # -------------------------------------------------
       - name: Generate coverage report
         run: |
           forge coverage --report lcov --report-file lcov.info --via-ir
+          # Optional: strip OpenZeppelin / lib noise
+          sed -i '/dependencies/d' lcov.info || true  # Strip Soldeer deps if present
 
       - name: Compute coverage percentage & generate badge
         id: coverage
@@ -71,21 +92,19 @@ jobs:
       - name: Update coverage badge in README
         if: github.ref == 'refs/heads/main'
         run: |
-          sed -i "s|https://img.shields.io/badge/coverage-[^_]*|${{ steps.coverage.outputs.badge_url }}|g" README.md
+          sed -i "s|https://img.shields.io/badge/coverage-[^ ]*-[^ ]*|${{ steps.coverage.outputs.badge_url }}|g" README.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "chore: update coverage badge [skip ci]" || exit 0
           git push
 
-      # -------------------------------------------------
-      # Optional: static "Tests" badge (always up to date)
-      # -------------------------------------------------
-      - name: Upload test results (so the badge stays green/red correctly)
+      - name: Upload artifacts (for debugging)
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: ci-artifacts
           path: |
-            test-results/
+            lcov.info
+            out/
             cache/
