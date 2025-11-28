@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # Fallback for any remaining git deps
+          submodules: recursive
 
       - name: Install Foundry (latest stable)
         uses: foundry-rs/foundry-toolchain@v1
@@ -24,12 +24,22 @@ jobs:
           version: stable
 
       # -------------------------------------------------
-      # Soldeer: Clean install + explicit Git for c3caller
+      # Manual HTTPS clone for c3caller (no SSH, public repo)
+      # -------------------------------------------------
+      - name: Clone c3caller via HTTPS (key-free)
+        run: |
+          rm -rf dependencies/c3caller  # Clean if exists
+          git clone --depth 1 --branch main https://github.com/ContinuumDAO/c3caller.git dependencies/c3caller
+          # --depth 1: Shallow clone (fast, no full history)
+          # --branch main: Pins to your branch
+
+      # -------------------------------------------------
+      # Soldeer: Installs other deps (skips c3caller as local)
       # -------------------------------------------------
       - name: Install Soldeer dependencies
         run: |
-          forge soldeer install --clean --no-git
-          forge soldeer update --no-git # This now works perfectly for c3caller
+          forge soldeer install --clean
+          forge soldeer update
 
       - name: Install Node.js & coverage tools
         uses: actions/setup-node@v4
@@ -60,7 +70,7 @@ jobs:
           forge coverage --report lcov --report-file lcov.info --via-ir
           sed -i '/lib\/openzeppelin/d' lcov.info || true
           sed -i '/lib\/forge-std/d' lcov.info || true
-          sed -i '/dependencies\/c3caller/d' lcov.info || true  # Exclude c3caller noise
+          sed -i '/dependencies\/c3caller/d' lcov.info || true  # Optional: Exclude noise
 
       - name: Compute coverage badge
         id: coverage
@@ -95,5 +105,5 @@ jobs:
           name: ci-artifacts
           path: |
             lcov.info
-            dependencies/  # Inspect c3caller install
+            dependencies/c3caller/  # Verify clone
             cache/
