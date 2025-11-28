@@ -31,8 +31,8 @@ jobs:
       # Install Soldeer dependencies via built-in forge soldeer
       # -------------------------------------------------
       - name: Install Soldeer dependencies
-        run: forge soldeer update
-        # or `forge soldeer install --clean` if you want a fresh install every time
+        run: forge soldeer install --clean
+        # or `forge soldeer update` if you want to cache for future
 
       - name: Install Node.js & coverage tools
         uses: actions/setup-node@v4
