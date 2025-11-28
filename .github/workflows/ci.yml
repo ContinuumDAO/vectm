@@ -1,8 +1,9 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
   push:
-    branches: [main]   # Adjust as needed
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
@@ -10,76 +11,72 @@ jobs:
   test-and-coverage:
     runs-on: ubuntu-latest
     permissions:
-      contents: write                   # Needed to push updated README badge
+      contents: write           # needed for auto-updating README badge
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # Handles any git-based deps, but forge soldeer will override for its own
-
-      - name: Install Foundry (nightly with via-IR support)
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+          submodules: recursive
 
       # -------------------------------------------------
-      # NEW: Ensure Soldeer dependencies are installed (built-in forge soldeer)
+      # Latest Stable Foundry
+      # -------------------------------------------------
+      - name: Install Foundry (latest stable)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: latest          # ← this always pulls the newest stable release
+
+      # -------------------------------------------------
+      # Install Soldeer dependencies via built-in forge soldeer
       # -------------------------------------------------
       - name: Install Soldeer dependencies
         run: forge soldeer update
-        # Optional flags if needed: --clean for fresh install, or --recursive-deps
+        # or `forge soldeer install --clean` if you want a fresh install every time
 
-      - name: Install Node.js 20 (for badge generation)
+      - name: Install Node.js & coverage tools
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install lcov utilities + badge generator
-        run: |
-          sudo apt-get update && sudo apt-get install -y lcov bc  # bc for percentage math
+      - run: |
+          sudo apt-get update && sudo apt-get install -y lcov bc
           npm install -g lcov-badge-generator
 
       # -------------------------------------------------
-      # YOUR EXISTING BUILD PIPELINE — unchanged
+      # Your existing build pipeline (via-IR + flattening)
       # -------------------------------------------------
-      - name: Run full build & formatting pipeline (your helpers/all.sh)
+      - name: Run full build pipeline (helpers/all.sh)
         run: |
           chmod +x helpers/*.sh
           ./helpers/all.sh
         env:
           FOUNDRY_PROFILE: default
-          # Add if not in foundry.toml: FORGE_VIA_IR: "true"
-          # FORGE_OPTIMIZER_RUNS: "200"
 
       # -------------------------------------------------
-      # Tests (still work normally with via-IR)
+      # Tests & Coverage
       # -------------------------------------------------
       - name: Run tests
         run: forge test -vvv
-        # If needed: run: forge test -vvv --via-ir
 
-      # -------------------------------------------------
-      # Coverage (works perfectly with via-IR + flattened files)
-      # -------------------------------------------------
-      - name: Generate coverage report
+      - name: Generate coverage
         run: |
           forge coverage --report lcov --report-file lcov.info --via-ir
-          # Optional: strip OpenZeppelin / lib noise
-          sed -i '/dependencies/d' lcov.info || true  # Strip Soldeer deps if present
+          # Remove noise from external libs
+          sed -i '/lib\/openzeppelin/d' lcov.info || true
+          sed -i '/lib\/forge-std/d' lcov.info || true
+          sed -i '/dependencies/d' lcov.info || true
 
-      - name: Compute coverage percentage & generate badge
+      - name: Compute coverage badge
         id: coverage
         run: |
           coverage=$(lcov-badge-generator lcov.info | grep -o '[0-9]\+\.[0-9]\+%' || echo "0%")
           percent=$(echo $coverage | tr -d '%')
-          echo "Coverage: $coverage"
 
           if   (( $(echo "$percent >= 95" | bc -l) )); then color="brightgreen"
           elif (( $(echo "$percent >= 90" | bc -l) )); then color="green"
           elif (( $(echo "$percent >= 80" | bc -l) )); then color="yellowgreen"
           elif (( $(echo "$percent >= 70" | bc -l) )); then color="yellow"
-          else                                         color="red"
+          else color="red"
           fi
 
           badge="https://img.shields.io/badge/coverage-$coverage-$color?style=flat-square"
@@ -87,7 +84,7 @@ jobs:
           echo "coverage_percent=$percent" >> $GITHUB_OUTPUT
 
       # -------------------------------------------------
-      # Auto-update README badge (only on main branch)
+      # Auto-update README badge (only on main)
       # -------------------------------------------------
       - name: Update coverage badge in README
         if: github.ref == 'refs/heads/main'
@@ -99,12 +96,11 @@ jobs:
           git commit -m "chore: update coverage badge [skip ci]" || exit 0
           git push
 
-      - name: Upload artifacts (for debugging)
+      - name: Upload artifacts (debug)
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ci-artifacts
           path: |
             lcov.info
-            out/
             cache/
