@@ -61,7 +61,7 @@ jobs:
       # -------------------------------------------------
       - name: Generate coverage
         run: |
-          forge coverage --report lcov --report-file lcov.info --via-ir
+          forge coverage --report lcov --report-file lcov.info --ir-minimum
           # Strip external noise
           sed -i '/lib\/openzeppelin/d' lcov.info || true
           sed -i '/lib\/forge-std/d' lcov.info || true
