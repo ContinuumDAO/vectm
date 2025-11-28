@@ -22,10 +22,10 @@ jobs:
       # -------------------------------------------------
       # Latest Stable Foundry
       # -------------------------------------------------
-      - name: Install Foundry (latest stable)
+      - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: latest          # ← this always pulls the newest stable release
+          version: stable
 
       # -------------------------------------------------
       # Install Soldeer dependencies via built-in forge soldeer
