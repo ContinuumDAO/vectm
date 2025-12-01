@@ -183,7 +183,6 @@ contract NodeProperties is INodeProperties {
     /**
      * @notice Initializes the rewards contract address
      * @param _rewards The address of the rewards contract
-     * @dev This function can only be called once to set the rewards contract address.
      * The rewards contract is used for checking node reward thresholds.
      */
     function setRewards(address _rewards) external onlyGov {
