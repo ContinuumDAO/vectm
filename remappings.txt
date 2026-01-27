@@ -1,4 +1,4 @@
-@c3caller/=dependencies/@c3caller-0.1.0/
+@c3caller/=dependencies/@c3caller-0.2.2/
 @openzeppelin/contracts-upgradeable/=dependencies/@openzeppelin-contracts-upgradeable-5.4.0/
 @openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.4.0/
 forge-std/=dependencies/forge-std-1.11.0/src/
