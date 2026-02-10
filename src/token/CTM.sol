@@ -11,7 +11,7 @@ contract CTM is ICTM, CTMERC20 {
 
     uint256 public c3TransferFee;
 
-    constructor (address _c3caller, uint256 _dappID) CTMERC20("Continuum", "CTM", _c3caller, _dappID) {
+    constructor(address _c3caller, uint256 _dappID) CTMERC20("Continuum", "CTM", _c3caller, _dappID) {
         // initial fee = 1%
         c3TransferFee = 100;
     }
@@ -23,7 +23,11 @@ contract CTM is ICTM, CTMERC20 {
         emit SetC3TransferFee(_fee);
     }
 
-    function c3transfer(string memory _toStr, uint256 _amount, string memory _toChainIDStr) public override(ICTM, CTMERC20) returns (bool) {
+    function c3transfer(string memory _toStr, uint256 _amount, string memory _toChainIDStr)
+        public
+        override(ICTM, CTMERC20)
+        returns (bool)
+    {
         uint256 netAmount = _amount;
         if (msg.sender != gov()) {
             uint256 fee = c3TransferFee * _amount / FEE_DENOMINATOR;
@@ -33,9 +37,19 @@ contract CTM is ICTM, CTMERC20 {
         return super.c3transfer(_toStr, netAmount, _toChainIDStr);
     }
 
-    function c3transferFrom(address _from, string memory _toStr, uint256 _amount, string memory _toChainIDStr) public override(ICTM, CTMERC20) returns (bool) {
+    function c3transferFrom(address _from, string memory _toStr, uint256 _amount, string memory _toChainIDStr)
+        public
+        override(ICTM, CTMERC20)
+        returns (bool)
+    {
         uint256 fee = c3TransferFee * _amount / FEE_DENOMINATOR;
         transferFrom(msg.sender, gov(), fee);
         return super.c3transferFrom(_from, _toStr, _amount - fee, _toChainIDStr);
     }
+
+    // NOTE: `globalSupply` is only minted on home instance
+    function _incrementGlobalSupply(uint256 _amount) internal virtual override {}
+
+    // NOTE: `globalSupply` is only burned on home instance
+    function _decrementGlobalSupply(uint256 _amount) internal virtual override {}
 }

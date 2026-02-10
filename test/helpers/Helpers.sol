@@ -17,8 +17,10 @@ contract Helpers is Test, Accounts, Deployer {
             abi.encode(_getGovernanceAccounts()), (address, address, address, address, address, address, address)
         );
 
+        _deployC3Caller();
+
         _deployUSDC();
-        _deployCTM(admin);
+        _deployCTM(address(c3caller), 1);
 
         vm.deal(admin, 100 ether);
         vm.deal(treasury, 100 ether);
@@ -41,7 +43,6 @@ contract Helpers is Test, Accounts, Deployer {
 
         vm.stopPrank();
 
-        _deployC3Caller();
         _deployVotingEscrow();
         _deployCTMDAOGovernor(admin);
         _deployNodeProperties();

@@ -9,7 +9,7 @@
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
 
  remappings = [
-     "@c3caller/=dependencies/@c3caller-v0.2.2/",
+     "@c3caller/=dependencies/@c3caller-v0.2.4/",
      "@openzeppelin/contracts-upgradeable/=dependencies/@openzeppelin-contracts-upgradeable-5.4.0/",
      "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.4.0/",
      "forge-std/=dependencies/forge-std-1.11.0/src/"
@@ -20,9 +20,13 @@
 
 [rpc_endpoints]
  arbitrum-sepolia-rpc-url = "${ARBITRUM_SEPOLIA_RPC_URL}"
+ sepolia-rpc-url = "${SEPOLIA_RPC_URL}"
+ bsc-testnet-rpc-url = "${BSC_TESTNET_RPC_URL}"
 
 [etherscan]
  arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
+ sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=11155111", key = "${ETHERSCAN_API_KEY}" }
+ bsc-testnet-key = { url = "https://api.etherscan.io/v2/api?chainid=97", key = "${ETHERSCAN_API_KEY}" }
 
 [invariant]
  runs = 256
@@ -33,6 +37,6 @@
 forge-std = "1.11.0"
 "@openzeppelin-contracts" = "5.4.0"
 "@openzeppelin-contracts-upgradeable" = "5.4.0"
-"@c3caller" = "0.2.2"
+"@c3caller" = "0.2.4"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -15,5 +15,7 @@ interface ICTM {
     function c3TransferFee() external view returns (uint256);
     function setC3TransferFee(uint256 _fee) external;
     function c3transfer(string memory _toStr, uint256 _amount, string memory _toChainIDStr) external returns (bool);
-    function c3transferFrom(address _from, string memory _toStr, uint256 _amount, string memory _toChainIDStr) external returns (bool);
+    function c3transferFrom(address _from, string memory _toStr, uint256 _amount, string memory _toChainIDStr)
+        external
+        returns (bool);
 }

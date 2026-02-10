@@ -1,9 +1,9 @@
 [[dependencies]]
 name = "@c3caller"
-version = "0.2.2"
-url = "https://soldeer-revisions.s3.amazonaws.com/@c3caller/0_2_2_27-01-2026_16:16:30_src.zip"
-checksum = "23c3d6792ad799f1b67ca6a0ab5517a8e784d839bf967f829ff479c0391ed82e"
-integrity = "b703aa3f63f5612758a50f89b0f316f47361ebf39ef6fbd0cdd67b85fb5cda94"
+version = "0.2.4"
+url = "https://soldeer-revisions.s3.amazonaws.com/@c3caller/0_2_4_06-02-2026_12:43:56_src.zip"
+checksum = "817e9cc8913f31dbebaaac5c02b049ddf381b09c81d17cd807496a2dbd8c1d9f"
+integrity = "86846b5fc261194c904f48698027d2972ad4457a54635203de302c5c422d9fad"
 
 [[dependencies]]
 name = "@openzeppelin-contracts"

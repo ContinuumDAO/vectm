@@ -17,9 +17,11 @@ contract DeployVotingEscrow is Script {
     address deployer;
     address feeToken;
     address treasury;
+    address ctm;
 
     string feeTokenKey = string.concat("FEE_TOKEN_", vm.toString(block.chainid));
     string treasuryKey = string.concat("TREASURY_", vm.toString(block.chainid));
+    string ctmKey = string.concat("CTM_", vm.toString(block.chainid));
 
     function run() public {
         try vm.envAddress("DEPLOYER") returns (address _deployer) {
@@ -40,12 +42,13 @@ contract DeployVotingEscrow is Script {
             revert(string.concat(treasuryKey, " not defined"));
         }
 
+        try vm.envAddress(ctmKey) returns (address _ctm) {
+            ctm = _ctm;
+        } catch {
+            revert(string.concat(ctmKey, " not defined"));
+        }
+
         vm.startBroadcast();
-
-        console.log("Deploying CTM Token...");
-
-        CTM ctm = new CTM(treasury);
-        console.log("CTM Token deployed at:", address(ctm));
 
         VotingEscrow votingEscrowImpl = new VotingEscrow();
         bytes memory votingEscrowInitData = abi.encodeWithSelector(

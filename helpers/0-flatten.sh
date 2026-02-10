@@ -21,6 +21,7 @@ forge flatten src/node/Rewards.sol --output build/node/Rewards.sol
 
 # token
 forge flatten src/token/CTM.sol --output build/token/CTM.sol
+forge flatten src/token/CTMMintable.sol --output build/token/CTMMintable.sol
 forge flatten src/token/VotingEscrow.sol --output build/token/VotingEscrow.sol
 
 # utils
