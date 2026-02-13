@@ -1,4 +1,5 @@
 [profile.default]
+ fs_permissions = [{ access = "read", path = "./deployments.toml" }]
  src = "src"
  out = "out"
  libs = ["lib", "dependencies"]
@@ -9,7 +10,7 @@
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
 
  remappings = [
-     "@c3caller/=dependencies/@c3caller-v0.2.4/",
+     "@c3caller/=dependencies/@c3caller-v0.2.5/",
      "@openzeppelin/contracts-upgradeable/=dependencies/@openzeppelin-contracts-upgradeable-5.4.0/",
      "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.4.0/",
      "forge-std/=dependencies/forge-std-1.11.0/src/"
@@ -37,6 +38,6 @@
 forge-std = "1.11.0"
 "@openzeppelin-contracts" = "5.4.0"
 "@openzeppelin-contracts-upgradeable" = "5.4.0"
-"@c3caller" = "0.2.4"
+"@c3caller" = "0.2.5"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

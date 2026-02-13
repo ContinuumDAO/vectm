@@ -1,0 +1,865 @@
+# Deployment config per chain. Order matches .env.example / fee-token.json.
+# endpoint_url uses the same env vars as foundry.toml rpc_endpoints.
+# Section keys are numeric chain IDs so StdConfig/InitC3DApp resolve correctly.
+# fee_token is the primary/default. [[chainId.fee_tokens]] lists all fee tokens; payloadPerByteFee and gasPerEtherFee
+# are set on DAppManager via setFeeConfig (leave empty until configured).
+
+# 97 - Bsc Testnet
+[97]
+endpoint_url = "${BSC_TESTNET_RPC_URL}"
+
+[97.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375e2a148102bf179ae7743a28a34cf959be9499"
+
+[[97.fee_tokens]]
+address = "0x375e2a148102bf179ae7743a28a34cf959be9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000000"
+gasToken = "BNB"
+gasTokenPriceUSD = "1000000000000000000000"
+
+[97.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM on BSC Testnet","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 1946 - Soneium Minato Testnet
+[1946]
+endpoint_url = "${SONEIUM_MINATO_TESTNET_RPC_URL}"
+
+[1946.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[1946.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[1946.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 5611 - Opbnb Testnet
+[5611]
+endpoint_url = "${OPBNB_TESTNET_RPC_URL}"
+
+[5611.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[5611.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000000"
+gasToken = "BNB"
+# 1000 USD
+gasTokenPriceUSD = "1000000000000000000000"
+
+[5611.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 98867 - Plume Testnet
+[98867]
+endpoint_url = "${PLUME_TESTNET_RPC_URL}"
+
+[98867.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[98867.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "100000000000000000"
+gasToken = "PLUME"
+# 0.1c
+gasTokenPriceUSD = "100000000000000000"
+
+[98867.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 84532 - Base Sepolia
+[84532]
+endpoint_url = "${BASE_SEPOLIA_RPC_URL}"
+
+[84532.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[84532.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[84532.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 421614 - Arbitrum Sepolia
+[421614]
+endpoint_url = "${ARBITRUM_SEPOLIA_RPC_URL}"
+
+[421614.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[421614.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[421614.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM Mintable on Arbitrum Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 534351 - Scroll Sepolia
+[534351]
+endpoint_url = "${SCROLL_SEPOLIA_RPC_URL}"
+
+[534351.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[534351.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[534351.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 57054 - Sonic Blaze
+[57054]
+endpoint_url = "${SONIC_BLAZE_RPC_URL}"
+
+[57054.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[57054.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "500000000000000000"
+gasToken = "S"
+# 0.5 USD
+gasTokenPriceUSD = "500000000000000000"
+
+[57054.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 80002 - Amoy
+[80002]
+endpoint_url = "${AMOY_RPC_URL}"
+
+[80002.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[80002.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000"
+gasToken = "POL"
+# 1 USD
+gasTokenPriceUSD = "1000000000000000000"
+
+[80002.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 11155420 - Optimism Sepolia
+[11155420]
+endpoint_url = "${OPTIMISM_SEPOLIA_RPC_URL}"
+
+[11155420.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[11155420.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[11155420.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 11155111 - Sepolia
+[11155111]
+endpoint_url = "${SEPOLIA_RPC_URL}"
+
+[11155111.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[11155111.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[11155111.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM on Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 43113 - Fuji
+[43113]
+endpoint_url = "${FUJI_RPC_URL}"
+
+[43113.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[43113.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "300000000000000000"
+gasToken = "AVAX"
+# 0.3 USD
+gasTokenPriceUSD = "300000000000000000"
+
+[43113.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 59141 - Linea Sepolia
+[59141]
+endpoint_url = "${LINEA_SEPOLIA_RPC_URL}"
+
+[59141.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[59141.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[59141.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 5003 - Mantle Sepolia
+[5003]
+endpoint_url = "${MANTLE_SEPOLIA_RPC_URL}"
+
+[5003.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[5003.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "140000000000000000"
+gasToken = "MNT"
+gasTokenPriceUSD = "140000000000000000"
+
+[5003.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 300 - Zksync Testnet
+[300]
+endpoint_url = "${ZKSYNC_TESTNET_RPC_URL}"
+
+[300.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[300.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[300.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 11142220 - Celo Sepolia
+[11142220]
+endpoint_url = "${CELO_SEPOLIA_RPC_URL}"
+
+[11142220.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[11142220.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "500000000000000000"
+gasToken = "CELO"
+# 0.5 USD
+gasTokenPriceUSD = "500000000000000000"
+
+[11142220.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 560048 - Hoodi
+[560048]
+endpoint_url = "${HOODI_RPC_URL}"
+
+[560048.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[560048.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[560048.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 10143 - Monad Testnet
+[10143]
+endpoint_url = "${MONAD_TESTNET_RPC_URL}"
+
+[10143.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[10143.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "200000000000000000"
+gasToken = "MON"
+# 0.2 USD
+gasTokenPriceUSD = "200000000000000000"
+
+[10143.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 1114 - Core Testnet
+[1114]
+endpoint_url = "${CORE_TESTNET_RPC_URL}"
+
+[1114.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[1114.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "12000000000000000"
+gasToken = "CORE"
+# 0.12 USD
+gasTokenPriceUSD = "12000000000000000"
+
+[1114.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 31 - Rsk Testnet
+[31]
+endpoint_url = "${RSK_TESTNET_RPC_URL}"
+
+[31.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[31.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "125000000000000000000000"
+gasToken = "tRBTC"
+# 125,000 USD
+gasTokenPriceUSD = "125000000000000000000000"
+
+[31.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 200810 - Bitlayer Testnet
+[200810]
+endpoint_url = "${BITLAYER_TESTNET_RPC_URL}"
+
+[200810.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[200810.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "125000000000000000000000"
+gasToken = "BTC"
+# 125,000 USD
+gasTokenPriceUSD = "125000000000000000000000"
+
+[200810.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 37111 - Lens Testnet
+[37111]
+endpoint_url = "${LENS_TESTNET_RPC_URL}"
+
+[37111.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[37111.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "400000000000000000"
+gasToken = "GRASS"
+# 0.4 USD
+gasTokenPriceUSD = "400000000000000000"
+
+[37111.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 3441006 - Manta Sepolia
+[3441006]
+endpoint_url = "${MANTA_SEPOLIA_RPC_URL}"
+
+[3441006.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[3441006.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[3441006.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 11124 - Abstract Testnet
+[11124]
+endpoint_url = "${ABSTRACT_TESTNET_RPC_URL}"
+
+[11124.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[11124.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[11124.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 5887 - Mantra Testnet
+[5887]
+endpoint_url = "${MANTRA_TESTNET_RPC_URL}"
+
+[5887.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[5887.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "100000000000000000"
+gasToken = "OM"
+# 0.1 USD
+gasTokenPriceUSD = "100000000000000000"
+
+[5887.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 11011 - Shape Sepolia
+[11011]
+endpoint_url = "${SHAPE_SEPOLIA_RPC_URL}"
+
+[11011.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[11011.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[11011.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 42431 - Tempo Moderato
+[42431]
+endpoint_url = "${TEMPO_MODERATO_RPC_URL}"
+
+[42431.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x20c0000000000000000000000000000000000000"
+
+[[42431.fee_tokens]]
+address = "0x20c0000000000000000000000000000000000000"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000"
+gasToken = "USD"
+# 1 USD
+gasTokenPriceUSD = "1000000000000000000"
+
+[42431.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 80069 - Berachain Bepolia
+[80069]
+endpoint_url = "${BERACHAIN_BEPOLIA_RPC_URL}"
+
+[80069.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[80069.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000"
+gasToken = "BERA"
+# 1 USD
+gasTokenPriceUSD = "1000000000000000000"
+
+[80069.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 240 - Cronos Zkevm Testnet
+[240]
+endpoint_url = "${CRONOS_ZKEVM_TESTNET_RPC_URL}"
+
+[240.address]
+uuidKeeper = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+dappManager = "0x8ABD54D49252169eF746Bbf229512502E703c8e8"
+c3caller = "0x0580453F9adC4Aca73242b4f2ad09FBf0F32A904"
+fee_token = "0x3d68902c7b679e911FcC4075a5C3326F5160670d"
+
+[[240.fee_tokens]]
+address = "0x3d68902c7b679e911FcC4075a5C3326F5160670d"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "120000000000000000"
+gasToken = "zkTCRO"
+# 0.12 USD
+gasTokenPriceUSD = "120000000000000000"
+
+[240.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 5042002 - Arc Testnet
+[5042002]
+endpoint_url = "${ARC_TESTNET_RPC_URL}"
+
+[5042002.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[5042002.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000000"
+gasToken = "USDC"
+gasTokenPriceUSD = "1000000000000000000"
+
+[5042002.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 28882 - Boba Sepolia
+[28882]
+endpoint_url = "${BOBA_SEPOLIA_RPC_URL}"
+
+[28882.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[28882.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "60000000000000000"
+gasToken = "BOBA"
+# 0.06 USD
+gasTokenPriceUSD = "60000000000000000"
+
+[28882.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 5115 - Citrea Testnet
+[5115]
+endpoint_url = "${CITREA_TESTNET_RPC_URL}"
+
+[5115.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[5115.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "125000000000000000000000"
+gasToken = "cBTC"
+# 125,000 USD
+gasTokenPriceUSD = "125000000000000000000000"
+
+[5115.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 59902 - Metis Sepolia
+[59902]
+endpoint_url = "${METIS_SEPOLIA_TESTNET_RPC_URL}"
+
+[59902.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[59902.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "10000000000000000000"
+gasToken = "METIS"
+# 10 USD
+gasTokenPriceUSD = "10000000000000000000"
+
+[59902.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 919 - Mode Testnet
+[919]
+endpoint_url = "${MODE_TESTNET_RPC_URL}"
+
+[919.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[919.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[919.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 763373 - Ink Sepolia
+[763373]
+endpoint_url = "${INK_SEPOLIA_RPC_URL}"
+
+[763373.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[763373.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "1000000000000000"
+gasToken = "INK"
+# 0.001 USD
+gasTokenPriceUSD = "1000000000000000"
+
+[763373.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 4801 - World Chain Sepolia
+[4801]
+endpoint_url = "${WORLD_CHAIN_SEPOLIA_RPC_URL}"
+
+[4801.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[4801.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[4801.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 80008 - Polynomial Sepolia
+[80008]
+endpoint_url = "${POLYNOMIAL_SEPOLIA_RPC_URL}"
+
+[80008.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[80008.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[80008.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 808813 - Bob Sepolia
+[808813]
+endpoint_url = "${BOB_SEPOLIA_RPC_URL}"
+
+[808813.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[808813.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[808813.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 2368 - Kiteai Testnet
+[2368]
+endpoint_url = "${KITEAI_TESTNET_RPC_URL}"
+
+[2368.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[2368.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "5000000000000"
+gasToken = "KITE"
+# 0.0000005 USD
+gasTokenPriceUSD = "5000000000000"
+
+[2368.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+# 1891 - Lightlink Pegasus Testnet
+[1891]
+endpoint_url = "${LIGHTLINK_PEGASUS_TESTNET_RPC_URL}"
+
+[1891.address]
+uuidKeeper = "0x55aD6Df6d8f8824486C3fd3373f1CF29eCecF0A3"
+dappManager = "0xD384b9908baF9fD39Cf75A51A45102b4C19d953c"
+c3caller = "0x8abd54d49252169ef746bbf229512502e703c8e8"
+fee_token = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+
+[[1891.fee_tokens]]
+address = "0x375E2A148102bF179AE7743A28A34cF959bE9499"
+payloadPerByteFee = "1000"
+gasPerEtherFee = "4000000000000000000000"
+gasToken = "ETH"
+gasTokenPriceUSD = "4000000000000000000000"
+
+[1891.string]
+dapp_key = "v1.ctm.continuumdao"
+metadata = '{"version":1,"name":"CTM","description":"CTM","email":"continuumdao@proton.me","url":"continuumdao.org"}'
