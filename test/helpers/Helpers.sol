@@ -20,7 +20,7 @@ contract Helpers is Test, Accounts, Deployer {
         _deployC3Caller();
 
         _deployUSDC();
-        _deployCTM(address(c3caller), 1);
+        _deployCTM(address(c3caller), 1, address(dappManager));
 
         vm.deal(admin, 100 ether);
         vm.deal(treasury, 100 ether);

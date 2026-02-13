@@ -29,8 +29,8 @@ contract Deployer is Utils {
     NodeProperties nodeProperties;
     Rewards rewards;
 
-    function _deployCTM(address _c3caller, uint256 _dappID) internal {
-        ctm = new CTMMintable(_c3caller, _dappID);
+    function _deployCTM(address _c3caller, uint256 _dappID, address _dappManager) internal {
+        ctm = new CTMMintable(_c3caller, _dappID, _dappManager);
     }
 
     function _deployUSDC() internal {

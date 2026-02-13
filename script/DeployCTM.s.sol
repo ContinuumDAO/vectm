@@ -14,9 +14,11 @@ contract DeployCTM is Script {
 
     address deployer;
     address c3caller;
+    address dappManager;
     uint256 dappID;
 
     string c3callerKey = string.concat("C3CALLER_", vm.toString(block.chainid));
+    string dappManagerKey = string.concat("DAPP_MANAGER_", vm.toString(block.chainid));
 
     function run() public {
         try vm.envAddress("DEPLOYER") returns (address _deployer) {
@@ -31,6 +33,12 @@ contract DeployCTM is Script {
             revert(string.concat(c3callerKey, " not defined"));
         }
 
+        try vm.envAddress(dappManagerKey) returns (address _dappManager) {
+            dappManager = _dappManager;
+        } catch {
+            revert(string.concat(dappManagerKey, " not defined"));
+        }
+
         try vm.envUint("DAPP_ID_CTM") returns (uint256 _dappID) {
             dappID = _dappID;
         } catch {
@@ -41,7 +49,7 @@ contract DeployCTM is Script {
 
         console.log("Deploying CTM Token...");
 
-        CTM ctm = new CTM(c3caller, dappID);
+        CTM ctm = new CTM(c3caller, dappID, dappManager);
 
         console.log("CTM Token deployed at:", address(ctm));
 

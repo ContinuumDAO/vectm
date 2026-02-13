@@ -19,7 +19,9 @@ contract CTM is ICTM, CTMERC20 {
 
     uint256 public c3TransferFee;
 
-    constructor(address _c3caller, uint256 _dappID, address _dappManager) CTMERC20("Continuum", "CTM", _c3caller, _dappID) {
+    constructor(address _c3caller, uint256 _dappID, address _dappManager)
+        CTMERC20("Continuum", "CTM", _c3caller, _dappID)
+    {
         // initial fee = 1%
         c3TransferFee = 100;
         dappManager = _dappManager;
@@ -41,7 +43,8 @@ contract CTM is ICTM, CTMERC20 {
         uint256 netAmount = _deductFee(_amount);
 
         string memory _fromStr = _from.toHexString();
-        bytes memory depositDAppCall = abi.encodeWithSelector(this.depositDAppLocal.selector, _fromStr, _dappID, netAmount);
+        bytes memory depositDAppCall =
+            abi.encodeWithSelector(this.depositDAppLocal.selector, _fromStr, _dappID, netAmount);
         _c3call(peers[_toChainIDStr], _toChainIDStr, depositDAppCall);
 
         emit C3DepositRemote(_from, netAmount, _toChainIDStr);

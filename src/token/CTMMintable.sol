@@ -9,7 +9,7 @@ interface ICTMMintable {
 }
 
 contract CTMMintable is ICTMMintable, CTM {
-    constructor(address _c3caller, uint256 _dappID) CTM(_c3caller, _dappID) {}
+    constructor(address _c3caller, uint256 _dappID, address _dappManager) CTM(_c3caller, _dappID, _dappManager) {}
 
     function _incrementGlobalSupply(uint256 _amount) internal override {
         globalSupply += _amount;

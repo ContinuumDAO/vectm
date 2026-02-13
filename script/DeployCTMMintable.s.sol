@@ -14,6 +14,7 @@ contract DeployCTMMintable is Script {
 
     address deployer;
     address c3caller;
+    address dappManager;
     uint256 dappID;
 
     function run() public {
@@ -29,6 +30,12 @@ contract DeployCTMMintable is Script {
             revert("C3CALLER_421614 not defined");
         }
 
+        try vm.envAddress("DAPP_MANAGER_421614") returns (address _dappManager) {
+            dappManager = _dappManager;
+        } catch {
+            revert("DAPP_MANAGER_421614 not defined");
+        }
+
         try vm.envUint("DAPP_ID_CTM") returns (uint256 _dappID) {
             dappID = _dappID;
         } catch {
@@ -39,7 +46,7 @@ contract DeployCTMMintable is Script {
 
         console.log("Deploying CTM Token...");
 
-        CTMMintable ctmMintable = new CTMMintable(c3caller, dappID);
+        CTMMintable ctmMintable = new CTMMintable(c3caller, dappID, dappManager);
 
         console.log("CTM Token deployed at:", address(ctmMintable));
 
