@@ -7,6 +7,10 @@ interface ICTM {
     event CTMTreasuryMint(uint256 _amount);
     event SetC3TransferFee(uint256 _amount);
 
+    event C3DepositRemote(address indexed _from, uint256 _amount, string _toChainIDStr);
+    event C3DepositLocal(string indexed _fromStr, uint256 _amount, string _fromChainID);
+    event DepositDAppRefund(address indexed _from, string indexed _toStr, uint256 _amount, bytes _reason);
+
     error CTM_FeeNumeratorTooHigh();
     error CTM_ExceedsMaxSupply();
 
