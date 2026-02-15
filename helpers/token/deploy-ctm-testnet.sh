@@ -52,7 +52,8 @@ else
     --password-file $PASSWORD_FILE \
     --rpc-url "$RPC_URL" \
     --legacy \
-    --chain-id $CHAIN_ID
+    --chain-id $CHAIN_ID \
+    --sender $DEPLOYER 
 
     # Check if the simulation succeeded
     if [ $? -ne 0 ]; then
@@ -80,6 +81,7 @@ forge script script/DeployCtm.s.sol \
 --chain-id $CHAIN_ID \
 --gas-estimate-multiplier 200 \
 ${FORGE_EXTRA:+$FORGE_EXTRA }\
+--sender $DEPLOYER \
 --legacy \
 --broadcast
 

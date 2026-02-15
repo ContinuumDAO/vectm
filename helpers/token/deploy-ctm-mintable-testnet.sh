@@ -38,7 +38,8 @@ forge script script/DeployCtmMintable.s.sol \
 --account $ACCOUNT \
 --password-file $PASSWORD_FILE \
 --rpc-url "$RPC_URL" \
---chain-id $CHAIN_ID
+--chain-id $CHAIN_ID \
+--sender $DEPLOYER 
 
 # Check if the simulation succeeded
 if [ $? -ne 0 ]; then
@@ -63,6 +64,7 @@ forge script script/DeployCtmMintable.s.sol \
 --etherscan-api-key $ETHERSCAN_API_KEY \
 --rpc-url "$RPC_URL" \
 --chain-id $CHAIN_ID \
+--sender $DEPLOYER \
 --broadcast
 
 echo "Deployment complete."

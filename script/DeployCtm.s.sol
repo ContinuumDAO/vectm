@@ -51,7 +51,7 @@ contract DeployCtm is Script {
 
         console.log("Deploying CTM Token...");
 
-        CTM ctm = new CTM(c3caller, dappID);
+        CTM ctm = new CTM(c3caller, dappID, dappManager);
         console.log("CTM deployed at:", address(ctm));
 
         _setPeersForAllChains(toml, ctm);

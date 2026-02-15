@@ -19,8 +19,6 @@ contract AddDAppAddr is Script {
     uint256 dappID;
     address ctm;
 
-    string dappManagerKey = string.concat("DAPP_MANAGER_", vm.toString(block.chainid));
-
     function run() public {
         try vm.envAddress("DEPLOYER") returns (address _deployer) {
             deployer = _deployer;
@@ -28,16 +26,10 @@ contract AddDAppAddr is Script {
             revert("DEPLOYER not defined");
         }
 
-        try vm.envAddress(dappManagerKey) returns (address _dappManagerAddr) {
+        try vm.envAddress("DAPP_MANAGER") returns (address _dappManagerAddr) {
             dappManagerAddr = _dappManagerAddr;
         } catch {
-            revert(string.concat(dappManagerKey, " not defined"));
-        }
-
-        try vm.envUint("DAPP_ID_CTM") returns (uint256 _dappID) {
-            dappID = _dappID;
-        } catch {
-            revert("DAPP_ID_CTM not defined");
+            revert("DAPP_MANAGER not defined");
         }
 
         try vm.envAddress("CTM") returns (address _ctm) {
@@ -46,7 +38,14 @@ contract AddDAppAddr is Script {
             revert("CTM not defined");
         }
 
-        vm.startBroadcast(deployer);
+        string memory toml = vm.readFile(string.concat(vm.projectRoot(), "/deployments.toml"));
+        string memory chainKey = vm.toString(block.chainid);
+        string memory chainPath = string.concat(".[\"", chainKey, "\"]");
+        string memory dappKey = abi.decode(vm.parseToml(toml, string.concat(chainPath, ".dapp_key")), (string));
+
+        dappID = IC3DAppManager(dappManagerAddr).deriveDAppID(deployer, dappKey);
+
+        vm.startBroadcast();
 
         console.log("Adding CTM address in DApp Manager...");
 

@@ -50,7 +50,7 @@ contract DeployCtmMintable is Script {
 
         console.log("Deploying CTM Token...");
 
-        CTMMintable ctmMintable = new CTMMintable(c3caller, dappID);
+        CTMMintable ctmMintable = new CTMMintable(c3caller, dappID, dappManager);
         console.log("CTM Mintable deployed at:", address(ctmMintable));
 
         _setPeersForAllChains(toml, ctmMintable);
