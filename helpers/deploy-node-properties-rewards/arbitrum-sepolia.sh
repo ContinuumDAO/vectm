@@ -9,9 +9,10 @@ if [ $# -lt 2 ]; then
 fi
 
 # Simulate the deployment
-forge script script/DeployVotingEscrow.s.sol \
+forge script script/DeployAll.s.sol \
 --rpc-url arbitrum-sepolia-rpc-url \
---chain arbitrum-sepolia
+--chain arbitrum-sepolia \
+--sender $(cast wallet addr --account $1 --password-file $2)
 
 # Check if the simulation succeeded
 if [ $? -ne 0 ]; then
@@ -28,7 +29,7 @@ fi
 
 echo "Proceeding with deployment..."
 
-forge script script/DeployVotingEscrow.s.sol \
+forge script script/DeployAll.s.sol \
 --account $1 \
 --password-file $2 \
 --sender $(cast wallet addr --account $1 --password-file $2) \

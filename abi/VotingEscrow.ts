@@ -733,6 +733,19 @@ export const VotingEscrowABI = [
     },
     {
         "type": "function",
+        "name": "minimumLock",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "name",
         "inputs": [],
         "outputs": [
@@ -998,6 +1011,19 @@ export const VotingEscrowABI = [
                 "name": "_liquidationsEnabled",
                 "type": "bool",
                 "internalType": "bool"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setMinimumLock",
+        "inputs": [
+            {
+                "name": "_min",
+                "type": "uint256",
+                "internalType": "uint256"
             }
         ],
         "outputs": [],
@@ -1796,6 +1822,17 @@ export const VotingEscrowABI = [
     },
     {
         "type": "error",
+        "name": "SafeERC20FailedOperation",
+        "inputs": [
+            {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+            }
+        ]
+    },
+    {
+        "type": "error",
         "name": "UUPSUnauthorizedCallContext",
         "inputs": []
     },
@@ -1876,22 +1913,6 @@ export const VotingEscrowABI = [
     },
     {
         "type": "error",
-        "name": "VotingEscrow_InvalidMerge",
-        "inputs": [
-            {
-                "name": "_from",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "_to",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ]
-    },
-    {
-        "type": "error",
         "name": "VotingEscrow_InvalidUnlockTime",
         "inputs": [
             {
@@ -1937,6 +1958,17 @@ export const VotingEscrowABI = [
         "type": "error",
         "name": "VotingEscrow_LiquidationsDisabled",
         "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "VotingEscrow_LockBelowMin",
+        "inputs": [
+            {
+                "name": "_value",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
     },
     {
         "type": "error",
@@ -2017,11 +2049,6 @@ export const VotingEscrowABI = [
                 "internalType": "uint256"
             }
         ]
-    },
-    {
-        "type": "error",
-        "name": "VotingEscrow_TransferFailed",
-        "inputs": []
     },
     {
         "type": "error",

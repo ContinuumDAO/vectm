@@ -2,65 +2,37 @@
 
 pragma solidity 0.8.27;
 
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-
 import {Script} from "forge-std/Script.sol";
+import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
-import {CTM} from "../src/token/CTM.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-contract DeployCTM is Script {
+import {CTM} from "../src/token/ctm/CTM.sol";
+
+contract DeployCTM is Script, Config {
     using Strings for address;
 
-    address deployer;
-    address c3caller;
-    address dappManager;
-    uint256 dappID;
-
-    string c3callerKey = string.concat("C3CALLER_", vm.toString(block.chainid));
-    string dappManagerKey = string.concat("DAPP_MANAGER_", vm.toString(block.chainid));
-
     function run() public {
-        try vm.envAddress("DEPLOYER") returns (address _deployer) {
-            deployer = _deployer;
-        } catch {
-            revert("DEPLOYER not defined");
-        }
+        _loadConfig("./deployments.toml", false);
 
-        try vm.envAddress(c3callerKey) returns (address _c3caller) {
-            c3caller = _c3caller;
-        } catch {
-            revert(string.concat(c3callerKey, " not defined"));
-        }
-
-        try vm.envAddress(dappManagerKey) returns (address _dappManager) {
-            dappManager = _dappManager;
-        } catch {
-            revert(string.concat(dappManagerKey, " not defined"));
-        }
-
-        try vm.envUint("DAPP_ID_CTM") returns (uint256 _dappID) {
-            dappID = _dappID;
-        } catch {
-            revert("DAPP_ID_CTM not defined");
-        }
+        address c3caller = config.get("c3caller").toAddress();
+        address dappManager = config.get("dappManager").toAddress();
+        uint256 ctmDAppID = config.get("ctmDAppID").toUint256();
 
         vm.startBroadcast();
 
         console.log("Deploying CTM Token...");
 
-        CTM ctm = new CTM(c3caller, dappID, dappManager);
+        CTM ctm = new CTM(c3caller, ctmDAppID, dappManager);
 
         console.log("CTM Token deployed at:", address(ctm));
 
-        console.log("Settings peers for arbitrum-sepolia...");
-        ctm.setPeer("421614", address(ctm).toHexString());
+        console.log("Settings peers for mainnet...");
+        ctm.setPeer("1", address(ctm).toHexString());
 
-        console.log("Setting peers for bsc-testnet...");
-        ctm.setPeer("97", address(ctm).toHexString());
-
-        console.log("Setting peers for ethereum-sepolia...");
-        ctm.setPeer("11155111", address(ctm).toHexString());
+        console.log("Setting peers for arbitrum...");
+        ctm.setPeer("42161", address(ctm).toHexString());
 
         vm.stopBroadcast();
     }

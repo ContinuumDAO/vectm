@@ -23,6 +23,7 @@ forge flatten src/node/Rewards.sol --output build/node/Rewards.sol
 forge flatten src/token/CTM.sol --output build/token/CTM.sol
 forge flatten src/token/CTMMintable.sol --output build/token/CTMMintable.sol
 forge flatten src/token/VotingEscrow.sol --output build/token/VotingEscrow.sol
+forge flatten src/token/Distribution.sol --output build/token/Distribution.sol
 
 # utils
 forge flatten src/utils/VotingEscrowProxy.sol --output build/utils/VotingEscrowProxy.sol

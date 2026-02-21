@@ -3,10 +3,7 @@
 pragma solidity 0.8.27;
 
 import {CTM} from "./CTM.sol";
-
-interface ICTMMintable {
-    function mint(address _to, uint256 _amount) external;
-}
+import {ICTMMintable} from "./ICTMMintable.sol";
 
 contract CTMMintable is ICTMMintable, CTM {
     constructor(address _c3caller, uint256 _dappID, address _dappManager) CTM(_c3caller, _dappID, _dappManager) {}

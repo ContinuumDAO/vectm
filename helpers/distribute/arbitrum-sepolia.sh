@@ -9,7 +9,8 @@ if [ $# -lt 2 ]; then
 fi
 
 # Simulate the deployment
-forge script script/DeployVotingEscrow.s.sol \
+forge script script/Distribute.s.sol \
+--sender $(cast wallet addr --account $1 --password-file $2) \
 --rpc-url arbitrum-sepolia-rpc-url \
 --chain arbitrum-sepolia
 
@@ -19,24 +20,22 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-read -p "Continue with deployment? [Y/n] " -n 1 -r
+read -p "Continue with distribution? [Y/n] " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! $REPLY =~ ^$ ]]; then
-    echo "❌ Deployment cancelled."
+    echo "❌ Distribution cancelled."
     exit 1
 fi
 
-echo "Proceeding with deployment..."
+echo "Proceeding with distribution..."
 
-forge script script/DeployVotingEscrow.s.sol \
+forge script script/Distribute.s.sol \
 --account $1 \
 --password-file $2 \
 --sender $(cast wallet addr --account $1 --password-file $2) \
---verify \
---etherscan-api-key arbitrum-sepolia-key \
 --slow \
 --rpc-url arbitrum-sepolia-rpc-url \
 --chain arbitrum-sepolia \
 --broadcast
 
-echo "✅ Deployment and verification complete."
+echo "✅ Distribution complete."

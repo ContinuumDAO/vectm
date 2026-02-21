@@ -3,12 +3,48 @@ export const CTMABI = [
         "type": "constructor",
         "inputs": [
             {
-                "name": "_admin",
+                "name": "_c3caller",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_dappID",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_dappManager",
                 "type": "address",
                 "internalType": "address"
             }
         ],
         "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "FEE_DENOMINATOR",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "MAX_SUPPLY",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
     },
     {
         "type": "function",
@@ -79,8 +115,73 @@ export const CTMABI = [
     },
     {
         "type": "function",
-        "name": "burn",
+        "name": "c3Fallback",
         "inputs": [
+            {
+                "name": "_dappID",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_data",
+                "type": "bytes",
+                "internalType": "bytes"
+            },
+            {
+                "name": "_reason",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "c3TransferFee",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "c3caller",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "c3receive",
+        "inputs": [
+            {
+                "name": "_fromStr",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_toStr",
+                "type": "string",
+                "internalType": "string"
+            },
             {
                 "name": "_amount",
                 "type": "uint256",
@@ -89,6 +190,108 @@ export const CTMABI = [
         ],
         "outputs": [],
         "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "c3transfer",
+        "inputs": [
+            {
+                "name": "_toStr",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "c3transferFrom",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_toStr",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "changeGov",
+        "inputs": [
+            {
+                "name": "newGov_",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "dappID",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "dappManager",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
     },
     {
         "type": "function",
@@ -105,6 +308,149 @@ export const CTMABI = [
     },
     {
         "type": "function",
+        "name": "delay",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "depositDAppLocal",
+        "inputs": [
+            {
+                "name": "_fromStr",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_dappID",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "depositDAppRemote",
+        "inputs": [
+            {
+                "name": "_dappID",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "doGov",
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_toChainID",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_data",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "doGovBroadcast",
+        "inputs": [
+            {
+                "name": "_targets",
+                "type": "string[]",
+                "internalType": "string[]"
+            },
+            {
+                "name": "_toChainIDs",
+                "type": "string[]",
+                "internalType": "string[]"
+            },
+            {
+                "name": "_data",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes32[]",
+                "internalType": "bytes32[]"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "globalSupply",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "gov",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "name",
         "inputs": [],
         "outputs": [
@@ -115,6 +461,69 @@ export const CTMABI = [
             }
         ],
         "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "peers",
+        "inputs": [
+            {
+                "name": "",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "setC3TransferFee",
+        "inputs": [
+            {
+                "name": "_fee",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setDelay",
+        "inputs": [
+            {
+                "name": "_delay",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setPeer",
+        "inputs": [
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_peerStr",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
     },
     {
         "type": "function",
@@ -222,6 +631,269 @@ export const CTMABI = [
     },
     {
         "type": "event",
+        "name": "C3DepositLocal",
+        "inputs": [
+            {
+                "name": "_fromStr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_fromChainID",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "C3DepositRemote",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "C3Receive",
+        "inputs": [
+            {
+                "name": "_fromStr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_fromChainIDStr",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "C3Refund",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_toStr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_reason",
+                "type": "bytes",
+                "indexed": false,
+                "internalType": "bytes"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "C3Transfer",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_toStr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_toChainIDStr",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "CTMMint",
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "CTMTreasuryMint",
+        "inputs": [
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "DepositDAppRefund",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_toStr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_reason",
+                "type": "bytes",
+                "indexed": false,
+                "internalType": "bytes"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogChangeGov",
+        "inputs": [
+            {
+                "name": "_oldGov",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_newGov",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "_effectiveTime",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SetC3TransferFee",
+        "inputs": [
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SetPeer",
+        "inputs": [
+            {
+                "name": "_chainIDstr",
+                "type": "string",
+                "indexed": true,
+                "internalType": "string"
+            },
+            {
+                "name": "_peer",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
         "name": "Transfer",
         "inputs": [
             {
@@ -244,6 +916,102 @@ export const CTMABI = [
             }
         ],
         "anonymous": false
+    },
+    {
+        "type": "error",
+        "name": "C3CallerDApp_InvalidDAppID",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "C3CallerDApp_OnlyAuthorized",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            },
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "C3CallerUtils_OutOfBounds",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "C3GovernDApp_IsZeroAddress",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "C3GovernDApp_OnlyAuthorized",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            },
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "CTMERC20_InvalidChainID",
+        "inputs": [
+            {
+                "name": "_chainIDStr",
+                "type": "string",
+                "internalType": "string"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "CTMERC20_InvalidLength",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum C3ErrorParam"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "CTM_ExceedsMaxSupply",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "CTM_FeeNumeratorTooHigh",
+        "inputs": []
     },
     {
         "type": "error",
@@ -328,6 +1096,22 @@ export const CTMABI = [
                 "name": "spender",
                 "type": "address",
                 "internalType": "address"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "StringsInsufficientHexLength",
+        "inputs": [
+            {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "length",
+                "type": "uint256",
+                "internalType": "uint256"
             }
         ]
     }
