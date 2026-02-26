@@ -22,8 +22,8 @@ contract CTM is ICTM, CTMERC20 {
     uint256 public c3TransferMinFee;
     uint256 public c3TransferMaxFee;
 
-    constructor(address _c3caller, uint256 _dappID, address _dappManager)
-        CTMERC20("Continuum", "CTM", _c3caller, _dappID)
+    constructor(address _gov, address _c3caller, address _dappManager, uint256 _dappID)
+        CTMERC20("Continuum", "CTM", _gov, _c3caller, _dappID)
     {
         // initial fee = 1%
         c3TransferFee = 100;

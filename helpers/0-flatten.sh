@@ -8,6 +8,7 @@ mkdir -p build/
 mkdir -p build/governance/
 mkdir -p build/node/
 mkdir -p build/token/
+mkdir -p build/token/ctm/
 mkdir -p build/utils/
 
 echo -e "\n📄 Flattening src/ to build/..."
@@ -20,8 +21,8 @@ forge flatten src/node/NodeProperties.sol --output build/node/NodeProperties.sol
 forge flatten src/node/Rewards.sol --output build/node/Rewards.sol
 
 # token
-forge flatten src/token/CTM.sol --output build/token/CTM.sol
-forge flatten src/token/CTMMintable.sol --output build/token/CTMMintable.sol
+forge flatten src/token/ctm/CTM.sol --output build/token/ctm/CTM.sol
+forge flatten src/token/ctm/CTMMintable.sol --output build/token/ctm/CTMMintable.sol
 forge flatten src/token/VotingEscrow.sol --output build/token/VotingEscrow.sol
 forge flatten src/token/Distribution.sol --output build/token/Distribution.sol
 

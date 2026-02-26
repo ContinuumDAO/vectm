@@ -7,10 +7,16 @@
  optimizer_runs = 200
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
- fs_permissions = [{ access = "read", path = "deployments.toml" }]
+ fs_permissions = [
+  { access = "read", path = "config/deploy.toml" },
+  { access = "read", path = "config/initialize.toml" },
+  { access = "read", path = "config/deploy-dao.toml" },
+  { access = "read", path = "config/mint.toml" },
+  { access = "read", path = "config/distribution.toml" }
+ ]
 
  remappings = [
-     "@c3caller/=dependencies/@c3caller-v0.2.4/",
+     "@c3caller/=dependencies/@c3caller-v0.2.6/",
      "@openzeppelin/contracts-upgradeable/=dependencies/@openzeppelin-contracts-upgradeable-5.4.0/",
      "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.4.0/",
      "forge-std/=dependencies/forge-std-1.11.0/src/"
@@ -20,13 +26,19 @@
  lint_on_build = false
 
 [rpc_endpoints]
- arbitrum-sepolia-rpc-url = "${ARBITRUM_SEPOLIA_RPC_URL}"
+ mainnet-rpc-url = "${ETHEREUM_RPC_URL}"
+ linea-rpc-url = "${LINEA_RPC_URL}"
  sepolia-rpc-url = "${SEPOLIA_RPC_URL}"
+ linea-sepolia-rpc-url = "${LINEA_SEPOLIA_RPC_URL}"
+ arbitrum-sepolia-rpc-url = "${ARBITRUM_SEPOLIA_RPC_URL}"
  bsc-testnet-rpc-url = "${BSC_TESTNET_RPC_URL}"
 
 [etherscan]
- arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
+ mainnet-key = { url = "https://api.etherscan.io/v2/api?chainid=1", key = "${ETHERSCAN_API_KEY}" }
+ linea-key = { url = "https://api.etherscan.io/v2/api?chainid=59144", key = "${ETHERSCAN_API_KEY}" }
  sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=11155111", key = "${ETHERSCAN_API_KEY}" }
+ linea-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=59141", key = "${ETHERSCAN_API_KEY}" }
+ arbitrum-sepolia-key = { url = "https://api.etherscan.io/v2/api?chainid=421614", key = "${ETHERSCAN_API_KEY}" }
  bsc-testnet-key = { url = "https://api.etherscan.io/v2/api?chainid=97", key = "${ETHERSCAN_API_KEY}" }
 
 [invariant]
@@ -38,6 +50,6 @@
 forge-std = "1.11.0"
 "@openzeppelin-contracts" = "5.4.0"
 "@openzeppelin-contracts-upgradeable" = "5.4.0"
-"@c3caller" = "0.2.4"
+"@c3caller" = "0.2.6"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

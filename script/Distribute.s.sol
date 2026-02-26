@@ -11,7 +11,7 @@ interface ICTMDistribution {
 
 contract Distribute is Script, Config {
     function run() public {
-        _loadConfig("./deployments.toml", false);
+        _loadConfig("./config/distribution.toml", false);
 
         address dist = config.get("dist").toAddress();
 

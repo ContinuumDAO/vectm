@@ -1,0 +1,25 @@
+# # 1. Linea
+# [linea]
+# endpoint_url = "linea-rpc-url"
+# 
+# [linea.address]
+# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+# ctm = ""
+# usdc = ""
+# 
+# [linea.uint]
+# total_claimable = "0"
+
+
+# 2. Linea Sepolia
+[linea-sepolia]
+endpoint_url = "linea-sepolia-rpc-url"
+
+[linea-sepolia.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+ctm = "0xff247e648B6692C5F0A452FE5D58bbc86bA30c3c"
+usdc = "0x70b52c6cdda7c6b881de77196edfdf5a704b55f2"
+c3governor = "0x570c830459200768303F39F0dA8D52290B97D82D"
+
+[linea-sepolia.uint]
+totalClaimable = "20148947499999000000000000"

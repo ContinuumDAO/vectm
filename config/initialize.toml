@@ -1,0 +1,79 @@
+# # 1. Ethereum
+# [mainnet]
+# endpoint_url = "mainnet-rpc-url"
+
+# [mainnet.address]
+# uuidKeeper = ""
+# dappManager = ""
+# c3caller = ""
+# c3governor = ""
+# ctm = ""
+# usdc = ""
+# mpc = ""
+# 
+# [mainnet.string]
+# dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+# dappKey_ctm = "v1.continuumdao.ctm"
+# metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+# metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+# 
+# 
+# # 2. Linea
+# [linea]
+# endpoint_url ="linea-rpc-url"
+#
+# [linea.address]
+# uuidKeeper = ""
+# dappManager = ""
+# c3caller = ""
+# c3governor = ""
+# ctm = ""
+# usdc = ""
+# mpc = ""
+# 
+# [linea.string]
+# dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+# dappKey_ctm = "v1.continuumdao.ctm"
+# metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Linea","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+# metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Linea","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+
+# 3. Sepolia
+[sepolia]
+endpoint_url = "sepolia-rpc-url"
+
+[sepolia.address]
+uuidKeeper = "0x98127fbd86902561cE263137ac77BaCAC0617e22"
+dappManager = "0xa06cF94381F4cE067CE6fd88C95a4e2eA6a29cDC"
+c3caller = "0x5aEEF48EDbd1A891E8F2410c88E35A92b37d003C"
+c3governor = "0x570c830459200768303F39F0dA8D52290B97D82D"
+ctm = "0xff247e648B6692C5F0A452FE5D58bbc86bA30c3c"
+usdc = "0x70b52c6cdda7c6b881de77196edfdf5a704b55f2"
+mpc = "0x858B2D17cfF5FF5cf0ce8d56D98555D1a5c6d8F1"
+
+[sepolia.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+
+# 4. Linea Sepolia
+[linea-sepolia]
+endpoint_url = "linea-sepolia-rpc-url"
+
+[linea-sepolia.address]
+uuidKeeper = "0x98127fbd86902561cE263137ac77BaCAC0617e22"
+dappManager = "0xa06cF94381F4cE067CE6fd88C95a4e2eA6a29cDC"
+c3caller = "0x5aEEF48EDbd1A891E8F2410c88E35A92b37d003C"
+c3governor = "0x570c830459200768303F39F0dA8D52290B97D82D"
+ctm = "0xff247e648B6692C5F0A452FE5D58bbc86bA30c3c"
+usdc = "0x70b52c6cdda7c6b881de77196edfdf5a704b55f2"
+mpc = "0x858B2D17cfF5FF5cf0ce8d56D98555D1a5c6d8F1"
+
+[linea-sepolia.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Linea Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Linea Sepolia","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+

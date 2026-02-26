@@ -7,21 +7,19 @@
 set -e
 
 DEPLOYER=$1
-PASSWORD_FILE=$2
 
 if [ -z "$DEPLOYER" ]; then
     echo "Error: Account name is required"
-    echo "Usage: $0 <account_name> <path_to_password_file>"
+    echo "Usage: $0 <account_name>"
+    echo "You will be prompted for the keystore password."
     exit 1
 fi
 
-if [ -z "$PASSWORD_FILE" ]; then
-    echo "Error: Password file is required"
-    echo "Usage: $0 <account_name> <path_to_password_file>"
-    exit 1
-fi
+read -s -p "Keystore password: " PW
+echo
+[ -z "$PW" ] && { echo "Error: Password may not be empty"; exit 1; }
 
-ADDRESS=$(cast wallet address --account "$DEPLOYER" --password-file "$PASSWORD_FILE")
+ADDRESS=$(cast wallet address --account "$DEPLOYER" --password "$PW")
 echo "Account: $ADDRESS"
 echo ""
 
@@ -78,7 +76,7 @@ send_catchup() {
                 --value 0 \
                 --nonce "$n" \
                 --account "$DEPLOYER" \
-                --password-file "$PASSWORD_FILE" \
+                --password "$PW" \
                 --rpc-url "$rpc_url" &
             pids+=($!)
         done

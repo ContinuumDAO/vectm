@@ -3,7 +3,17 @@ export const CTMABI = [
         "type": "constructor",
         "inputs": [
             {
+                "name": "_gov",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
                 "name": "_c3caller",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_dappManager",
                 "type": "address",
                 "internalType": "address"
             },
@@ -11,11 +21,6 @@ export const CTMABI = [
                 "name": "_dappID",
                 "type": "uint256",
                 "internalType": "uint256"
-            },
-            {
-                "name": "_dappManager",
-                "type": "address",
-                "internalType": "address"
             }
         ],
         "stateMutability": "nonpayable"
@@ -145,6 +150,32 @@ export const CTMABI = [
     {
         "type": "function",
         "name": "c3TransferFee",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "c3TransferMaxFee",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "c3TransferMinFee",
         "inputs": [],
         "outputs": [
             {
@@ -489,6 +520,16 @@ export const CTMABI = [
                 "name": "_fee",
                 "type": "uint256",
                 "internalType": "uint256"
+            },
+            {
+                "name": "_minFee",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_maxFee",
+                "type": "uint256",
+                "internalType": "uint256"
             }
         ],
         "outputs": [],
@@ -634,6 +675,12 @@ export const CTMABI = [
         "name": "C3DepositLocal",
         "inputs": [
             {
+                "name": "_dappID",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            },
+            {
                 "name": "_fromStr",
                 "type": "string",
                 "indexed": true,
@@ -658,6 +705,12 @@ export const CTMABI = [
         "type": "event",
         "name": "C3DepositRemote",
         "inputs": [
+            {
+                "name": "_dappID",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            },
             {
                 "name": "_from",
                 "type": "address",
@@ -869,6 +922,18 @@ export const CTMABI = [
                 "type": "uint256",
                 "indexed": false,
                 "internalType": "uint256"
+            },
+            {
+                "name": "_minFee",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "_maxFee",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
             }
         ],
         "anonymous": false
@@ -1007,6 +1072,22 @@ export const CTMABI = [
         "type": "error",
         "name": "CTM_ExceedsMaxSupply",
         "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "CTM_FeeMinGreaterThanFeeMax",
+        "inputs": [
+            {
+                "name": "_feeMin",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_feeMax",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ]
     },
     {
         "type": "error",

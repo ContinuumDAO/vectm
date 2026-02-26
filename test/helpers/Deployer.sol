@@ -12,7 +12,7 @@ import {C3DAppManager} from "@c3caller/dapp/C3DAppManager.sol";
 import {ContinuumDAO} from "../../src/governance/ContinuumDAO.sol";
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
 import {Rewards} from "../../src/node/Rewards.sol";
-import {CTMMintable} from "../../src/token/CTMMintable.sol";
+import {CTMMintable} from "../../src/token/ctm/CTMMintable.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {TestERC20} from "./mocks/TestERC20.sol";
 
@@ -29,8 +29,8 @@ contract Deployer is Utils {
     NodeProperties nodeProperties;
     Rewards rewards;
 
-    function _deployCTM(address _c3caller, uint256 _dappID, address _dappManager) internal {
-        ctm = new CTMMintable(_c3caller, _dappID, _dappManager);
+    function _deployCTM(address _gov, address _c3caller, uint256 _dappID, address _dappManager) internal {
+        ctm = new CTMMintable(_gov, _c3caller, _dappManager, _dappID);
     }
 
     function _deployUSDC() internal {

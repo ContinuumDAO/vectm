@@ -6,7 +6,9 @@ import {CTM} from "./CTM.sol";
 import {ICTMMintable} from "./ICTMMintable.sol";
 
 contract CTMMintable is ICTMMintable, CTM {
-    constructor(address _c3caller, uint256 _dappID, address _dappManager) CTM(_c3caller, _dappID, _dappManager) {}
+    constructor(address _gov, address _c3caller, address _dappManager, uint256 _dappID)
+        CTM(_gov, _c3caller, _dappManager, _dappID)
+    {}
 
     function _incrementGlobalSupply(uint256 _amount) internal override {
         globalSupply += _amount;

@@ -83,6 +83,9 @@ contract Distribution {
     /// @notice Mapping from individual address to the token ID they claimed
     mapping(address => uint256) public claimedId;
 
+    /// @notice Mapping from enumerated claim to token ID
+    mapping(uint256 => uint256) public claimToTokenId;
+
     /// @notice Modifier to restrict a function to only admin
     modifier onlyAdmin() {
         if (msg.sender != admin) revert OnlyAdmin();
@@ -114,11 +117,12 @@ contract Distribution {
         if (hasClaimed[msg.sender]) revert AlreadyClaimed();
         if (block.timestamp >= deadline) revert ClaimingEnded();
         uint256 _ctmDue = ctmDue[msg.sender];
+        hasClaimed[msg.sender] = true;
         if (_ctmDue > 0) {
+            uint256 id = IVotingEscrow(ve).create_lock_for(_ctmDue, FOUR_YEARS, msg.sender);
+            claimToTokenId[claimers] = id;
             claimers++;
             claimed += _ctmDue;
-            hasClaimed[msg.sender] = true;
-            uint256 id = IVotingEscrow(ve).create_lock_for(_ctmDue, FOUR_YEARS, msg.sender);
             claimedId[msg.sender] = id;
             emit Claim(msg.sender, _ctmDue, id);
         }

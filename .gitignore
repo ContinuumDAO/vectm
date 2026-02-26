@@ -29,6 +29,11 @@ flatten.sh
 # ABI
 abi/
 
+# balances
+all_finalized.json
+all_finalized_wei.json
+all_testnet.json
+all_testnet_wei.json
 
 # Soldeer
 /dependencies
