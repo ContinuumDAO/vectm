@@ -59,6 +59,7 @@ contract CTM is ICTM, CTMERC20 {
     function depositDAppLocal(string memory _fromStr, uint256 _dappID, uint256 _amount) external onlyC3Caller {
         (, string memory _fromChainID,) = _context();
         _mint(address(this), _amount);
+        _approve(address(this), dappManager, _amount);
         IC3DAppManager(dappManager).deposit(_dappID, address(this), _amount);
         emit C3DepositLocal(_dappID, _fromStr, _amount, _fromChainID);
     }
@@ -102,11 +103,11 @@ contract CTM is ICTM, CTMERC20 {
         bool complete = super._c3Fallback(_selector, _data, _reason);
         if (!complete) {
             if (_selector == this.depositDAppLocal.selector) {
-                (string memory _fromStr, string memory _toStr, uint256 _amount) =
-                    abi.decode(_data, (string, string, uint256));
+                (string memory _fromStr, uint256 _dappID, uint256 _amount) =
+                    abi.decode(_data, (string, uint256, uint256));
                 address _from = _fromStr.toAddress();
                 _mint(_from, _amount);
-                emit DepositDAppRefund(_from, _toStr, _amount, _reason);
+                emit DepositDAppRefund(_from, _dappID, _amount, _reason);
                 complete = true;
             }
         }

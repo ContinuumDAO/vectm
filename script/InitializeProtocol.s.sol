@@ -77,8 +77,10 @@ contract InitializeProtocol is Script, Config {
         // c3governor.setPeer("1", c3governor_s);     // Ethereum
 
         // 5.5: Set peer in CTM
-        ctm.setPeer("59141", ctm_s); // Linea Sepolia
+        // ctm.setPeer("1", ctm_s); // Ethereum
+        ctm.setPeer("11155111", ctm_s); // Sepolia
         // ctm.setPeer("59144", ctm_s); // Linea
+        ctm.setPeer("59141", ctm_s); // Linea Sepolia
 
         // 6. Set Fee Config in DApp Manager
         dappManager.setFeeConfig(_usdc, 1000, 3500e6); // 0.001 USDC per byte, 3500 USDC per ether
@@ -95,7 +97,8 @@ contract InitializeProtocol is Script, Config {
         dappManager.setDAppAddr(dapp_id_c3gov, _c3governor, true);
         dappManager.setDAppAddr(dapp_id_ctm, _ctm, true);
 
-        if (daoLocal) {
+        if (!daoLocal) {
+            console.log("DAO is not local: setting protocol contracts' gov to c3governor.");
             // 9. Change gov in protocol contracts to C3Governor
             IC3GovClient(_uuidKeeper).changeGov(_c3governor);
             IC3GovClient(_dappManager).changeGov(_c3governor);
@@ -105,6 +108,8 @@ contract InitializeProtocol is Script, Config {
             c3governor.applySelfAsGov(_uuidKeeper);
             c3governor.applySelfAsGov(_dappManager);
             c3governor.applySelfAsGov(_c3caller);
+        } else {
+            console.log("DAO is local: not setting protocol contracts' gov.");
         }
 
         vm.stopBroadcast();

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Even out EOA nonces across arbitrum-sepolia, sepolia, and bsc-testnet by
+# Even out EOA nonces across sepolia (11155111) and linea-sepolia (59141) by
 # sending zero-value self-transfers on chains with lower nonces until they
 # match the chain with the highest nonce.
 
@@ -24,25 +24,22 @@ echo "Account: $ADDRESS"
 echo ""
 
 # Fetch current nonces (cast nonce outputs a single decimal number)
-NONCE_ARB=$(cast nonce "$ADDRESS" --rpc-url arbitrum-sepolia-rpc-url)
 NONCE_SEP=$(cast nonce "$ADDRESS" --rpc-url sepolia-rpc-url)
-NONCE_BSC=$(cast nonce "$ADDRESS" --rpc-url bsc-testnet-rpc-url)
+NONCE_LINEA_SEP=$(cast nonce "$ADDRESS" --rpc-url linea-sepolia-rpc-url)
 
 echo "Current nonces:"
-echo "  arbitrum-sepolia (421614): $NONCE_ARB"
 echo "  sepolia (11155111):        $NONCE_SEP"
-echo "  bsc-testnet (97):         $NONCE_BSC"
+echo "  linea-sepolia (59141):        $NONCE_LINEA_SEP"
 echo ""
 
 # Find highest nonce
-MAX_NONCE=$NONCE_ARB
-[ "$NONCE_SEP" -gt "$MAX_NONCE" ] && MAX_NONCE=$NONCE_SEP
-[ "$NONCE_BSC" -gt "$MAX_NONCE" ] && MAX_NONCE=$NONCE_BSC
+MAX_NONCE=$NONCE_SEP
+[ "$NONCE_LINEA_SEP" -gt "$MAX_NONCE" ] && MAX_NONCE=$NONCE_LINEA_SEP
 
 echo "Target nonce (max): $MAX_NONCE"
 echo ""
 
-if [ "$NONCE_ARB" -eq "$MAX_NONCE" ] && [ "$NONCE_SEP" -eq "$MAX_NONCE" ] && [ "$NONCE_BSC" -eq "$MAX_NONCE" ]; then
+if [ "$NONCE_SEP" -eq "$MAX_NONCE" ] && [ "$NONCE_LINEA_SEP" -eq "$MAX_NONCE" ]; then
     echo "Nonces are already even. Nothing to do."
     exit 0
 fi
@@ -96,20 +93,17 @@ send_catchup() {
     echo ""
 }
 
-send_catchup "arbitrum-sepolia" "arbitrum-sepolia-rpc-url" "$NONCE_ARB" "$MAX_NONCE"
 send_catchup "sepolia"         "sepolia-rpc-url"         "$NONCE_SEP" "$MAX_NONCE"
-send_catchup "bsc-testnet"     "bsc-testnet-rpc-url"     "$NONCE_BSC" "$MAX_NONCE"
+send_catchup "linea-sepolia"   "linea-sepolia-rpc-url"   "$NONCE_LINEA_SEP" "$MAX_NONCE"
 
 echo "Verifying nonces..."
-NONCE_ARB_NEW=$(cast nonce "$ADDRESS" --rpc-url arbitrum-sepolia-rpc-url)
 NONCE_SEP_NEW=$(cast nonce "$ADDRESS" --rpc-url sepolia-rpc-url)
-NONCE_BSC_NEW=$(cast nonce "$ADDRESS" --rpc-url bsc-testnet-rpc-url)
+NONCE_LINEA_SEP_NEW=$(cast nonce "$ADDRESS" --rpc-url linea-sepolia-rpc-url)
 
-echo "  arbitrum-sepolia: $NONCE_ARB_NEW"
-echo "  sepolia:          $NONCE_SEP_NEW"
-echo "  bsc-testnet:      $NONCE_BSC_NEW"
+echo "  sepolia (11155111):     $NONCE_SEP_NEW"
+echo "  linea-sepolia (59141): $NONCE_LINEA_SEP_NEW"
 
-if [ "$NONCE_ARB_NEW" -eq "$MAX_NONCE" ] && [ "$NONCE_SEP_NEW" -eq "$MAX_NONCE" ] && [ "$NONCE_BSC_NEW" -eq "$MAX_NONCE" ]; then
+if [ "$NONCE_SEP_NEW" -eq "$MAX_NONCE" ] && [ "$NONCE_LINEA_SEP_NEW" -eq "$MAX_NONCE" ]; then
     echo ""
     echo "Nonces are now even at $MAX_NONCE."
 else

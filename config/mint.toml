@@ -20,12 +20,12 @@
 endpoint_url = "sepolia-rpc-url"
 
 [sepolia.address]
-ctm = "0xff247e648B6692C5F0A452FE5D58bbc86bA30c3c"
+ctm = ""
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
-c3governor = "0x570c830459200768303F39F0dA8D52290B97D82D"
+c3governor = ""
 
 [sepolia.string]
-dist = "0x3feF5D4041b2528eE7EE64401452Aa4E6bbd67aD"
+dist = ""
 targetChainID = "59141"
 
 [sepolia.uint]

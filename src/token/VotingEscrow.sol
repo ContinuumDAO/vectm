@@ -1564,6 +1564,36 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
+     * @notice Find the largest user epoch index for `_tokenId` whose checkpoint timestamp is <= `_t`.
+     * @param _tokenId NFT token ID
+     * @param _t Timestamp to query at or before
+     * @return The epoch index to use, or 0 if no checkpoint is at or before `_t`
+     */
+    function _findUserEpochAtOrBefore(uint256 _tokenId, uint256 _t) internal view returns (uint256) {
+        uint256 max_epoch = user_point_epoch[_tokenId];
+        if (max_epoch == 0) {
+            return 0;
+        }
+        uint256 _min = 1;
+        uint256 _max = max_epoch;
+        for (uint256 i = 0; i < 128; ++i) {
+            if (_min >= _max) {
+                break;
+            }
+            uint256 _mid = (_min + _max + 1) / 2;
+            if (user_point_history[_tokenId][_mid].ts <= _t) {
+                _min = _mid;
+            } else {
+                _max = _mid - 1;
+            }
+        }
+        if (user_point_history[_tokenId][_min].ts > _t) {
+            return 0;
+        }
+        return _min;
+    }
+
+    /**
      * @notice Get the current voting power for `_tokenId`
      * @param _tokenId NFT for lock
      * @param _t Epoch time to return voting power at
@@ -1571,7 +1601,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * @dev Adheres to the ERC20 `balanceOf` interface for Aragon compatibility
      */
     function _balanceOfNFT(uint256 _tokenId, uint256 _t) internal view returns (uint256) {
-        uint256 _epoch = user_point_epoch[_tokenId];
+        uint256 _epoch = _findUserEpochAtOrBefore(_tokenId, _t);
         if (_epoch == 0) {
             return 0;
         } else {
@@ -1616,12 +1646,41 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
+     * @notice Find the largest global checkpoint epoch index whose timestamp is <= `t`.
+     * @param t Timestamp to query at or before
+     * @return The epoch index to use, or type(uint256).max if no checkpoint is at or before `t`
+     */
+    function _findCheckpointEpochAtOrBefore(uint256 t) internal view returns (uint256) {
+        uint256 max_epoch = epoch;
+        uint256 _min = 0;
+        uint256 _max = max_epoch;
+        for (uint256 i = 0; i < 128; ++i) {
+            if (_min >= _max) {
+                break;
+            }
+            uint256 _mid = (_min + _max + 1) / 2;
+            if (point_history[_mid].ts <= t) {
+                _min = _mid;
+            } else {
+                _max = _mid - 1;
+            }
+        }
+        if (point_history[_min].ts > t) {
+            return type(uint256).max;
+        }
+        return _min;
+    }
+
+    /**
      * @notice Return the total voting power at timestamp `t`.
      * @param t The time at which to obtain total voting power.
      * @return The total voting power at time `t`.
      */
     function _totalPowerAtT(uint256 t) internal view returns (uint256) {
-        uint256 _epoch = epoch;
+        uint256 _epoch = _findCheckpointEpochAtOrBefore(t);
+        if (_epoch == type(uint256).max) {
+            return 0;
+        }
         Point memory last_point = point_history[_epoch];
         return _supply_at(last_point, t);
     }

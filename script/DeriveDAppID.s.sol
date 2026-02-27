@@ -8,9 +8,8 @@ import {console} from "forge-std/console.sol";
 import {C3DAppManager} from "@c3caller/dapp/C3DAppManager.sol";
 
 contract DeriveDAppID is Script {
-
     address creator = 0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F;
-    string dappKey = "v1.continuumdao.c3governor_u";
+    string dappKey = "v1.continuumdao.ctm";
 
     function run() public {
         C3DAppManager dappManager = new C3DAppManager();

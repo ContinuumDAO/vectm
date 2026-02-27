@@ -4,7 +4,7 @@
  libs = ["lib", "dependencies"]
  solc = "0.8.27"
  via_ir = true
- optimizer_runs = 200
+ optimizer_runs = 10
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
  fs_permissions = [

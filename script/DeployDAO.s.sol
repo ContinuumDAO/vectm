@@ -63,8 +63,9 @@ contract DeployDAO is Script, Config {
         IC3GovClient(uuidKeeper).changeGov(address(dao));
         IC3GovClient(dappManager).changeGov(address(dao));
         IC3GovClient(c3caller).changeGov(address(dao));
-
         IC3GovernDApp(c3governor).changeGov(address(dao));
+
+        // DAO must now pass a proposal to applyGov itself on these 4 contracts
 
         vm.stopBroadcast();
 

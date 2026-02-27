@@ -9,7 +9,7 @@ interface ICTM {
 
     event C3DepositRemote(uint256 indexed _dappID, address indexed _from, uint256 _amount, string _toChainIDStr);
     event C3DepositLocal(uint256 indexed _dappID, string indexed _fromStr, uint256 _amount, string _fromChainID);
-    event DepositDAppRefund(address indexed _from, string indexed _toStr, uint256 _amount, bytes _reason);
+    event DepositDAppRefund(address indexed _from, uint256 indexed _dappID, uint256 _amount, bytes _reason);
 
     error CTM_FeeNumeratorTooHigh();
     error CTM_ExceedsMaxSupply();
