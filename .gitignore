@@ -7,6 +7,8 @@ build/
 
 # Other
 other/
+script/ReproduceGetPastTotalSupplyBug.s.sol
+OPTIONS.md
 
 # Ignores development broadcast logs
 # broadcast/
@@ -25,6 +27,9 @@ src/VotingEscrowOld.sol
 
 # Bash scripts
 flatten.sh
+
+# Logs
+bug-logs.txt
 
 # ABI
 abi/
