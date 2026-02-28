@@ -17,7 +17,7 @@ echo
 # Simulate the initialization
 forge script script/InitializeProtocol.s.sol \
 --sender $(cast wallet addr --account $1 --password "$PW") \
---rpc-url ethereum-rpc-url \
+--rpc-url mainnet-rpc-url \
 --chain ethereum
 
 # Check if the simulation succeeded
@@ -42,7 +42,7 @@ forge script script/InitializeProtocol.s.sol \
 --verify \
 --etherscan-api-key ethereum-key \
 --slow \
---rpc-url ethereum-rpc-url \
+--rpc-url mainnet-rpc-url \
 --chain ethereum \
 --broadcast
 

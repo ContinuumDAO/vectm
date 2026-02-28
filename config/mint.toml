@@ -1,32 +1,32 @@
-# # 1. Ethereum
-# 
-# [mainnet]
-# endpoint_url = "mainnet-rpc-url"
-# 
-# [mainnet.address]
-# ctm = ""
-# admin = ""
-# c3governor = ""
-# dist = ""
-# 
-# [mainnet.string]
-# targetChainID = ""
-# 
-# [mainnet.uint]
-# initialMint = ""
+# 1. Ethereum
 
-# 2. Sepolia
-[sepolia]
-endpoint_url = "sepolia-rpc-url"
+[mainnet]
+endpoint_url = "mainnet-rpc-url"
 
-[sepolia.address]
-ctm = ""
+[mainnet.address]
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
 c3governor = ""
+ctm = ""
 
-[sepolia.string]
+[mainnet.string]
 dist = ""
-targetChainID = "59141"
+targetChainID = "59144"
 
-[sepolia.uint]
-initialMint = "20148947499999000000000000" # 20_148_947 M CTM
+[mainnet.uint]
+initialMint = "20168947499999000000000000" # 20_168_947.499_999_000_000_000_000 CTM
+
+# # 2. Sepolia
+# [sepolia]
+# endpoint_url = "sepolia-rpc-url"
+# 
+# [sepolia.address]
+# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+# c3governor = "0x126095beE620364eaaF6d00D23D008c0d184b987"
+# ctm = "0xc9C25b770623888b8DcB3A035545528103E51D94"
+# 
+# [sepolia.string]
+# dist = "0x1D899B173bdB87897F4de68077d11F27b3A82E4A"
+# targetChainID = "59141"
+# 
+# [sepolia.uint]
+# initialMint = "20148947499999000000000000" # 20_148_947 CTM

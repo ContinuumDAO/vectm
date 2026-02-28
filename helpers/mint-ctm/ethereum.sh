@@ -15,7 +15,7 @@ echo
 # Simulate the mint
 forge script script/MintCTM.s.sol \
 --sender $(cast wallet addr --account $1 --password "$PW") \
---rpc-url ethereum-rpc-url \
+--rpc-url mainnet-rpc-url \
 --chain ethereum
 
 # Check if the simulation succeeded
@@ -38,7 +38,7 @@ forge script script/MintCTM.s.sol \
 --password "$PW" \
 --sender $(cast wallet addr --account $1 --password "$PW") \
 --slow \
---rpc-url ethereum-rpc-url \
+--rpc-url mainnet-rpc-url \
 --chain ethereum \
 --broadcast
 

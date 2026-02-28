@@ -1,10 +1,10 @@
 [profile.default]
  src = "src"
  out = "out"
- libs = ["lib", "dependencies"]
+ libs = ["dependencies"]
  solc = "0.8.27"
  via_ir = true
- optimizer_runs = 10
+ optimizer_runs = 40
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
  fs_permissions = [
@@ -16,7 +16,7 @@
  ]
 
  remappings = [
-     "@c3caller/=dependencies/@c3caller-v0.2.6/",
+     "@c3caller/=dependencies/@c3caller-0.3.0/",
      "@openzeppelin/contracts-upgradeable/=dependencies/@openzeppelin-contracts-upgradeable-5.4.0/",
      "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.4.0/",
      "forge-std/=dependencies/forge-std-1.11.0/src/"
@@ -50,6 +50,6 @@
 forge-std = "1.11.0"
 "@openzeppelin-contracts" = "5.4.0"
 "@openzeppelin-contracts-upgradeable" = "5.4.0"
-"@c3caller" = "0.2.6"
+"@c3caller" = "0.3.0"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

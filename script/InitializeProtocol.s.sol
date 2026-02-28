@@ -67,20 +67,22 @@ contract InitializeProtocol is Script, Config {
         c3caller.addMPC(mpc);
 
         // 4. Activate C3Caller chain IDs
-        c3caller.activateChainID("11155111"); // Ethereum Sepolia
-        c3caller.activateChainID("59141"); // Linea Sepolia
-        // c3caller.activateChainID("1");     // Ethereum
-        // c3caller.activateChainID("59144"); // Linea
+        c3caller.activateChainID("1"); // Ethereum
+        c3caller.activateChainID("59144"); // Linea
+        // c3caller.activateChainID("11155111"); // Ethereum Sepolia
+        // c3caller.activateChainID("59141");    // Linea Sepolia
 
-        // 5. Set peer in C3Governor
-        c3governor.setPeer("11155111", c3governor_s); // Ethereum Sepolia
-        // c3governor.setPeer("1", c3governor_s);     // Ethereum
+        if (daoLocal) {
+            // 5. Set peer in C3Governor
+            c3governor.setPeer("1", c3governor_s); // Ethereum
+            // c3governor.setPeer("11155111", c3governor_s); // Ethereum Sepolia
+        }
 
         // 5.5: Set peer in CTM
-        // ctm.setPeer("1", ctm_s); // Ethereum
-        ctm.setPeer("11155111", ctm_s); // Sepolia
-        // ctm.setPeer("59144", ctm_s); // Linea
-        ctm.setPeer("59141", ctm_s); // Linea Sepolia
+        ctm.setPeer("1", ctm_s); // Ethereum
+        ctm.setPeer("59144", ctm_s); // Linea
+        // ctm.setPeer("11155111", ctm_s); // Sepolia
+        // ctm.setPeer("59141", ctm_s);    // Linea Sepolia
 
         // 6. Set Fee Config in DApp Manager
         dappManager.setFeeConfig(_usdc, 1000, 3500e6); // 0.001 USDC per byte, 3500 USDC per ether

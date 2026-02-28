@@ -1,32 +1,32 @@
-# # 1. Linea
-# [linea]
-# endpoint_url = "linea-rpc-url"
-# 
-# [linea.address]
-# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
-# usdc = ""
-# ctm = ""
-# uuidKeeper = ""
-# dappManager = ""
-# c3caller = ""
-# c3governor = ""
-# 
-# [linea.uint]
-# total_claimable = "0"
+# 1. Linea
+[linea]
+endpoint_url = "linea-rpc-url"
 
-
-# 2. Linea Sepolia
-[linea-sepolia]
-endpoint_url = "linea-sepolia-rpc-url"
-
-[linea-sepolia.address]
+[linea.address]
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
-usdc = "0x70b52c6cdda7c6b881de77196edfdf5a704b55f2"
-ctm = "0x91C9D3CEE6D6bd419b3bAd1c40C17911f3Ba4D52"
-uuidKeeper = "0x5F0A3b50FC043626349e5E49D0e1552A60bC543f"
-dappManager = "0x73a046898dE40E0A8F1894B83744142583B35e22"
-c3caller = "0x0F94169793358e618B9E5EDEDd4c0F598BFC75FB"
-c3governor = "0xf12C6d84Ef2d972988e3Da6DbeA2cF577121603b"
+usdc = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
+uuidKeeper = ""
+dappManager = ""
+c3caller = ""
+c3governor = ""
+ctm = ""
 
-[linea-sepolia.uint]
-totalClaimable = "20148947499999000000000000"
+[linea.uint]
+total_claimable = "20168947499999000000000000"
+
+
+# # 2. Linea Sepolia
+# [linea-sepolia]
+# endpoint_url = "linea-sepolia-rpc-url"
+# 
+# [linea-sepolia.address]
+# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+# usdc = "0x70b52c6cdda7c6b881de77196edfdf5a704b55f2"
+# uuidKeeper = "0xc0cB62D037f874a4e6525AbEC5baFdEF3A50e7A1"
+# dappManager = "0xA327Afc252B16500948E1FFC998B4E93412fC295"
+# c3caller = "0xD91239d8E9F3564EeCCb268D49ddD1Bd1667d24d"
+# c3governor = "0x126095beE620364eaaF6d00D23D008c0d184b987"
+# ctm = "0xc9C25b770623888b8DcB3A035545528103E51D94"
+# 
+# [linea-sepolia.uint]
+# totalClaimable = "20148947499999000000000000"
