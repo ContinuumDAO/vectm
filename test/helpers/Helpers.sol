@@ -43,10 +43,8 @@ contract Helpers is Test, Accounts, Deployer {
 
         vm.stopPrank();
 
-        _deployVotingEscrow();
-        _deployCTMDAOGovernor(admin);
-        _deployNodeProperties();
-        _deployRewards();
+        _deployDAO(admin);
+        _initializeDAO();
 
         address[] memory spenders = new address[](4);
         spenders[0] = address(ve);
@@ -55,8 +53,6 @@ contract Helpers is Test, Accounts, Deployer {
         spenders[3] = address(nodeProperties);
         _approveAllERC20(address(usdc), spenders);
         _approveAllERC20(address(ctm), spenders);
-
-        _initContracts(address(treasury));
 
         _fundRewards();
     }

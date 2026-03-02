@@ -28,13 +28,8 @@ contract DeployProtocol is Script, Config {
     function run() public {
         _loadConfig("./config/deploy.toml", false);
 
-        address _ctm;
-
-        bool mintable = vm.envOr("MINTABLE", false);
-
         address admin = config.get("admin").toAddress();
         string memory dappKey_c3gov_u = config.get("dappKey_c3gov_u").toString();
-        string memory dappKey_ctm = config.get("dappKey_ctm").toString();
 
         vm.startBroadcast();
 
@@ -66,16 +61,6 @@ contract DeployProtocol is Script, Config {
         C3CallerProxy c3governorProxy = new C3CallerProxy(address(c3governorImpl), c3governorInit);
         address c3governor_u = address(c3governorProxy);
 
-        uint256 dappID_ctm = IC3DAppManagerUpgradeable(dappManager_u).deriveDAppID(admin, dappKey_ctm);
-
-        if (mintable) {
-            CTMMintable ctmMintable = new CTMMintable(admin, c3caller_u, dappManager_u, dappID_ctm);
-            _ctm = address(ctmMintable);
-        } else {
-            CTM ctm = new CTM(admin, c3caller_u, dappManager_u, dappID_ctm);
-            _ctm = address(ctm);
-        }
-
         IC3GovClient(uuidKeeper_u).changeGov(admin);
         IC3GovClient(dappManager_u).changeGov(admin);
         IC3GovClient(c3caller_u).changeGov(admin);
@@ -86,7 +71,5 @@ contract DeployProtocol is Script, Config {
         console.log("C3DAppManagerUpgradeable:", dappManager_u);
         console.log("C3CallerUpgradeable:", c3caller_u);
         console.log("C3GovernorUpgradeable:", c3governor_u);
-
-        console.log("CTM:", _ctm);
     }
 }

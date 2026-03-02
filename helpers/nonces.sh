@@ -15,9 +15,9 @@ read -s -p "Keystore password: " PW
 echo
 [ -z "$PW" ] && { echo "Error: Password may not be empty"; exit 1; }
 
-# Get the nonce for each chain (sepolia and linea-sepolia only)
-echo -e "\nNonce for sepolia (11155111):"
-cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url sepolia-rpc-url
+# Get the nonce for each chain (Ethereum and Linea only)
+echo -e "\nNonce for Ethereum (1):"
+cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url mainnet-rpc-url
 
-echo -e "\nNonce for linea-sepolia (59141):"
-cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url linea-sepolia-rpc-url
+echo -e "\nNonce for Linea (59144):"
+cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url linea-rpc-url

@@ -5,14 +5,14 @@ endpoint_url = "linea-rpc-url"
 [linea.address]
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
 usdc = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
-uuidKeeper = ""
-dappManager = ""
-c3caller = ""
-c3governor = ""
-ctm = ""
+uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
+ctm = "0xaa673263a8B36F60FDc4DD0EBef9216A45c2AbcE"
 
 [linea.uint]
-total_claimable = "20168947499999000000000000"
+totalClaimable = "20168947499999000000000000"
 
 
 # # 2. Linea Sepolia

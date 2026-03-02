@@ -216,16 +216,30 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * @notice Initializes the VotingEscrow contract
      * @param token_addr The address of the underlying CTM token
      * @param base_uri Base URI for NFT metadata
-     * @dev Sets up the initial state including token address, base URI, and supported interfaces.
+     * @param _governor The DAO address
+     * @param _nodeProperties The address of the node management contract
+     * @param _rewards The address of the contract that distributes rewards for node runners
+     * @dev Sets up the initial state including protocol addresses, base URI, and supported interfaces.
      * This function can only be called once during contract deployment.
      */
-    function initialize(address token_addr, string memory base_uri) external initializer {
+    function initialize(
+        address token_addr,
+        address _governor,
+        address _nodeProperties,
+        address _rewards,
+        string memory base_uri
+    ) external initializer {
         __UUPSUpgradeable_init();
         token = token_addr;
         baseURI = base_uri;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
         minimumLock = 1 ether;
+
+        governor = _governor;
+        nodeProperties = _nodeProperties;
+        rewards = _rewards;
+        treasury = _governor;
 
         supportedInterfaces[ERC165_INTERFACE_ID] = true;
         supportedInterfaces[ERC721_INTERFACE_ID] = true;
@@ -614,25 +628,6 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      */
     function checkpoint() external {
         _checkpoint(0, LockedBalance(0, 0), LockedBalance(0, 0));
-    }
-
-    /**
-     * @notice Initializes contract addresses after deployment
-     * @param _governor The address of the governance contract
-     * @param _nodeProperties The address of the node properties contract
-     * @param _rewards The address of the rewards contract
-     * @param _treasury The address of the treasury contract
-     * @dev Sets up the contract addresses for integration with other system contracts.
-     * @dev This function can only be called once and is needed because VotingEscrow is deployed before other contracts.
-     */
-    function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external {
-        if (governor != address(0)) {
-            revert InvalidInitialization();
-        }
-        governor = _governor;
-        nodeProperties = _nodeProperties;
-        rewards = _rewards;
-        treasury = _treasury;
     }
 
     /**

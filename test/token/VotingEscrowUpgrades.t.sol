@@ -104,7 +104,7 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_CannotInitializeTwice() public {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        ve.initialize(address(ctm), BASE_URI_V1);
+        ve.initialize(address(ctm), address(continuumDAO), address(nodeProperties), address(rewards), BASE_URI_V1);
     }
 
     function test_ValidUpgrade() public {
@@ -337,7 +337,7 @@ contract VotingEscrowUpgradesTest is Helpers {
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
         // Test that state variables are preserved
-        assertEq(ve.treasury(), treasury);
+        assertEq(ve.treasury(), address(continuumDAO));
         assertEq(ve.nodeProperties(), address(nodeProperties));
         assertEq(ve.rewards(), address(rewards));
         assertEq(ve.liquidationsEnabled(), true);

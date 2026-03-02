@@ -77,11 +77,11 @@ contract ContinuumDAO is
      */
     constructor(address _token, address _proposalGuardian)
         Governor("ContinuumDAO")
-        GovernorSettings(10 minutes, 30 minutes, 1000 ether) // voting delay / voting period / minimum voting power threshold
+        GovernorSettings(5 days, 10 days, 1000 ether) // voting delay / voting period / minimum voting power threshold
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
-        GovernorVotesSuperQuorumFraction(40)
-        GovernorPreventLateQuorum(2 minutes) // 2 days
+        GovernorVotesSuperQuorumFraction(80)
+        GovernorPreventLateQuorum(2 days) // 2 days
         GovernorProposalGuardian()
     {
         _setProposalGuardian(_proposalGuardian);

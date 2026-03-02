@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export MINTABLE=true
-
 # Check if required arguments are provided
 if [ $# -lt 1 ]; then
     echo "Error: Missing required arguments."
@@ -18,7 +16,7 @@ echo
 forge script script/DeployProtocol.s.sol \
 --sender $(cast wallet addr --account $1 --password "$PW") \
 --rpc-url mainnet-rpc-url \
---chain ethereum
+--chain mainnet
 
 # Check if the simulation succeeded
 if [ $? -ne 0 ]; then
@@ -43,7 +41,7 @@ forge script script/DeployProtocol.s.sol \
 --etherscan-api-key ethereum-key \
 --slow \
 --rpc-url mainnet-rpc-url \
---chain ethereum \
+--chain mainnet \
 --broadcast
 
 echo "✅ Deployment and verification complete."

@@ -15,6 +15,7 @@ import {Rewards} from "../../src/node/Rewards.sol";
 import {CTMMintable} from "../../src/token/ctm/CTMMintable.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {TestERC20} from "./mocks/TestERC20.sol";
+import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
 
 import {Utils} from "./Utils.sol";
 
@@ -54,25 +55,22 @@ contract Deployer is Utils {
         dappManager.setC3Caller(address(c3caller));
     }
 
-    function _deployVotingEscrow() internal {
+    function _deployDAO(address _admin) internal {
+        vm.setNonce(address(this), 50);
+        address _continuumDAO = vm.computeCreateAddress(address(this), 52);
+        address _nodeProperties = vm.computeCreateAddress(address(this), 53);
+        address _rewards = vm.computeCreateAddress(address(this), 54);
         VotingEscrow veImpl = new VotingEscrow();
-        ve = VotingEscrow(
-            _deployProxy(address(veImpl), abi.encodeCall(VotingEscrow.initialize, (address(ctm), "Base URI")))
+        bytes memory initData = abi.encodeCall(
+            VotingEscrow.initialize, (address(ctm), _continuumDAO, _nodeProperties, _rewards, "Base URI")
         );
-    }
-
-    function _deployCTMDAOGovernor(address _proposalGuardian) internal {
-        continuumDAO = new ContinuumDAO(address(ve), _proposalGuardian);
-    }
-
-    function _deployNodeProperties() internal {
-        nodeProperties = new NodeProperties(address(continuumDAO), address(ve));
-    }
-
-    function _deployRewards() internal {
+        ve = VotingEscrow(_deployProxy(address(veImpl), initData));
+        address _ve = address(ve);
+        continuumDAO = new ContinuumDAO(_ve, _admin);
+        nodeProperties = new NodeProperties(_continuumDAO, _ve);
         rewards = new Rewards(
             0, // _firstMidnight,
-            address(ve), // _ve
+            _ve, // _ve
             address(continuumDAO), // _gov
             address(ctm), // _rewardToken
             address(usdc), // _feeToken
@@ -83,12 +81,14 @@ contract Deployer is Utils {
             7_812_500 gwei, // _feePerByteRewardToken
             3125 // _feePerByteFeeToken
         );
+        assert(address(continuumDAO) == _continuumDAO);
+        assert(address(nodeProperties) == _nodeProperties);
+        assert(address(rewards) == _rewards);
     }
 
-    function _initContracts(address _treasury) internal {
+    function _initializeDAO() internal {
         vm.startPrank(address(continuumDAO));
         nodeProperties.setRewards(address(rewards));
-        ve.initContracts(address(continuumDAO), address(nodeProperties), address(rewards), _treasury);
         ve.setLiquidationsEnabled(true);
         vm.stopPrank();
     }

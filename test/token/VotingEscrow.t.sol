@@ -387,14 +387,14 @@ contract VotingEscrowTest is Helpers {
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
         uint256 lengthBefore = ve.tokenIdsDelegatedTo(user1).length;
         uint256 balanceUserBeforeEth = ctm.balanceOf(user1) / 1e18;
-        uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
+        uint256 balanceTreasuryBeforeEth = ctm.balanceOf(address(continuumDAO)) / 1e18;
         skip(1);
         ve.liquidate(id1);
         vm.stopPrank();
         uint256 lengthAfter = ve.tokenIdsDelegatedTo(user1).length;
         uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
         uint256 balanceUserAfterEth = ctm.balanceOf(user1) / 1e18;
-        uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
+        uint256 balanceTreasuryAfterEth = ctm.balanceOf(address(continuumDAO)) / 1e18;
         assertEq(lengthAfter, lengthBefore - 1);
         assertEq(votesAfterEth, 0);
         assertEq(balanceUserAfterEth, balanceUserBeforeEth + 50);
@@ -407,7 +407,7 @@ contract VotingEscrowTest is Helpers {
         uint256 WEEK_3_YEARS = _weekTsInXYears(3);
         id1 = ve.create_lock(100 ether, WEEK_4_YEARS);
         uint256 balanceUserBeforeEth = ctm.balanceOf(user1) / 1e18;
-        uint256 balanceTreasuryBeforeEth = ctm.balanceOf(treasury) / 1e18;
+        uint256 balanceTreasuryBeforeEth = ctm.balanceOf(address(continuumDAO)) / 1e18;
         vm.warp(WEEK_3_YEARS);
         uint256 claimed = rewards.claimRewards(id1, user1);
         ctm.burn(claimed);
@@ -415,7 +415,7 @@ contract VotingEscrowTest is Helpers {
         vm.stopPrank();
         uint256 votesAfterEth = ve.getVotes(user1) / 1e18;
         uint256 balanceUserAfterEth = ctm.balanceOf(user1) / 1e18;
-        uint256 balanceTreasuryAfterEth = ctm.balanceOf(treasury) / 1e18;
+        uint256 balanceTreasuryAfterEth = ctm.balanceOf(address(continuumDAO)) / 1e18;
         assertEq(votesAfterEth, 0);
         assertEq(balanceUserAfterEth, balanceUserBeforeEth + 87); // should be 5/8s of original lock = 87.5 (truncation)
         assertEq(balanceTreasuryAfterEth, balanceTreasuryBeforeEth + 12); // should be 3/8s of original lock = 12.5
@@ -1238,13 +1238,6 @@ contract VotingEscrowTest is Helpers {
         ve.transferFrom(user2, user1, id1);
     }
 
-    // Test initialization protection
-    function test_InitContractsTwice() public {
-        vm.prank(user1);
-        vm.expectRevert();
-        ve.initContracts(address(1), address(2), address(3), address(4));
-    }
-
     // Test ERC721Receiver
     function test_ERC721Receiver() public view {
         bytes4 selector = ve.onERC721Received(address(0), address(0), 0, "");
@@ -1368,13 +1361,13 @@ contract VotingEscrowTest is Helpers {
         vm.warp(block.timestamp + MAXTIME / 2);
 
         uint256 balanceBefore = ctm.balanceOf(user1);
-        uint256 treasuryBefore = ctm.balanceOf(treasury);
+        uint256 treasuryBefore = ctm.balanceOf(address(continuumDAO));
 
         ve.liquidate(id1);
         vm.stopPrank();
 
         uint256 balanceAfter = ctm.balanceOf(user1);
-        uint256 treasuryAfter = ctm.balanceOf(treasury);
+        uint256 treasuryAfter = ctm.balanceOf(address(continuumDAO));
 
         // User should get some tokens back (less than original due to penalty)
         assertGt(balanceAfter, balanceBefore);

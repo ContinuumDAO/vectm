@@ -5,7 +5,7 @@ endpoint_url = "mainnet-rpc-url"
 
 [mainnet.address]
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
-c3governor = ""
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
 ctm = ""
 
 [mainnet.string]

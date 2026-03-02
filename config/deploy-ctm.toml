@@ -1,0 +1,50 @@
+# 1. Ethereum
+[mainnet]
+endpoint_url = "mainnet-rpc-url"
+
+[mainnet.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+
+[mainnet.string]
+dappKey_ctm = "v1.continuumdao.ctm"
+
+
+# 2. Linea
+[linea]
+endpoint_url ="linea-rpc-url"
+
+[linea.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+
+[linea.string]
+dappKey_ctm = "v1.continuumdao.ctm"
+
+
+# # 3. Sepolia
+# [sepolia]
+# endpoint_url = "sepolia-rpc-url"
+# 
+# [sepolia.address]
+# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+# c3caller = ""
+# dappManager = "0xA327Afc252B16500948E1FFC998B4E93412fC295"
+# 
+# [sepolia.string]
+# dappKey_ctm = "v1.continuumdao.ctm"
+
+
+# 4. Linea Sepolia
+[linea-sepolia]
+endpoint_url = "linea-sepolia-rpc-url"
+
+[linea-sepolia.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+c3caller = ""
+dappManager = ""
+
+[linea-sepolia.string]
+dappKey_ctm = "v1.continuumdao.ctm"

@@ -16,7 +16,7 @@ echo
 forge script script/MintCTM.s.sol \
 --sender $(cast wallet addr --account $1 --password "$PW") \
 --rpc-url mainnet-rpc-url \
---chain ethereum
+--chain mainnet
 
 # Check if the simulation succeeded
 if [ $? -ne 0 ]; then
@@ -39,7 +39,7 @@ forge script script/MintCTM.s.sol \
 --sender $(cast wallet addr --account $1 --password "$PW") \
 --slow \
 --rpc-url mainnet-rpc-url \
---chain ethereum \
+--chain mainnet \
 --broadcast
 
 echo "✅ Mint complete."

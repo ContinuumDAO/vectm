@@ -16,7 +16,11 @@ import {VotingEscrowProxy} from "../build/utils/VotingEscrowProxy.sol";
 import {ContinuumDAO} from "../build/governance/ContinuumDAO.sol";
 import {Distribution} from "../build/token/Distribution.sol";
 
-contract DeployDAO is Script, Config {
+import {Utils} from "../test/helpers/Utils.sol";
+
+contract DeployDAO is Script, Config, Utils {
+    error PredictedAddressMismatch(string name, address predicted, address actual);
+
     function run() public {
         _loadConfig("./config/deploy-dao.toml", false);
 
@@ -31,48 +35,85 @@ contract DeployDAO is Script, Config {
 
         vm.startBroadcast();
 
+        // Forge deploys this script contract first (CREATE from admin), then runs run(). The CREATEs
+        // below (new VotingEscrow(), etc.) are therefore from the script contract with nonce 0, 1, 2, 3.
+        uint256 initialNonce = 136;
+
+        address _veImpl = vm.computeCreateAddress(admin, initialNonce);
+        address _dao = vm.computeCreateAddress(admin, initialNonce + 2);
+        address _nodeProperties = vm.computeCreateAddress(admin, initialNonce + 3);
+        address _rewards = vm.computeCreateAddress(admin, initialNonce + 4);
+
+        bytes memory veInitData = abi.encodeWithSelector(
+            VotingEscrow.initialize.selector,
+            address(ctm),
+            _dao,
+            _nodeProperties,
+            _rewards,
+            "https://app-api.continuumdao.org/"
+        );
+
+        // nonce == 0
         VotingEscrow veImpl = new VotingEscrow();
-        bytes memory veInitData =
-            abi.encodeWithSelector(VotingEscrow.initialize.selector, address(ctm), "https://app-api.continuumdao.org/");
-        VotingEscrowProxy ve = new VotingEscrowProxy(address(veImpl), veInitData);
 
-        ContinuumDAO dao = new ContinuumDAO(address(ve), admin);
+        if (address(veImpl) != _veImpl) {
+            revert PredictedAddressMismatch("Voting Escrow Implementation", address(veImpl), _veImpl);
+        }
 
-        NodeProperties nodeProperties = new NodeProperties(admin, address(ve));
+        // nonce == 1
+        VotingEscrowProxy ve = new VotingEscrowProxy(_veImpl, veInitData);
+        address _ve = address(ve);
 
+        // nonce == 2
+        ContinuumDAO dao = new ContinuumDAO(_ve, admin);
+
+        if (address(dao) != _dao) {
+            revert PredictedAddressMismatch("DAO", address(dao), _dao);
+        }
+
+        // nonce == 3
+        NodeProperties nodeProperties = new NodeProperties(_dao, _ve);
+
+        if (address(nodeProperties) != _nodeProperties) {
+            revert PredictedAddressMismatch("Node Properties", address(nodeProperties), _nodeProperties);
+        }
+
+        // nonce == 4
         Rewards rewards = new Rewards(
-            1771459200, // _firstMidnight (19th Feb 2026 00:00:00 GMT)
-            address(ve), // _ve
+            1772064000, // _firstMidnight (26th Feb 2026 00:00:00 GMT)
+            _ve, // _ve
             admin, // _gov
             address(ctm), // _rewardToken
             usdc, // _usdc
-            address(nodeProperties), // _nodeProperties
+            _nodeProperties, // _nodeProperties
             0, // _baseEmissionRate
             1 ether / 1000, // _nodeEmissionRate
             5000 ether, // _nodeRewardThreshold
             0, // _feePerByteRewardToken (deprecated)
-            0 // _feePerByteFeeToken     (deprecated)
+            0 // _feePerByteFeeToken    (deprecated)
         );
 
-        nodeProperties.setRewards(address(rewards));
+        if (address(rewards) != _rewards) {
+            revert PredictedAddressMismatch("Rewards", address(rewards), _rewards);
+        }
 
-        VotingEscrow(address(ve)).initContracts(address(dao), address(nodeProperties), address(rewards), address(dao));
+        Distribution dist = new Distribution(ctm, _ve, _dao, totalClaimable);
 
-        Distribution dist = new Distribution(ctm, address(ve), address(dao), totalClaimable);
+        IC3GovClient(uuidKeeper).changeGov(_dao);
+        IC3GovClient(dappManager).changeGov(_dao);
+        IC3GovClient(c3caller).changeGov(_dao);
 
-        IC3GovClient(uuidKeeper).changeGov(address(dao));
-        IC3GovClient(dappManager).changeGov(address(dao));
-        IC3GovClient(c3caller).changeGov(address(dao));
-        IC3GovernDApp(c3governor).changeGov(address(dao));
+        // DAO must now pass a proposal to applyGov itself on these 3 contracts, and set rewards in NodeProperties
 
-        // DAO must now pass a proposal to applyGov itself on these 4 contracts
+        IC3GovernDApp(c3governor).changeGov(_dao);
+        IC3GovernDApp(ctm).changeGov(_dao);
 
         vm.stopBroadcast();
 
-        console.log("VotingEscrow deployed to:", address(ve));
-        console.log("ContinuumDAO deployed to:", address(dao));
-        console.log("NodeProperties deployed to:", address(nodeProperties));
-        console.log("Rewards deployed to:", address(rewards));
+        console.log("VotingEscrow deployed to:", _ve);
+        console.log("ContinuumDAO deployed to:", _dao);
+        console.log("NodeProperties deployed to:", _nodeProperties);
+        console.log("Rewards deployed to:", _rewards);
         console.log("Distributor deployed to: ", address(dist));
     }
 }

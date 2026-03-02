@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export MINTABLE=false
-
 # Check if required arguments are provided
 if [ $# -lt 1 ]; then
     echo "Error: Missing required arguments."

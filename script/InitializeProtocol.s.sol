@@ -85,11 +85,11 @@ contract InitializeProtocol is Script, Config {
         // ctm.setPeer("59141", ctm_s);    // Linea Sepolia
 
         // 6. Set Fee Config in DApp Manager
-        dappManager.setFeeConfig(_usdc, 1000, 3500e6); // 0.001 USDC per byte, 3500 USDC per ether
-        dappManager.setFeeMinimumDeposit(_usdc, 10e6); // 10 USDC minimum deposit
+        dappManager.setFeeConfig(_usdc, 1000, 2500e6); // 0.001 USDC per byte, 2500 USDC per ether
+        dappManager.setFeeMinimumDeposit(_usdc, 75e5); // 7.5 USDC minimum deposit
 
-        // 6.5: Approve DApp Manager to spend 20 USDC (10 USDC x2)
-        IERC20(_usdc).approve(_dappManager, 20e6);
+        // 6.5: Approve DApp Manager to spend 15 USDC (7.5 USDC x2)
+        IERC20(_usdc).approve(_dappManager, 15e6);
 
         // 7. Create C3Governor & CTM C3DApps
         uint256 dapp_id_c3gov = dappManager.initDAppConfig(dappKey_c3gov_u, _usdc, metadata_c3gov);

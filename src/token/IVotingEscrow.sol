@@ -94,7 +94,13 @@ interface IVotingEscrow {
     function tokenByIndex(uint256 _index) external view returns (uint256);
 
     /// @notice UUPSUpgradeable
-    function initialize(address _token_addr, string memory _base_uri) external;
+    function initialize(
+        address _token_addr,
+        address _governor,
+        address _nodeProperties,
+        address _rewards,
+        string memory _base_uri
+    ) external;
 
     /// @notice VotingEscrow Core
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
@@ -118,7 +124,6 @@ interface IVotingEscrow {
     function merge(uint256 _from, uint256 _to) external;
     function split(uint256 _tokenId, uint256 _extracted) external returns (uint256);
     function liquidate(uint256 _tokenId) external;
-    function initContracts(address _governor, address _nodeProperties, address _rewards, address _treasury) external;
     function setBaseURI(string memory _baseURI) external;
     function setLiquidationsEnabled(bool _liquidationsEnabled) external;
     function setMinimumLock(uint256 _min) external;
