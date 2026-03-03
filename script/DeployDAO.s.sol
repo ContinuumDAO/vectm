@@ -11,7 +11,7 @@ import {IC3GovernDApp} from "@c3caller/gov/IC3GovernDApp.sol";
 
 import {NodeProperties} from "../build/node/NodeProperties.sol";
 import {Rewards} from "../build/node/Rewards.sol";
-import {VotingEscrow} from "../build/token/VotingEscrow.sol";
+import {VotingEscrow, IVotingEscrow} from "../build/token/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../build/utils/VotingEscrowProxy.sol";
 import {ContinuumDAO} from "../build/governance/ContinuumDAO.sol";
 import {Distribution} from "../build/token/Distribution.sol";
@@ -37,12 +37,19 @@ contract DeployDAO is Script, Config, Utils {
 
         // Forge deploys this script contract first (CREATE from admin), then runs run(). The CREATEs
         // below (new VotingEscrow(), etc.) are therefore from the script contract with nonce 0, 1, 2, 3.
-        uint256 initialNonce = 136;
+        uint256 initialNonce = 150;
 
         address _veImpl = vm.computeCreateAddress(admin, initialNonce);
         address _dao = vm.computeCreateAddress(admin, initialNonce + 2);
         address _nodeProperties = vm.computeCreateAddress(admin, initialNonce + 3);
         address _rewards = vm.computeCreateAddress(admin, initialNonce + 4);
+
+        // nonce == 0
+        VotingEscrow veImpl = new VotingEscrow();
+
+        if (address(veImpl) != _veImpl) {
+            revert PredictedAddressMismatch("Voting Escrow Implementation", address(veImpl), _veImpl);
+        }
 
         bytes memory veInitData = abi.encodeWithSelector(
             VotingEscrow.initialize.selector,
@@ -52,13 +59,6 @@ contract DeployDAO is Script, Config, Utils {
             _rewards,
             "https://app-api.continuumdao.org/"
         );
-
-        // nonce == 0
-        VotingEscrow veImpl = new VotingEscrow();
-
-        if (address(veImpl) != _veImpl) {
-            revert PredictedAddressMismatch("Voting Escrow Implementation", address(veImpl), _veImpl);
-        }
 
         // nonce == 1
         VotingEscrowProxy ve = new VotingEscrowProxy(_veImpl, veInitData);
@@ -99,6 +99,26 @@ contract DeployDAO is Script, Config, Utils {
 
         Distribution dist = new Distribution(ctm, _ve, _dao, totalClaimable);
 
+        address _dao_ve = IVotingEscrow(_ve).governor();
+        if (_dao_ve != _dao) {
+            revert PredictedAddressMismatch("ve.governor() != _dao", _dao_ve, _dao);
+        }
+
+        address _np_ve = IVotingEscrow(_ve).nodeProperties();
+        if (_np_ve != _nodeProperties) {
+            revert PredictedAddressMismatch("ve.nodeProperties() != _nodeProperties", _np_ve, _nodeProperties);
+        }
+
+        address _rewards_ve = IVotingEscrow(_ve).rewards();
+        if (_rewards_ve != _rewards) {
+            revert PredictedAddressMismatch("ve.rewards() != _rewards", _rewards_ve, _rewards);
+        }
+
+        address _treasury_ve = IVotingEscrow(_ve).treasury();
+        if (_treasury_ve != _dao) {
+            revert PredictedAddressMismatch("ve.treasury() != _treasury", _treasury_ve, _dao);
+        }
+
         IC3GovClient(uuidKeeper).changeGov(_dao);
         IC3GovClient(dappManager).changeGov(_dao);
         IC3GovClient(c3caller).changeGov(_dao);
@@ -110,6 +130,7 @@ contract DeployDAO is Script, Config, Utils {
 
         vm.stopBroadcast();
 
+        console.log("VotingEscrowImplementation deployed to:", _veImpl);
         console.log("VotingEscrow deployed to:", _ve);
         console.log("ContinuumDAO deployed to:", _dao);
         console.log("NodeProperties deployed to:", _nodeProperties);

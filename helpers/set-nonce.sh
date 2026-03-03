@@ -37,20 +37,20 @@ echo "Target nonce: $TARGET_NONCE"
 echo ""
 
 # Fetch current nonces (cast nonce outputs a single decimal number)
-NONCE_LINEA_SEPOLIA=$(cast nonce "$ADDRESS" --rpc-url linea-sepolia-rpc-url)
+NONCE_LINEA=$(cast nonce "$ADDRESS" --rpc-url linea-rpc-url)
 
 echo "Current nonces:"
-echo "  linea-sepolia (59141):        $NONCE_LINEA_SEPOLIA"
+echo "  linea (59144):        $NONCE_LINEA"
 echo ""
 
 # Check if any chain is behind target; warn if any is ahead (we can't decrease nonce)
-if [ "$NONCE_LINEA_SEPOLIA" -gt "$TARGET_NONCE" ]; then
-    echo "Warning: Linea Sepolia already has nonce > $TARGET_NONCE. Nonce cannot be decreased."
+if [ "$NONCE_LINEA" -gt "$TARGET_NONCE" ]; then
+    echo "Warning: Linea already has nonce > $TARGET_NONCE. Nonce cannot be decreased."
     echo ""
 fi
 
-if [ "$NONCE_LINEA_SEPOLIA" -eq "$TARGET_NONCE" ]; then
-    echo "Linea Sepolia already at target nonce $TARGET_NONCE. Nothing to do."
+if [ "$NONCE_LINEA" -eq "$TARGET_NONCE" ]; then
+    echo "Linea already at target nonce $TARGET_NONCE. Nothing to do."
     exit 0
 fi
 
@@ -104,18 +104,18 @@ send_catchup() {
     echo ""
 }
 
-send_catchup "linea-sepolia" "linea-sepolia-rpc-url" "$NONCE_LINEA_SEPOLIA" "$TARGET_NONCE"
+send_catchup "linea" "linea-rpc-url" "$NONCE_LINEA" "$TARGET_NONCE"
 
 echo "Verifying nonces..."
-NONCE_LINEA_SEPOLIA_NEW=$(cast nonce "$ADDRESS" --rpc-url linea-sepolia-rpc-url)
+NONCE_LINEA_NEW=$(cast nonce "$ADDRESS" --rpc-url linea-rpc-url)
 
-echo "  linea-sepolia: $NONCE_LINEA_SEPOLIA_NEW"
+echo "  linea: $NONCE_LINEA_NEW"
 
-if [ "$NONCE_LINEA_SEPOLIA_NEW" -eq "$TARGET_NONCE" ]; then
+if [ "$NONCE_LINEA_NEW" -eq "$TARGET_NONCE" ]; then
     echo ""
-    echo "Linea Sepolia now at nonce $TARGET_NONCE."
+    echo "Linea now at nonce $TARGET_NONCE."
 else
     echo ""
-    echo "Warning: linea sepolia may not have reached $TARGET_NONCE yet (e.g. tx not yet mined). Re-run to verify."
+    echo "Warning: linea may not have reached $TARGET_NONCE yet (e.g. tx not yet mined). Re-run to verify."
     exit 1
 fi

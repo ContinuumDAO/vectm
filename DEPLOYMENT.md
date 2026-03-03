@@ -3,14 +3,17 @@
 - [X] Check DAO parameters: votingDelay, votingPeriod.
 - [X] Use `./helpers/all.sh`.
 - [X] Run `forge test`.
-- [ ] Make a git commit with a message "Mainnet deployed instance".
-- [ ] Check that nonces are even across networks for deployer & admin.
-- [ ] Check gas balances for both deployer and for admin.
-- [ ] Deploy Ethereum: `./helpers/deploy-protocol/ethereum.sh c3caller`
-- [ ] Deploy Linea: `./helpers/deploy-protocol/linea.sh c3caller`
-- [ ] Add protocol contract addresses to `config/initialize.toml` (both networks), `config/deploy-dao.toml` & `config/mint.toml`.
-- [ ] Initialize Ethereum: `./helpers/initialize-protocol/ethereum.sh mainnet-admin`
-- [ ] Initialize Linea: `./helpers/initialize-protocol/linea.sh mainnet-admin`
+- [X] Make a git commit with a message "Mainnet deployed instance".
+- [X] Check that nonces are even across networks for deployer & admin.
+- [X] Check gas balances for both deployer and for admin.
+- [X] Deploy Protocol Ethereum: `./helpers/deploy-protocol/ethereum.sh c3caller`
+- [X] Deploy Protocol Linea: `./helpers/deploy-protocol/linea.sh c3caller`
+- [X] Add protocol contract addresses to `config/deploy-ctm.toml`.
+- [X] Deploy CTM Ethereum: `./helpers/deploy-ctm/ethereum.sh c3caller`
+- [X] Deploy CTM Linea: `./helpers/deploy-ctm/linea.sh c3caller`
+- [X] Add protocol & CTM contract addresses to `config/initialize.toml` (both networks), `config/deploy-dao.toml` & `config/mint.toml`.
+- [X] Initialize Ethereum: `./helpers/initialize-protocol/ethereum.sh mainnet-admin`
+- [X] Initialize Linea: `./helpers/initialize-protocol/linea.sh mainnet-admin`
 - [ ] Deploy DAO: `./helpers/deploy-dao/linea.sh mainnet-admin`
 - [ ] Add Distribution address to `config/mint.toml` and `config/distribute.toml`.
 - [ ] Mint: `./helpers/mint-ctm/ethereum.sh mainnet-admin`

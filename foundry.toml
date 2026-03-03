@@ -4,11 +4,12 @@
  libs = ["dependencies"]
  solc = "0.8.27"
  via_ir = true
- optimizer_runs = 100
+ optimizer_runs = 25
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
  fs_permissions = [
   { access = "read", path = "config/deploy.toml" },
+  { access = "read", path = "config/deploy-ctm.toml" },
   { access = "read", path = "config/initialize.toml" },
   { access = "read", path = "config/deploy-dao.toml" },
   { access = "read", path = "config/mint.toml" },

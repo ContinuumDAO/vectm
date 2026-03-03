@@ -9,7 +9,7 @@ uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
 dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
 c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
 c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
-ctm = ""
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
 
 [mainnet.string]
 dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
@@ -29,7 +29,7 @@ uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
 dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
 c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
 c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
-ctm = ""
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
 
 [linea.string]
 dappKey_c3gov_u = "v1.continuumdao.c3governor_u"

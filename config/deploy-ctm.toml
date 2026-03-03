@@ -38,13 +38,13 @@ dappKey_ctm = "v1.continuumdao.ctm"
 
 
 # 4. Linea Sepolia
-[linea-sepolia]
-endpoint_url = "linea-sepolia-rpc-url"
-
-[linea-sepolia.address]
-admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
-c3caller = ""
-dappManager = ""
-
-[linea-sepolia.string]
-dappKey_ctm = "v1.continuumdao.ctm"
+# [linea-sepolia]
+# endpoint_url = "linea-sepolia-rpc-url"
+# 
+# [linea-sepolia.address]
+# admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+# c3caller = ""
+# dappManager = ""
+# 
+# [linea-sepolia.string]
+# dappKey_ctm = "v1.continuumdao.ctm"

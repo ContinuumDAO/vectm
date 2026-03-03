@@ -31,14 +31,13 @@ contract DeployCTM is Script, Config {
         if (mintable) {
             CTMMintable ctmMintable = new CTMMintable(admin, c3caller, dappManager, dappID_ctm);
             _ctm = address(ctmMintable);
+            console.log("CTMMintable deployed to: ", _ctm);
         } else {
             CTM ctm = new CTM(admin, c3caller, dappManager, dappID_ctm);
             _ctm = address(ctm);
+            console.log("CTM deployed to: ", _ctm);
         }
 
         vm.stopBroadcast();
-
-        console.log("CTM deployed to: ", _ctm);
-        console.log("CTMMintable deployed to: ", _ctm);
     }
 }
