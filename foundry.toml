@@ -8,11 +8,7 @@
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
  fs_permissions = [
-  { access = "read", path = "config/deploy.toml" },
-  { access = "read", path = "config/deploy-ctm.toml" },
-  { access = "read", path = "config/initialize.toml" },
-  { access = "read", path = "config/deploy-dao.toml" },
-  { access = "read", path = "config/mint.toml" },
+  { access = "read", path = "config/deployments.toml" },
   { access = "read", path = "config/distribution.toml" }
  ]
 

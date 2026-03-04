@@ -15,7 +15,6 @@ contract MintCTM is Script, Config {
 
         address ctm = config.get("ctm").toAddress();
         address admin = config.get("admin").toAddress();
-        address c3governor = config.get("c3governor").toAddress();
         string memory distribution = config.get("dist").toString();
         string memory targetChainID = config.get("targetChainID").toString();
         uint256 initialMint = config.get("initialMint").toUint256();
@@ -23,7 +22,6 @@ contract MintCTM is Script, Config {
         vm.startBroadcast();
         ICTMMintable(ctm).mint(admin, initialMint);
         ICTM(ctm).c3transfer(distribution, initialMint, targetChainID);
-        IC3GovernDApp(ctm).changeGov(c3governor);
         vm.stopBroadcast();
     }
 }

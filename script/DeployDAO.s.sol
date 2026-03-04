@@ -119,14 +119,14 @@ contract DeployDAO is Script, Config, Utils {
             revert PredictedAddressMismatch("ve.treasury() != _treasury", _treasury_ve, _dao);
         }
 
-        IC3GovClient(uuidKeeper).changeGov(_dao);
-        IC3GovClient(dappManager).changeGov(_dao);
-        IC3GovClient(c3caller).changeGov(_dao);
+        // IC3GovClient(uuidKeeper).changeGov(_dao);
+        // IC3GovClient(dappManager).changeGov(_dao);
+        // IC3GovClient(c3caller).changeGov(_dao);
 
         // DAO must now pass a proposal to applyGov itself on these 3 contracts, and set rewards in NodeProperties
 
-        IC3GovernDApp(c3governor).changeGov(_dao);
-        IC3GovernDApp(ctm).changeGov(_dao);
+        // IC3GovernDApp(c3governor).changeGov(_dao);
+        // IC3GovernDApp(ctm).changeGov(_dao);
 
         vm.stopBroadcast();
 

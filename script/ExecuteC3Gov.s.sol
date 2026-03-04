@@ -19,19 +19,19 @@ contract ExecuteC3Gov is Script {
         address admin = 0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F;
         uint256 c3gov_id = 54841553903020218527075297192242923310195705512185382121058570035346596394010;
 
-        uint256 c3govNonce = 123;
+        uint256 c3govNonce = 605;
         uint256 c3govIndex = 0;
-        string memory c3govTarget = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB";
-        string memory c3govExecChainId = "toChainID";
+        string memory c3govTarget = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7";
+        string memory c3govExecChainId = "1";
         bytes memory c3govData = abi.encodeWithSelector(IC3GovClient.changeGov.selector, admin);
         bytes memory receiveParamsData = abi.encodeWithSelector(
             IC3Governor.receiveParams.selector, c3govNonce, c3govIndex, c3govTarget, c3govExecChainId, c3govData
         );
 
-        bytes32 uuid = keccak256("uuid");
-        string memory fromChainID = "fromChainID";
-        string memory sourceTxHash = "sourceTxHash";
-        string memory fallbackTo = "fallbackTo";
+        bytes32 uuid = keccak256("c3caller_changeGov");
+        string memory fromChainID = "59144";
+        string memory sourceTxHash = "0x0101010101010101010101010101010101010101010101010101010101010101";
+        string memory fallbackTo = "0x58B610a359c870E0fc941139821a51F5aa23f14E";
         IC3Caller.C3EvmMessage memory message =
             IC3Caller.C3EvmMessage(uuid, c3governor, fromChainID, sourceTxHash, fallbackTo, receiveParamsData);
 

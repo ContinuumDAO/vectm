@@ -2,7 +2,6 @@
 endpoint_url = "linea-rpc-url"
 
 [linea.address]
-dist = ""
 distribution_0_address = "0x9925a3ccda6692f89dc73ede8ac9cdf494336699"
 distribution_1_address = "0xb799374fcd3561d34613d35fca564a35fc9e735c"
 distribution_2_address = "0x0942e739716679e4fa55c18413643118f2c7dfce"

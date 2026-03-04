@@ -1,0 +1,103 @@
+# 1. Ethereum
+[mainnet]
+endpoint_url = "mainnet-rpc-url"
+
+[mainnet.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
+targetChainID = "59144"
+
+[mainnet.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+mpc = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+
+
+# 2. Linea
+[linea]
+endpoint_url ="linea-rpc-url"
+
+[linea.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+[linea.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+usdc = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
+mpc = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+ve = "0x221EC90B3B083A8501A37bdeb7035CeaedF3C31f"
+dao = "0x4800F9f1dC1b6daCA841B71E0531F547D374168E"
+nodeProperties = "0xE942e22204487b9CDB50b79cDdD729593C9EE5C3"
+rewards = "0xA9889410537d2e6510f5294A311Aad1504EfDB19"
+dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
+
+[linea.uint]
+totalClaimable = "20168947499999000000000000" # 20_168_947.499_999_000_000_000_000 CTM
+
+
+# 3. Sepolia
+[sepolia]
+endpoint_url = "sepolia-rpc-url"
+
+[sepolia.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
+targetChainID = "59141"
+
+[sepolia.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+usdc = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
+mpc = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+
+
+# 4. Linea Sepolia
+[linea-sepolia]
+endpoint_url = "linea-sepolia-rpc-url"
+
+[linea-sepolia.string]
+dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
+dappKey_ctm = "v1.continuumdao.ctm"
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+
+[linea-sepolia.address]
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+usdc = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
+mpc = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
+dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
+c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
+c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
+ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+ve = "0x221EC90B3B083A8501A37bdeb7035CeaedF3C31f"
+dao = "0x4800F9f1dC1b6daCA841B71E0531F547D374168E"
+nodeProperties = "0xE942e22204487b9CDB50b79cDdD729593C9EE5C3"
+rewards = "0xA9889410537d2e6510f5294A311Aad1504EfDB19"
+dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
+
+[linea-sepolia.uint]
+totalClaimable = "20168947499999000000000000" # 20_168_947.499_999_000_000_000_000 CTM
+

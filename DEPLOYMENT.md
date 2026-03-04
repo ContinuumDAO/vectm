@@ -14,7 +14,7 @@
 - [X] Add protocol & CTM contract addresses to `config/initialize.toml` (both networks), `config/deploy-dao.toml` & `config/mint.toml`.
 - [X] Initialize Ethereum: `./helpers/initialize-protocol/ethereum.sh mainnet-admin`
 - [X] Initialize Linea: `./helpers/initialize-protocol/linea.sh mainnet-admin`
-- [ ] Deploy DAO: `./helpers/deploy-dao/linea.sh mainnet-admin`
+- [X] Deploy DAO: `./helpers/deploy-dao/linea.sh mainnet-admin`
 - [ ] Add Distribution address to `config/mint.toml` and `config/distribute.toml`.
 - [ ] Mint: `./helpers/mint-ctm/ethereum.sh mainnet-admin`
 - [ ] Distribute: `./helpers/distribute/linea.sh mainnet-admin`
