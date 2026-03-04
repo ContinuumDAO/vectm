@@ -1,9 +1,16 @@
 #!/bin/bash
 
-# Get the deployer address from the first argument
+# Show EOA nonces for all chains in deployments.toml that have RPC URL set in .env.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../" && pwd)"
+DEPLOYMENTS_TOML="$PROJECT_ROOT/deployments.toml"
+[ -f "$PROJECT_ROOT/.env" ] && set -a && source "$PROJECT_ROOT/.env" && set +a
+
 DEPLOYER=$1
 
-# Check if the deployer address is provided
 if [ -z "$DEPLOYER" ]; then
     echo "Error: Deployer address is required"
     echo "Usage: $0 <deployer_address>"
@@ -21,3 +28,4 @@ cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url
 
 echo -e "\nNonce for Linea (59144):"
 cast nonce $(cast wallet address --account $DEPLOYER --password "$PW") --rpc-url linea-rpc-url
+
