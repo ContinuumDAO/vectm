@@ -1,5 +1,4 @@
 [profile.default]
- fs_permissions = [{ access = "read", path = "./deployments.toml" }]
  src = "src"
  out = "out"
  libs = ["dependencies"]
