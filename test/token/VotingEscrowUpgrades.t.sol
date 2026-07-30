@@ -198,19 +198,19 @@ contract VotingEscrowUpgradesTest is Helpers {
         assertEq(delegatesAfterUpgrade, user2);
     }
 
-    function test_UpgradePreservesNonVotingTokens() public {
-        // Create non-voting lock
-        vm.prank(user1);
-        uint256 tokenId = ve.create_nonvoting_lock_for(1 ether, block.timestamp + 1 weeks, user1);
-        assertEq(ve.nonVoting(tokenId), true);
+    // function test_UpgradePreservesNonVotingTokens() public {
+    //     // Create non-voting lock
+    //     vm.prank(user1);
+    //     uint256 tokenId = ve.create_nonvoting_lock_for(1 ether, block.timestamp + 1 weeks, user1);
+    //     assertEq(ve.nonVoting(tokenId), true);
 
-        // Upgrade
-        vm.prank(address(continuumDAO));
-        ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
+    //     // Upgrade
+    //     vm.prank(address(continuumDAO));
+    //     ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
 
-        // Verify non-voting status is preserved
-        assertEq(ve.nonVoting(tokenId), true);
-    }
+    //     // Verify non-voting status is preserved
+    //     assertEq(ve.nonVoting(tokenId), true);
+    // }
 
     function test_UpgradePreservesTotalSupply() public {
         // Create locks

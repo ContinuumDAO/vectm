@@ -24,7 +24,8 @@ contract CTMMintable is ICTMMintable, CTM {
     }
 
     function mint(address _to, uint256 _amount) external onlyGov {
-        if (totalSupply() + _amount > MAX_SUPPLY) revert CTM_ExceedsMaxSupply();
+        // NOTE: global supply represents supply across all networks, not just this one where tokens are minted/burned
+        if (globalSupply + _amount > MAX_SUPPLY) revert CTM_ExceedsMaxSupply();
         _incrementGlobalSupply(_amount);
         _mint(_to, _amount);
 

@@ -14,6 +14,7 @@ interface ICTM {
     error CTM_FeeNumeratorTooHigh();
     error CTM_ExceedsMaxSupply();
     error CTM_FeeMinGreaterThanFeeMax(uint256 _feeMin, uint256 _feeMax);
+    error CTM_C3TransferAmountTooLow(uint256 _amount, uint256 _minAmount);
 
     function MAX_SUPPLY() external view returns (uint256);
     function FEE_DENOMINATOR() external view returns (uint256);
@@ -23,4 +24,6 @@ interface ICTM {
     function c3transferFrom(address _from, string memory _toStr, uint256 _amount, string memory _toChainIDStr)
         external
         returns (bool);
+    function depositDAppRemote(uint256 _dappID, uint256 _amount, string memory _toChainIDStr) external;
+    function depositDAppLocal(string memory _fromStr, uint256 _dappID, uint256 _amount) external;
 }

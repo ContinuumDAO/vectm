@@ -48,7 +48,7 @@ interface IVotingEscrow {
     error VotingEscrow_NoExistingLock();
     error VotingEscrow_InvalidUnlockTime(uint256 _unlockTime, uint256 _maxTime);
     error VotingEscrow_LockExpired(uint256 _end);
-    error VotingEscrow_VotingAndNonVotingMerge(uint256 _from, uint256 _to);
+    // error VotingEscrow_VotingAndNonVotingMerge(uint256 _from, uint256 _to);
     error VotingEscrow_SameToken(uint256 _from, uint256 _to);
     error VotingEscrow_DifferentOwners(uint256 _from, uint256 _to);
     error VotingEscrow_FlashProtection();
@@ -75,7 +75,7 @@ interface IVotingEscrow {
     function point_history(uint256 _tokenId) external view returns (int128, int128, uint256, uint256);
     function user_point_epoch(uint256 _tokenId) external view returns (uint256);
     function slope_changes(uint256 _tokenId) external view returns (int128);
-    function nonVoting(uint256 _tokenId) external view returns (bool);
+    // function nonVoting(uint256 _tokenId) external view returns (bool);
     function version() external view returns (string memory);
     function decimals() external view returns (uint8);
     function LIQ_PENALTY_NUM() external view returns (uint256);
@@ -105,7 +105,7 @@ interface IVotingEscrow {
     /// @notice VotingEscrow Core
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);
     function create_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
+    // function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to) external returns (uint256);
     function increase_amount(uint256 _tokenId, uint256 _value) external;
     function increase_unlock_time(uint256 _tokenId, uint256 _lock_duration) external;
     function withdraw(uint256 _tokenId) external;

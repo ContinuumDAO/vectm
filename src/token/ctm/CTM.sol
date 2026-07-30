@@ -25,11 +25,11 @@ contract CTM is ICTM, CTMERC20 {
     constructor(address _gov, address _c3caller, address _dappManager, uint256 _dappID)
         CTMERC20("Continuum", "CTM", _gov, _c3caller, _dappID)
     {
-        // initial fee = 1%
+        // initial fee = 1% (between 500 and 2000 CTM transfer)
         c3TransferFee = 100;
-        // initial minimum fee = 1 CTM
+        // initial minimum fee = 5 CTM (below 500 CTM transfer)
         c3TransferMinFee = 5 ether;
-        // initial maximum fee = 100 CTM
+        // initial maximum fee = 20 CTM (above 2000 CTM transfer)
         c3TransferMaxFee = 20 ether;
         dappManager = _dappManager;
     }
@@ -47,8 +47,8 @@ contract CTM is ICTM, CTMERC20 {
     function depositDAppRemote(uint256 _dappID, uint256 _amount, string memory _toChainIDStr) external {
         if (bytes(peers[_toChainIDStr]).length == 0) revert CTMERC20_InvalidChainID(_toChainIDStr);
         address _from = _msgSender();
-        _burn(_from, _amount);
-        uint256 netAmount = _deductFee(_amount);
+        uint256 netAmount = _deductFee(msg.sender, _amount);
+        _burn(_from, netAmount);
         string memory _fromStr = _from.toHexString();
         bytes memory depositDAppCall =
             abi.encodeWithSelector(this.depositDAppLocal.selector, _fromStr, _dappID, netAmount);
@@ -69,7 +69,7 @@ contract CTM is ICTM, CTMERC20 {
         override(ICTM, CTMERC20)
         returns (bool)
     {
-        uint256 netAmount = _deductFee(_amount);
+        uint256 netAmount = _deductFee(msg.sender, _amount);
         return super.c3transfer(_toStr, netAmount, _toChainIDStr);
     }
 
@@ -78,20 +78,23 @@ contract CTM is ICTM, CTMERC20 {
         override(ICTM, CTMERC20)
         returns (bool)
     {
-        uint256 netAmount = _deductFee(_amount);
+        uint256 netAmount = _deductFee(_from, _amount);
         return super.c3transferFrom(_from, _toStr, netAmount, _toChainIDStr);
     }
 
-    function _deductFee(uint256 _amount) internal returns (uint256) {
-        uint256 netAmount = _amount;
-        if (msg.sender != gov()) {
+    function _deductFee(address _from, uint256 _amount) internal returns (uint256 netAmount) {
+        netAmount = _amount;
+        if (_from != gov()) {
+            if (_amount <= c3TransferMinFee) revert CTM_C3TransferAmountTooLow(_amount, c3TransferMinFee + 1);
             uint256 fee = c3TransferFee * _amount / FEE_DENOMINATOR;
             if (fee < c3TransferMinFee) fee = c3TransferMinFee;
             else if (fee > c3TransferMaxFee) fee = c3TransferMaxFee;
-            _transfer(msg.sender, gov(), fee);
+            if (_from != msg.sender) {
+                _spendAllowance(_from, msg.sender, fee);
+            }
+            _transfer(_from, gov(), fee);
             netAmount = _amount - fee;
         }
-        return netAmount;
     }
 
     function _c3Fallback(bytes4 _selector, bytes calldata _data, bytes calldata _reason)

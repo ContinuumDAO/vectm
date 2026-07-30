@@ -61,9 +61,9 @@ contract MergeSplitHandler is Test {
     }
 
     function split(uint256 _amount) public {
-        // NOTE: bound amount to between 1 and lock amount - 1
+        // NOTE: bound amount to between 1 ether and lock amount - 1 ether (so that 1 ether remains either side)
         (int256 lockAmount,) = ve.locked(id1);
-        _amount = bound(_amount, 1, uint256(lockAmount - 1));
+        _amount = bound(_amount, 1 ether, uint256(lockAmount - 1 ether));
 
         vm.prank(user1);
         id2 = ve.split(id1, _amount);

@@ -41,7 +41,6 @@
 [invariant]
  runs = 256
  depth = 500
- show_progress = true
 
 [dependencies]
 forge-std = "1.11.0"

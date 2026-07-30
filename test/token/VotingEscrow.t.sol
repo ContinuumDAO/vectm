@@ -152,19 +152,19 @@ contract VotingEscrowTest is Helpers {
         vm.stopPrank();
     }
 
-    function test_OnlyVotingTokensCount() public {
-        vm.startPrank(user1);
-        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        uint256 vePowerBefore = ve.balanceOfNFT(id1);
-        uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user1).length;
-        skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        uint256 vePowerAfter = ve.balanceOfNFTAt(id1, block.timestamp - 1);
-        uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user1).length;
-        assertEq(idLengthAfter, idLengthBefore + 1);
-        assertEq(vePowerAfter, vePowerBefore);
-    }
+    // function test_OnlyVotingTokensCount() public {
+    //     vm.startPrank(user1);
+    //     uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+    //     id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+    //     uint256 vePowerBefore = ve.balanceOfNFT(id1);
+    //     uint256 idLengthBefore = ve.tokenIdsDelegatedTo(user1).length;
+    //     skip(1);
+    //     id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     uint256 vePowerAfter = ve.balanceOfNFTAt(id1, block.timestamp - 1);
+    //     uint256 idLengthAfter = ve.tokenIdsDelegatedTo(user1).length;
+    //     assertEq(idLengthAfter, idLengthBefore + 1);
+    //     assertEq(vePowerAfter, vePowerBefore);
+    // }
 
     function test_DelegateTokens() public {
         vm.startPrank(user1);
@@ -481,31 +481,31 @@ contract VotingEscrowTest is Helpers {
         assertEq(userDelegatedIDsAfter[1], userDelegatedIDsBefore[1]);
     }
 
-    function test_MergeWithTwoNonVoting() public {
-        vm.startPrank(user1);
-        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        skip(1);
-        ve.merge(id1, id2);
-        vm.stopPrank();
-        uint256 votes = ve.getVotes(user1);
-        assertEq(votes, 0);
-    }
+    // function test_MergeWithTwoNonVoting() public {
+    //     vm.startPrank(user1);
+    //     uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+    //     id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     skip(1);
+    //     id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     skip(1);
+    //     ve.merge(id1, id2);
+    //     vm.stopPrank();
+    //     uint256 votes = ve.getVotes(user1);
+    //     assertEq(votes, 0);
+    // }
 
-    function test_CannotMergeVotingWithNonVoting() public {
-        vm.startPrank(user1);
-        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
-        skip(1);
-        id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        skip(1);
-        // vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
-        vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_VotingAndNonVotingMerge.selector, id1, id2));
-        ve.merge(id1, id2);
-        vm.stopPrank();
-    }
+    // function test_CannotMergeVotingWithNonVoting() public {
+    //     vm.startPrank(user1);
+    //     uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+    //     id1 = ve.create_lock(1000 ether, WEEK_4_YEARS);
+    //     skip(1);
+    //     id2 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     skip(1);
+    //     // vm.expectRevert("veCTM: Merging between voting and non-voting token ID not allowed");
+    //     vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_VotingAndNonVotingMerge.selector, id1, id2));
+    //     ve.merge(id1, id2);
+    //     vm.stopPrank();
+    // }
 
     function testFuzz_Merge(uint256 _value1, uint256 _value2, uint256 _end1, uint256 _end2) public {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
@@ -592,20 +592,20 @@ contract VotingEscrowTest is Helpers {
         assertEq(userDelegatedIDsAfter[0], userDelegatedIDsBefore[0]);
     }
 
-    function test_SplitNonVoting() public {
-        vm.startPrank(user1);
-        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        skip(1);
-        id2 = ve.split(id1, 500 ether);
-        vm.stopPrank();
-        uint256 votes = ve.getVotes(user1);
-        bool id1NonVoting = ve.nonVoting(id1);
-        bool id2NonVoting = ve.nonVoting(id2);
-        assertEq(id1NonVoting, true);
-        assertEq(id2NonVoting, true);
-        assertEq(votes, 0);
-    }
+    // function test_SplitNonVoting() public {
+    //     vm.startPrank(user1);
+    //     uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+    //     id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     skip(1);
+    //     id2 = ve.split(id1, 500 ether);
+    //     vm.stopPrank();
+    //     uint256 votes = ve.getVotes(user1);
+    //     bool id1NonVoting = ve.nonVoting(id1);
+    //     bool id2NonVoting = ve.nonVoting(id2);
+    //     assertEq(id1NonVoting, true);
+    //     assertEq(id2NonVoting, true);
+    //     assertEq(votes, 0);
+    // }
 
     // BUG: #4 Split pulls fresh CTM (double-charge) instead of repartitioning
     // PASSED:
@@ -621,18 +621,18 @@ contract VotingEscrowTest is Helpers {
         assertEq(ctmBalanceBefore, ctmBalanceAfter);
     }
 
-    function test_SplitNonVotingDoesNotDoubleChargeCTM() public {
-        vm.startPrank(user1);
-        uint256 WEEK_4_YEARS = _weekTsInXYears(4);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
-        skip(1);
-        assertTrue(ve.nonVoting(id1));
-        uint256 ctmBalanceBefore = ctm.balanceOf(user1);
-        id2 = ve.split(id1, 500 ether);
-        vm.stopPrank();
-        uint256 ctmBalanceAfter = ctm.balanceOf(user1);
-        assertEq(ctmBalanceBefore, ctmBalanceAfter);
-    }
+    // function test_SplitNonVotingDoesNotDoubleChargeCTM() public {
+    //     vm.startPrank(user1);
+    //     uint256 WEEK_4_YEARS = _weekTsInXYears(4);
+    //     id1 = ve.create_nonvoting_lock_for(1000 ether, WEEK_4_YEARS, user1);
+    //     skip(1);
+    //     assertTrue(ve.nonVoting(id1));
+    //     uint256 ctmBalanceBefore = ctm.balanceOf(user1);
+    //     id2 = ve.split(id1, 500 ether);
+    //     vm.stopPrank();
+    //     uint256 ctmBalanceAfter = ctm.balanceOf(user1);
+    //     assertEq(ctmBalanceBefore, ctmBalanceAfter);
+    // }
 
     function testFuzz_Split(uint256 _initialValue, uint256 _extractedValue, uint256 _initialEnd) public {
         uint256 MIN_LOCK = _weekTsInXWeeks(1);
@@ -862,24 +862,24 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test non-voting lock functionality
-    function test_CreateNonVotingLock() public {
-        vm.prank(user1);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, block.timestamp + MAXTIME, user1);
+    // function test_CreateNonVotingLock() public {
+    //     vm.prank(user1);
+    //     id1 = ve.create_nonvoting_lock_for(1000 ether, block.timestamp + MAXTIME, user1);
 
-        assertTrue(ve.nonVoting(id1));
-        assertEq(ve.getVotes(user1), 0); // Non-voting locks don't contribute to votes
-    }
+    //     assertTrue(ve.nonVoting(id1));
+    //     assertEq(ve.getVotes(user1), 0); // Non-voting locks don't contribute to votes
+    // }
 
-    function test_NonVotingLockTransfer() public {
-        vm.startPrank(user1);
-        id1 = ve.create_nonvoting_lock_for(1000 ether, block.timestamp + MAXTIME, user1);
-        skip(1);
+    // function test_NonVotingLockTransfer() public {
+    //     vm.startPrank(user1);
+    //     id1 = ve.create_nonvoting_lock_for(1000 ether, block.timestamp + MAXTIME, user1);
+    //     skip(1);
 
-        ve.transferFrom(user1, user2, id1);
+    //     ve.transferFrom(user1, user2, id1);
 
-        assertEq(ve.ownerOf(id1), user2);
-        assertTrue(ve.nonVoting(id1));
-    }
+    //     assertEq(ve.ownerOf(id1), user2);
+    //     assertTrue(ve.nonVoting(id1));
+    // }
 
     // Test liquidations disabled
     function test_LiquidationsDisabled() public {
@@ -1670,33 +1670,33 @@ contract VotingEscrowTest is Helpers {
     }
 
     // Test delegation status with non-voting tokens
-    function test_DelegationStatus_NonVotingTokens() public {
-        vm.startPrank(user1);
+    // function test_DelegationStatus_NonVotingTokens() public {
+    //     vm.startPrank(user1);
 
-        // Create voting lock
-        id1 = ve.create_lock(500 ether, block.timestamp + MAXTIME);
-        skip(1);
-        // Create non-voting lock
-        skip(1);
-        id2 = ve.create_nonvoting_lock_for(500 ether, block.timestamp + MAXTIME, user1);
-        skip(1);
-        // Delegate to user2
-        ve.delegate(user2);
-        assertEq(ve.delegates(user1), user2);
-        skip(1);
+    //     // Create voting lock
+    //     id1 = ve.create_lock(500 ether, block.timestamp + MAXTIME);
+    //     skip(1);
+    //     // Create non-voting lock
+    //     skip(1);
+    //     id2 = ve.create_nonvoting_lock_for(500 ether, block.timestamp + MAXTIME, user1);
+    //     skip(1);
+    //     // Delegate to user2
+    //     ve.delegate(user2);
+    //     assertEq(ve.delegates(user1), user2);
+    //     skip(1);
 
-        // Verify delegation status (only voting tokens should be delegated)
-        uint256[] memory delegatedTokens = ve.tokenIdsDelegatedTo(user2);
-        assertEq(delegatedTokens.length, 2);
-        assertEq(delegatedTokens[0], id1);
-        assertEq(delegatedTokens[1], id2);
+    //     // Verify delegation status (only voting tokens should be delegated)
+    //     uint256[] memory delegatedTokens = ve.tokenIdsDelegatedTo(user2);
+    //     assertEq(delegatedTokens.length, 2);
+    //     assertEq(delegatedTokens[0], id1);
+    //     assertEq(delegatedTokens[1], id2);
 
-        // Verify non-voting token is delegated, but not for get votes
-        assertTrue(ve.nonVoting(id2));
-        assertEq(ve.getVotes(user2), ve.balanceOfNFT(id1));
+    //     // Verify non-voting token is delegated, but not for get votes
+    //     assertTrue(ve.nonVoting(id2));
+    //     assertEq(ve.getVotes(user2), ve.balanceOfNFT(id1));
 
-        vm.stopPrank();
-    }
+    //     vm.stopPrank();
+    // }
 
     // Test delegation status after transfer operations
     function test_DelegationStatus_AfterTransfer() public {

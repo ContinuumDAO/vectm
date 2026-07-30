@@ -113,8 +113,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     mapping(address => mapping(address => bool)) internal ownerToOperators;
     /// @notice Mapping from interface ID to support status for ERC165
     mapping(bytes4 => bool) internal supportedInterfaces;
-    /// @notice Mapping from token ID to non-voting status (true = non-voting, false = voting)
-    mapping(uint256 => bool) public nonVoting;
+    // /// @notice Mapping from token ID to non-voting status (true = non-voting, false = voting)
+    // mapping(uint256 => bool) public nonVoting;
 
     /// @notice Mapping from account address to delegatee address
     mapping(address => address) internal _delegatee;
@@ -366,9 +366,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         checkNoRewards(_from)
         checkNoRewards(_to)
     {
-        if (nonVoting[_from] != nonVoting[_to]) {
-            revert VotingEscrow_VotingAndNonVotingMerge(_from, _to);
-        }
+        // if (nonVoting[_from] != nonVoting[_to]) {
+        //     revert VotingEscrow_VotingAndNonVotingMerge(_from, _to);
+        // }
 
         if (_from == _to) {
             revert VotingEscrow_SameToken(_from, _to);
@@ -444,7 +444,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         int128 value = _locked.amount;
         int128 extraction = SafeCast.toInt128(SafeCast.toInt256(_extraction));
         int128 remainder = value - extraction;
-        assert(remainder > 0);
+        assert(remainder > 0 && uint256(int256(remainder)) >= minimumLock);
         assert(extraction + remainder <= value);
 
         uint256 supply_before = _supply;
@@ -459,15 +459,15 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             lock_duration = (_locked.end - block.timestamp) + WEEK;
         }
 
-        if (nonVoting[_tokenId]) {
-            // create another non-voting lock
-            // adding a week to lock duration to prevent rounding down exploit
-            extractionId = _create_nonvoting_lock_for(_extraction, lock_duration, owner, DepositType.SPLIT_TYPE);
-        } else {
-            // create another voting lock
-            // adding a week to lock duration to prevent rounding down exploit
-            extractionId = _create_lock(_extraction, lock_duration, owner, DepositType.SPLIT_TYPE);
-        }
+        // if (nonVoting[_tokenId]) {
+        //     // create another non-voting lock
+        //     // adding a week to lock duration to prevent rounding down exploit
+        //     extractionId = _create_nonvoting_lock_for(_extraction, lock_duration, owner, DepositType.SPLIT_TYPE);
+        // } else {
+        // create another voting lock
+        // adding a week to lock duration to prevent rounding down exploit
+        extractionId = _create_lock(_extraction, lock_duration, owner, DepositType.SPLIT_TYPE);
+        // }
 
         ownership_change[extractionId] = clock();
 
@@ -931,38 +931,38 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         return _delegateCheckpoints[_account].at(_index32);
     }
 
-    /**
-     * @notice Create a lock that has voting power, but that the delegatee cannot use to cast votes.
-     * @param _value The underlying CTM in the lock.
-     * @param _lock_duration The total lock duration of the token (may be rounded down 1 week).
-     * @param _to The receiver address of this token ID.
-     * @return The token ID of the non-voting lock.
-     */
-    function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
-        public
-        nonreentrant
-        returns (uint256)
-    {
-        return _create_nonvoting_lock_for(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
-    }
+    // /**
+    //  * @notice Create a lock that has voting power, but that the delegatee cannot use to cast votes.
+    //  * @param _value The underlying CTM in the lock.
+    //  * @param _lock_duration The total lock duration of the token (may be rounded down 1 week).
+    //  * @param _to The receiver address of this token ID.
+    //  * @return The token ID of the non-voting lock.
+    //  */
+    // function create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to)
+    //     public
+    //     nonreentrant
+    //     returns (uint256)
+    // {
+    //     return _create_nonvoting_lock_for(_value, _lock_duration, _to, DepositType.CREATE_LOCK_TYPE);
+    // }
 
-    /**
-     * @notice Create a lock that has voting power, but that the delegatee cannot use to cast votes.
-     * @param _value The underlying CTM in the lock.
-     * @param _lock_duration The total lock duration of the token (may be rounded down 1 week).
-     * @param _to The receiver address of this token ID.
-     * @param deposit_type The deposit type in question. This affects whether CTM will be charged from the sender or
-     * whether that has been accounted for (in the case of a SPLIT or MERGE).
-     * @return The token ID of the non-voting lock.
-     */
-    function _create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to, DepositType deposit_type)
-        internal
-        returns (uint256)
-    {
-        uint256 _tokenId = _create_lock(_value, _lock_duration, _to, deposit_type);
-        nonVoting[_tokenId] = true;
-        return _tokenId;
-    }
+    // /**
+    //  * @notice Create a lock that has voting power, but that the delegatee cannot use to cast votes.
+    //  * @param _value The underlying CTM in the lock.
+    //  * @param _lock_duration The total lock duration of the token (may be rounded down 1 week).
+    //  * @param _to The receiver address of this token ID.
+    //  * @param deposit_type The deposit type in question. This affects whether CTM will be charged from the sender or
+    //  * whether that has been accounted for (in the case of a SPLIT or MERGE).
+    //  * @return The token ID of the non-voting lock.
+    //  */
+    // function _create_nonvoting_lock_for(uint256 _value, uint256 _lock_duration, address _to, DepositType deposit_type)
+    //     internal
+    //     returns (uint256)
+    // {
+    //     uint256 _tokenId = _create_lock(_value, _lock_duration, _to, deposit_type);
+    //     nonVoting[_tokenId] = true;
+    //     return _tokenId;
+    // }
 
     /**
      * @notice Delegate voting power to another address by off-chain signature.
@@ -1762,9 +1762,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         uint256 cumulativeVotingPower;
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             // increment cumulativeVePower by the voting power of each token ID at time _t
-            if (nonVoting[_tokenIds[i]]) {
-                continue;
-            }
+            // if (nonVoting[_tokenIds[i]]) {
+            //     continue;
+            // }
             cumulativeVotingPower += _balanceOfNFT(_tokenIds[i], _t);
         }
         return cumulativeVotingPower;

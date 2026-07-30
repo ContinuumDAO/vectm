@@ -10,6 +10,7 @@ other/
 script/ReproduceGetPastTotalSupplyBug.s.sol
 OPTIONS.md
 DEPLOYMENT.md
+BUGS.md
 
 # Ignores development broadcast logs
 # broadcast/
