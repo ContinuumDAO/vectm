@@ -114,7 +114,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Mapping from interface ID to support status for ERC165
     mapping(bytes4 => bool) internal supportedInterfaces;
     // /// @notice Mapping from token ID to non-voting status (true = non-voting, false = voting)
-    // mapping(uint256 => bool) public nonVoting;
+    mapping(uint256 => bool) public nonVoting;
 
     /// @notice Mapping from account address to delegatee address
     mapping(address => address) internal _delegatee;
