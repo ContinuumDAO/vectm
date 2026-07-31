@@ -1924,4 +1924,67 @@ contract VotingEscrowTest is Helpers {
 
         vm.stopPrank();
     }
+
+    function test_SetTreasury() public {
+        address newTreasury = makeAddr("newTreasury");
+        vm.prank(address(continuumDAO));
+        vm.expectEmit(true, true, false, true);
+        emit IVotingEscrow.TreasuryUpdated(address(continuumDAO), newTreasury);
+        ve.setTreasury(newTreasury);
+        assertEq(ve.treasury(), newTreasury);
+    }
+
+    function test_SetTreasuryZeroReverts() public {
+        vm.prank(address(continuumDAO));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Treasury
+            )
+        );
+        ve.setTreasury(address(0));
+    }
+
+    function test_DelegateBySig_StandardEIP712Domain() public {
+        vm.prank(user1);
+        ve.create_lock(1000 ether, block.timestamp + MAXTIME);
+
+        uint256 signerKey = 0xA11CE;
+        address signer = vm.addr(signerKey);
+        deal(address(ctm), signer, 1000 ether, true);
+        vm.startPrank(signer);
+        ctm.approve(address(ve), type(uint256).max);
+        ve.create_lock(100 ether, block.timestamp + MAXTIME);
+        vm.stopPrank();
+        // Avoid same-timestamp flash protection on the delegatee checkpoint
+        skip(1);
+
+        address delegatee = user2;
+        uint256 nonce = 0;
+        uint256 expiry = block.timestamp + 1 days;
+
+        bytes32 typeHash =
+            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                typeHash,
+                keccak256(bytes(ve.name())),
+                keccak256(bytes(ve.version())),
+                block.chainid,
+                address(ve)
+            )
+        );
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)"),
+                delegatee,
+                nonce,
+                expiry
+            )
+        );
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
+
+        ve.delegateBySig(delegatee, nonce, expiry, v, r, s);
+        assertEq(ve.delegates(signer), delegatee);
+    }
 }

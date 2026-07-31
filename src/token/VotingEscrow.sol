@@ -113,7 +113,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     mapping(address => mapping(address => bool)) internal ownerToOperators;
     /// @notice Mapping from interface ID to support status for ERC165
     mapping(bytes4 => bool) internal supportedInterfaces;
-    // /// @notice Mapping from token ID to non-voting status (true = non-voting, false = voting)
+    /// @notice Deprecated storage slot retained for UUPS upgrade layout compatibility.
+    /// @dev Previously marked non-voting locks; unused by logic — all tokens count as voting.
     mapping(uint256 => bool) public nonVoting;
 
     /// @notice Mapping from account address to delegatee address
@@ -663,6 +664,20 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
+     * @notice Sets the treasury address that receives liquidation penalties.
+     * @param _treasury The new treasury address.
+     * @dev Only governance. Reverts if `_treasury` is the zero address.
+     */
+    function setTreasury(address _treasury) external onlyGov {
+        if (_treasury == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
+        }
+        address oldTreasury = treasury;
+        treasury = _treasury;
+        emit TreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    /**
      * @notice Returns the number of NFTs owned by `_owner`.
      * @param _owner Address for whom to query the balance.
      * @dev Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
@@ -978,7 +993,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             revert VotesExpiredSignature(expiry);
         }
 
-        bytes32 domainSeparator = keccak256(abi.encode(TYPE_HASH, name, version, block.chainid, address(this)));
+        bytes32 domainSeparator = keccak256(
+            abi.encode(TYPE_HASH, keccak256(bytes(name)), keccak256(bytes(version)), block.chainid, address(this))
+        );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest;
 

@@ -23,8 +23,13 @@ contract CTM is ICTM, CTMERC20 {
     uint256 public c3TransferMaxFee;
 
     constructor(address _gov, address _c3caller, address _dappManager, uint256 _dappID)
-        CTMERC20("Continuum", "CTM", _gov, _c3caller, _dappID)
+        CTMERC20("Continuum", "CTM", _c3caller, _dappID)
     {
+        // CTMERC20 sets gov to msg.sender; override to the intended governance address.
+        _oldGov = _gov;
+        _newGov = _gov;
+        _newGovEffectiveTime = block.timestamp;
+
         // initial fee = 1% (between 500 and 2000 CTM transfer)
         c3TransferFee = 100;
         // initial minimum fee = 5 CTM (below 500 CTM transfer)

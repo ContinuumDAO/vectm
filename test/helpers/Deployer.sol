@@ -94,8 +94,10 @@ contract Deployer is Utils {
     }
 
     function _fundRewards() internal {
-        deal(address(ctm), address(this), 100_000_000 ether, true);
+        deal(address(ctm), address(continuumDAO), 100_000_000 ether, true);
+        vm.startPrank(address(continuumDAO));
         ctm.approve(address(rewards), 100_000_000 ether);
         rewards.receiveFees(address(ctm), 100_000_000 ether, 1);
+        vm.stopPrank();
     }
 }

@@ -269,22 +269,25 @@ contract Rewards is IRewards {
      * @param _token The address of the token received
      * @param _amount The amount of tokens received
      * @param _fromChainId The ID of the source chain
-     * @dev Allows the contract to receive fees from other chains.
-     * Only accepts fee tokens or reward tokens.
-     * Prevents duplicate fee receipts from the same chain at the same timestamp.
+     * @dev Governance-only. Only accepts fee tokens or reward tokens. Rejects zero amounts.
+     * Prevents duplicate fee receipts from the same chain for the same daily midnight epoch.
      */
-    function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external {
+    function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external onlyGov {
+        if (_amount == 0) {
+            revert Rewards_ZeroAmount();
+        }
         if (_token != feeToken && _token != rewardToken) {
             revert Rewards_InvalidToken(_token);
         }
 
-        if (_feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()].amount != 0) {
+        uint48 midnight = _getLatestMidnight();
+        if (_feeReceivedFromChainAt[_fromChainId][midnight].amount != 0) {
             revert Rewards_FeesAlreadyReceivedFromChain();
         }
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
-        _feeReceivedFromChainAt[_fromChainId][IERC6372(ve).clock()] = Fee(_token, _amount);
+        _feeReceivedFromChainAt[_fromChainId][midnight] = Fee(_token, _amount);
         emit FeesReceived(_token, _amount, _fromChainId);
     }
 
@@ -501,11 +504,9 @@ contract Rewards is IRewards {
      * @param _tokenId The ID of the veCTM token
      * @param _latestMidnight The midnight timestamp to calculate rewards up to
      * @return The total rewards calculated
-     * @dev Calculates rewards day by day, considering:
-     * - Base emission rates
-     * - Node emission rates and quality scores
-     * - Token voting power over time
-     * - Token expiration and creation times
+     * @dev Walks contiguous daily-epoch ranges where emission rates and the node reward threshold are constant,
+     * resolving those values once per range. The claim window is capped by lock expiry and four years.
+     * Exits immediately when voting power is zero (expired / non-existent) to avoid gas DoS.
      *
      * Assumes _latestMidnight is up-to-date.
      */
@@ -524,56 +525,102 @@ contract Rewards is IRewards {
             _lastClaimed = SafeCast.toUint48(_tokenCreationTimeMidnight);
         }
 
-        // number of days between latest midnight and last claimed
-        uint48 _daysUnclaimed = (_latestMidnight - _lastClaimed) / ONE_DAY;
-        // ensure a midnight has passed since last claim
-        assert(_daysUnclaimed * ONE_DAY == (_latestMidnight - _lastClaimed));
+        uint48 start = _lastClaimed + ONE_DAY;
+        uint48 end = _latestMidnight;
+
+        // Cap by lock expiry (midnight floor) and four-year maximum window
+        (, uint256 lockEnd) = IVotingEscrow(ve).locked(_tokenId);
+        if (lockEnd != 0) {
+            uint48 lockEndMidnight = SafeCast.toUint48(lockEnd - (lockEnd % ONE_DAY));
+            if (lockEndMidnight < end) {
+                end = lockEndMidnight;
+            }
+        }
+        uint48 fourYearCap = _lastClaimed + SafeCast.toUint48(uint256(4 * 365) * uint256(ONE_DAY));
+        if (fourYearCap < end) {
+            end = fourYearCap;
+        }
+
+        if (start > end) {
+            return 0;
+        }
 
         uint256 _reward;
-        uint256 _vePower;
-        uint256 _prevDayVePower;
+        uint48 rangeStart = start;
 
-        // start at the midnight following their last claim, increment by one day at a time
-        // continue until rewards counted for latest midnight
-        for (uint48 i = _lastClaimed + ONE_DAY; i <= _lastClaimed + (_daysUnclaimed * ONE_DAY); i += ONE_DAY) {
-            uint256 _time = uint256(i);
-            _prevDayVePower = _vePower;
-            _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, _time);
-
-            // EARLY EXIT: Get token's expiration time and cap the calculation period
-            // (, uint256 _end) = IVotingEscrow(ve).locked(_tokenId);
-            if (_time > _lastClaimed + (4 * 365 * ONE_DAY)) {
-                break;
+        while (rangeStart <= end) {
+            // Rates are constant on [rangeStart, rangeEnd] midnights
+            uint48 nextChange = _nextEmissionBoundary(rangeStart);
+            uint48 rangeEnd = end;
+            if (nextChange != type(uint48).max && nextChange > rangeStart) {
+                // Last day of this range is the midnight before the rate change day
+                uint48 lastOfRange = nextChange - ONE_DAY;
+                if (lastOfRange < rangeEnd) {
+                    rangeEnd = lastOfRange;
+                }
             }
 
-            // check if ve power is zero (meaning the token ID didn't exist at this time).
-            // previous day ve power is the ve power of the previous iteration of this loop, if it is zero then
-            // the midnight in question is less than a day since the token ID was created. This means they don't
-            // get rewards for this day, and their rewards instead start at the following midnight.
-            // if (_vePower == 0 || _prevDayVePower == 0) {
+            uint256 _baseEmissionRate = baseEmissionRateAt(rangeStart);
+            uint256 _nodeEmissionRate = nodeEmissionRateAt(rangeStart);
+            uint256 _nodeRewardThreshold = nodeRewardThresholdAt(rangeStart);
 
-            // if yesterday's ve power was non-zero and today's is zero, then the token ID has expired at this time.
+            for (uint48 t = rangeStart; t <= rangeEnd; t += ONE_DAY) {
+                uint256 _vePower = IVotingEscrow(ve).balanceOfNFTAt(_tokenId, uint256(t));
 
-            if (_vePower == 0 && _prevDayVePower != 0) {
-                // case: the ve power was non-zero yesterday, but is zero today.
-                // this means the token ID has expired at this time.
-                break;
+                // Immediate exit when power is zero (lock expired or token did not exist)
+                if (_vePower == 0) {
+                    return _reward;
+                }
+
+                uint256 _nodeQuality;
+                if (_vePower >= _nodeRewardThreshold) {
+                    _nodeQuality = INodeProperties(nodeProperties).nodeQualityOfAt(_tokenId, uint256(t));
+                }
+
+                _reward += _calculateRewards(_vePower, _baseEmissionRate, _nodeEmissionRate, _nodeQuality);
             }
 
-            uint256 _nodeRewardThreshold = nodeRewardThresholdAt(i);
-            uint256 _nodeQuality;
-
-            if (_vePower >= _nodeRewardThreshold) {
-                _nodeQuality = INodeProperties(nodeProperties).nodeQualityOfAt(_tokenId, _time);
-            }
-
-            uint256 _baseEmissionRate = baseEmissionRateAt(i);
-            uint256 _nodeEmissionRate = nodeEmissionRateAt(i);
-
-            _reward += _calculateRewards(_vePower, _baseEmissionRate, _nodeEmissionRate, _nodeQuality);
+            rangeStart = rangeEnd + ONE_DAY;
         }
 
         return _reward;
+    }
+
+    /**
+     * @notice Next midnight at which any emission/threshold rate may differ from `from`.
+     * @return Midnight timestamp of the first change day, or type(uint48).max if none.
+     */
+    function _nextEmissionBoundary(uint48 from) internal view returns (uint48) {
+        uint48 next = type(uint48).max;
+        next = _min48(next, _nextTraceChangeDay(_baseEmissionRates, from));
+        next = _min48(next, _nextTraceChangeDay(_nodeEmissionRates, from));
+        next = _min48(next, _nextTraceChangeDay(_nodeRewardThresholds, from));
+        return next;
+    }
+
+    /**
+     * @notice First midnight strictly after `from` at which `trace` may return a different value.
+     */
+    function _nextTraceChangeDay(Checkpoints.Trace208 storage trace, uint48 from) internal view returns (uint48) {
+        uint256 len = trace.length();
+        for (uint256 i = 0; i < len; i++) {
+            uint48 key = trace.at(uint32(i))._key;
+            if (key > from) {
+                // First midnight at which this checkpoint is visible to upperLookup
+                uint48 day = key - (key % ONE_DAY);
+                if (key % ONE_DAY != 0) {
+                    day += ONE_DAY;
+                }
+                if (day > from) {
+                    return day;
+                }
+            }
+        }
+        return type(uint48).max;
+    }
+
+    function _min48(uint48 a, uint48 b) internal pure returns (uint48) {
+        return a < b ? a : b;
     }
 
     /**

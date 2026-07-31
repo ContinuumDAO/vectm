@@ -199,10 +199,12 @@ contract GovernorHelpers is Helpers {
     }
 
     // INFO: Given a number of options and an option to vote for, format the vote weights such that all are zero
-    // except for the option to vote for. This will result in all available votes going towards this option.
+    // except for the option to vote for. Includes a final baked-in NOTA slot (zero unless selected).
+    // `_singleOption == _nOptions` votes entirely for NOTA.
     function _encodeSingleVote(uint256 _nOptions, uint256 _singleOption) internal pure returns (bytes memory) {
-        bytes memory params = new bytes(_nOptions * 32);
-        for (uint256 i = 0; i < _nOptions; i++) {
+        uint256 nVoteSlots = _nOptions + 1; // + NOTA
+        bytes memory params = new bytes(nVoteSlots * 32);
+        for (uint256 i = 0; i < nVoteSlots; i++) {
             uint256 weight_i = i == _singleOption ? 100 : 0;
             assembly {
                 let paramsPtr := add(params, 0x20) // Skip length prefix
@@ -212,10 +214,11 @@ contract GovernorHelpers is Helpers {
         return params;
     }
 
-    // INFO: Given a number of options, format the vote weights such that each option is attributed an equal weight.
-    // This will result in their total votes being divided between each option.
+    // INFO: Given a number of options, format the vote weights such that each executable option is attributed an equal
+    // weight. The baked-in NOTA slot is left at zero.
     function _encodeApprovalVote(uint256 _nOptions) internal pure returns (bytes memory) {
-        bytes memory params = new bytes(_nOptions * 32);
+        uint256 nVoteSlots = _nOptions + 1; // + NOTA
+        bytes memory params = new bytes(nVoteSlots * 32);
         for (uint256 i = 0; i < _nOptions; i++) {
             uint256 weight_i = 100;
             assembly {
@@ -227,11 +230,12 @@ contract GovernorHelpers is Helpers {
     }
 
     // INFO: Given a number of options and a weighting array, format the vote weights according to the weighting array.
-    // This allows the voter to attribute varying proportions of their available votes to different options.
+    // `_weights` may be length `_nOptions` (NOTA defaults to 0) or `_nOptions + 1` (explicit NOTA weight).
     function _encodeWeightedVote(uint256 _nOptions, uint256[] memory _weights) internal pure returns (bytes memory) {
-        bytes memory params = new bytes(_nOptions * 32);
-        for (uint256 i = 0; i < _nOptions; i++) {
-            uint256 weight_i = _weights[i];
+        uint256 nVoteSlots = _nOptions + 1; // + NOTA
+        bytes memory params = new bytes(nVoteSlots * 32);
+        for (uint256 i = 0; i < nVoteSlots; i++) {
+            uint256 weight_i = i < _weights.length ? _weights[i] : 0;
             assembly {
                 let paramsPtr := add(params, 0x20) // Skip length prefix
                 mstore(add(paramsPtr, mul(i, 0x20)), weight_i)

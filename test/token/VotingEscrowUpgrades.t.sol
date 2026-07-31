@@ -138,6 +138,9 @@ contract VotingEscrowUpgradesTest is Helpers {
         (int128 amount, uint256 end) = ve.locked(tokenId);
         assertEq(uint256(int256(amount)), 1 ether);
 
+        // Deprecated nonVoting mapping retained for UUPS layout; getter must remain callable
+        assertFalse(ve.nonVoting(tokenId));
+
         // Upgrade
         vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
@@ -146,6 +149,9 @@ contract VotingEscrowUpgradesTest is Helpers {
         (amount, end) = ve.locked(tokenId);
         assertEq(uint256(int256(amount)), 1 ether);
         assertEq(ve.ownerOf(tokenId), user1);
+        // Storage layout: nonVoting mapping still present and readable after upgrade
+        assertFalse(VotingEscrowV2(address(ve)).nonVoting(tokenId));
+        assertGt(ve.balanceOfNFT(tokenId), 0);
     }
 
     function test_UpgradeAddsNewFeatures() public {

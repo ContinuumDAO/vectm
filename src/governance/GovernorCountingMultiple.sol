@@ -38,8 +38,10 @@ error GovernorDeltaOutOfBounds(uint256 limit, uint256 index);
  * contains
  *    a non-zero value for each option that the voter wishes to vote for, along with weighting coefficients.
  * 4. If the `params` field is empty (or if {Governor-castVote} is used), the vote will be assumed to be Bravo.
- * 4. If the proposal's number of options is non-zero, the params field must be defined and populated with 32-byte
- *    weighting coefficients.
+ * 5. If the proposal's number of options is non-zero, the params field must be defined and populated with 32-byte
+ *    weighting coefficients for each executable option plus a final baked-in "None of the above" (NOTA) slot.
+ * 6. Delta proposals succeed only when NOTA is not among the top `nWinners` and there are at least `nWinners`
+ *    executable options with non-zero votes.
  *
  * @custom:security-considerations
  * 1. Weight Precision: When using weighted voting, there is (POTENTIAL) inherent precision loss due to integer
@@ -53,6 +55,9 @@ error GovernorDeltaOutOfBounds(uint256 limit, uint256 index);
  *    `_validateProposalConfiguration`.
  */
 abstract contract GovernorCountingMultiple is Governor {
+    /// @dev Sentinel winning index for the baked-in "None of the above" option (non-executable).
+    uint256 internal constant NOTA_WINNING_INDEX = type(uint256).max;
+
     enum VoteTypeSimple {
         Against,
         For,
@@ -183,7 +188,8 @@ abstract contract GovernorCountingMultiple is Governor {
 
         Metadata memory metadata = _extractMetadata(calldatas[0]);
 
-        uint256[] memory votes = _getProposalVotes(proposalId, metadata.nOptions);
+        // Include NOTA vote slot for ranking; successful proposals never include NOTA among winners.
+        uint256[] memory votes = _getProposalVotes(proposalId, metadata.nOptions + 1);
         metadata.winningIndices = _getWinningIndices(votes, metadata.optionIndices, metadata.nWinners);
 
         Operations memory allExecOps = Operations(targets, values, calldatas);
@@ -243,8 +249,8 @@ abstract contract GovernorCountingMultiple is Governor {
 
         Metadata memory metadata = _extractMetadata(calldatas[0]);
 
-        // only want to queue the successful operations
-        uint256[] memory votes = _getProposalVotes(proposalId, metadata.nOptions);
+        // only want to queue the successful operations (votes include NOTA slot)
+        uint256[] memory votes = _getProposalVotes(proposalId, metadata.nOptions + 1);
         metadata.winningIndices = _getWinningIndices(votes, metadata.optionIndices, metadata.nWinners);
 
         Operations memory allQueueOps = Operations(targets, values, calldatas);
@@ -279,7 +285,8 @@ abstract contract GovernorCountingMultiple is Governor {
     function proposalVotesDelta(uint256 proposalId) public view virtual returns (uint256[] memory, uint256) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
         uint256 totalVotes = proposalVote.totalVotes;
-        uint256[] memory votes = _getProposalVotes(proposalId, _proposalConfig[proposalId].nOptions);
+        // Include the baked-in NOTA slot as the final entry.
+        uint256[] memory votes = _getProposalVotes(proposalId, _proposalConfig[proposalId].nOptions + 1);
         return (votes, totalVotes);
     }
 
@@ -305,8 +312,9 @@ abstract contract GovernorCountingMultiple is Governor {
      * @param support Redundant for Delta voting, as it is already encoded in the params field.
      * Support is still used for Bravo-type voting.
      * @param totalWeight The total weight of the voter, used as the denominator when using Delta-type voting.
-     * @param params In Delta-type voting, `params` serves as the numerators (coefficients) to cast for each option.
-     * The params bytes string should be passed in as ABI-encoded uint256 values.
+     * @param params In Delta-type voting, `params` serves as the numerators (coefficients) to cast for each option
+     * plus a final baked-in "None of the above" (NOTA) slot. The params bytes string should be passed in as
+     * ABI-encoded uint256 values of length `nOptions + 1`.
      * @dev When using weighted voting, there may be minor precision loss due to integer division in the weight calculation
      * (totalWeight * weights[i] / weightDenominator). This can be mitigated by selecting weightings whose denominator
      * add up to a factor of `totalWeight`.
@@ -340,15 +348,16 @@ abstract contract GovernorCountingMultiple is Governor {
                 revert GovernorInvalidVoteType();
             }
         } else {
-            // a weighting must be provided for every option, even if it is zero
-            if (params.length / 32 != proposalConfig.nOptions) {
+            // Weightings for every executable option plus the baked-in NOTA slot (even if zero).
+            uint256 nVoteSlots = proposalConfig.nOptions + 1;
+            if (params.length / 32 != nVoteSlots) {
                 revert GovernorDeltaInvalidVoteParams(params);
             }
 
             uint256 weightDenominator = 0;
-            uint256[] memory weights = new uint256[](proposalConfig.nOptions);
+            uint256[] memory weights = new uint256[](nVoteSlots);
 
-            for (uint256 i = 0; i < proposalConfig.nOptions; i++) {
+            for (uint256 i = 0; i < nVoteSlots; i++) {
                 uint256 weight;
                 assembly ("memory-safe") {
                     // load weight data - add 0x20 to skip length prefix of bytes array
@@ -366,8 +375,8 @@ abstract contract GovernorCountingMultiple is Governor {
 
             uint256 totalAppliedWeight = 0;
 
-            // Iterate through each supported option and apply the specified weight to totalWeight
-            for (uint256 i = 0; i < proposalConfig.nOptions; i++) {
+            // Iterate through each supported option (and NOTA) and apply the specified weight to totalWeight
+            for (uint256 i = 0; i < nVoteSlots; i++) {
                 if (weights[i] != 0) {
                     // Applied weight = totalWeight * weight_i / sum(weight_i)
                     uint256 appliedWeight = (totalWeight * weights[i]) / weightDenominator;
@@ -400,20 +409,46 @@ abstract contract GovernorCountingMultiple is Governor {
     /**
      * @notice Determines whether a vote has succeeded.
      * @param proposalId The proposal ID in question.
-     * @dev See {Governor-_voteSucceeded}. This module is a superset of {GovernorCountingSimple}, with
-     * multiple-option (Delta) proposals not having such a clear-cut definition of 'success'. Therefore, any Delta
-     * proposal that votes have been cast on at all is deemed 'successful'. Bravo proposals are successful if the 'for'
-     * votes exceed the 'against' votes.
+     * @dev See {Governor-_voteSucceeded}. Bravo proposals succeed if For > Against. Delta proposals succeed only when
+     * there are at least `nWinners` executable options with non-zero votes and the baked-in "None of the above" (NOTA)
+     * option does not rank among the top `nWinners`.
      * @return True if the proposal has succeeded, false otherwise.
      */
     function _voteSucceeded(uint256 proposalId) internal view virtual override returns (bool) {
         ProposalVote storage proposalVote = _proposalVotes[proposalId];
-        if (_proposalConfig[proposalId].nOptions == 0) {
+        ProposalConfig memory proposalConfig = _proposalConfig[proposalId];
+        if (proposalConfig.nOptions == 0) {
             return
                 bool(proposalVote.votes[uint8(VoteTypeSimple.For)] > proposalVote.votes[uint8(VoteTypeSimple.Against)]);
-        } else {
-            return bool(proposalVote.totalVotes > 0);
         }
+
+        uint256 nOptions = proposalConfig.nOptions;
+        uint256 nWinners = proposalConfig.nWinners;
+        // Working copy including NOTA at index `nOptions`
+        uint256[] memory votes = _getProposalVotes(proposalId, nOptions + 1);
+
+        for (uint256 i = 0; i < nWinners; i++) {
+            uint256 maxVotes = 0;
+            uint256 maxIndex = 0;
+            bool found = false;
+            for (uint256 j = 0; j < votes.length; j++) {
+                if (votes[j] > maxVotes) {
+                    maxVotes = votes[j];
+                    maxIndex = j;
+                    found = true;
+                }
+            }
+            // Not enough positive-vote options to fill the winner set
+            if (!found || maxVotes == 0) {
+                return false;
+            }
+            // NOTA ranked among the top nWinners — ballot rejected
+            if (maxIndex == nOptions) {
+                return false;
+            }
+            votes[maxIndex] = 0;
+        }
+        return true;
     }
 
     /**
@@ -506,10 +541,13 @@ abstract contract GovernorCountingMultiple is Governor {
 
     /**
      * @notice Get the top `nWinners` option indices, ordered by the number of votes each option obtained.
-     * @param votes The array of amount of votes cast for each option
-     * @param optionIndices The index of each option as it is structured in the (targets/values/calldatas) arrays.
+     * @param votes The array of amount of votes cast for each option, including a final NOTA slot.
+     * @param optionIndices The index of each executable option as it is structured in the (targets/values/calldatas)
+     * arrays. Length is `nOptions`; `votes` length is `nOptions + 1`.
      * @param nWinners The number of winners declarable for this proposal.
-     * @return winningIndices The indices of the winning options for this proposal.
+     * @return winningIndices The indices of the winning options for this proposal. NOTA winners are marked with
+     * {NOTA_WINNING_INDEX} and are skipped by the execution builder.
+     * @dev Only options with a strictly positive vote total may win. Never fabricates option 0 when votes are sparse.
      */
     function _getWinningIndices(uint256[] memory votes, uint256[] memory optionIndices, uint256 nWinners)
         internal
@@ -517,18 +555,29 @@ abstract contract GovernorCountingMultiple is Governor {
         returns (uint256[] memory winningIndices)
     {
         winningIndices = new uint256[](nWinners);
+        uint256 nOptions = optionIndices.length;
 
         // Searches for the location of option with highest votes, sets it to zero, repeats up to nWinners
         for (uint256 i = 0; i < nWinners; i++) {
             uint256 maxVotes = 0;
             uint256 maxIndex = 0;
+            bool found = false;
             for (uint256 j = 0; j < votes.length; j++) {
                 if (votes[j] > maxVotes) {
                     maxVotes = votes[j];
                     maxIndex = j;
+                    found = true;
                 }
             }
-            winningIndices[i] = optionIndices[maxIndex];
+            if (!found || maxVotes == 0) {
+                break;
+            }
+            if (maxIndex >= nOptions) {
+                // NOTA slot — non-executable sentinel
+                winningIndices[i] = NOTA_WINNING_INDEX;
+            } else {
+                winningIndices[i] = optionIndices[maxIndex];
+            }
             votes[maxIndex] = 0;
         }
     }
@@ -559,6 +608,10 @@ abstract contract GovernorCountingMultiple is Governor {
         for (uint256 i = 0; i < metadata.nWinners; i++) {
             // solhint-disable-next-line var-name-mixedcase
             uint256 winningIndex_i = metadata.winningIndices[i];
+            // NOTA and unfilled winner slots have no executable operations
+            if (winningIndex_i == NOTA_WINNING_INDEX) {
+                continue;
+            }
             for (uint256 j = 0; j < metadata.nOptions; j++) {
                 uint256 lower = metadata.optionIndices[j];
                 if (lower == winningIndex_i) {
@@ -590,6 +643,9 @@ abstract contract GovernorCountingMultiple is Governor {
         for (uint256 i = 0; i < metadata.nWinners; i++) {
             // solhint-disable-next-line var-name-mixedcase
             uint256 winningIndex_i = metadata.winningIndices[i];
+            if (winningIndex_i == NOTA_WINNING_INDEX) {
+                continue;
+            }
             for (uint256 j = 0; j < metadata.nOptions; j++) {
                 uint256 lower = metadata.optionIndices[j];
                 if (lower == winningIndex_i) {

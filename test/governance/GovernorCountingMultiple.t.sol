@@ -819,4 +819,50 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         vm.expectRevert(abi.encodeWithSelector(GovernorNonIncrementingOptionIndices.selector, 2, metadata));
         _propose(proposer, options, "<proposal description>");
     }
+
+    // ========================================================
+    // ======== NOTA / SPARSE WINNER SELECTION (C-2, M-4) =====
+    // ========================================================
+
+    function test_NotaInTopWinnersDefeatsProposal() public {
+        uint256 nOptions = 4;
+        uint256 nWinners = 1;
+        _proposeDelta(nOptions, nWinners, 1, "<proposal description>");
+
+        // All voters cast entirely for NOTA (slot index == nOptions)
+        bytes memory paramsNota = _encodeSingleVote(nOptions, nOptions);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "none", paramsNota);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "none", paramsNota);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "none", paramsNota);
+        _waitForDeadline(proposalIdDelta);
+
+        assertEq(uint8(continuumDAO.state(proposalIdDelta)), uint8(IGovernor.ProposalState.Defeated));
+    }
+
+    function test_SparseVotesFewerThanNWinnersDefeatsProposal() public {
+        uint256 nOptions = 4;
+        uint256 nWinners = 2;
+        _proposeDelta(nOptions, nWinners, 1, "<proposal description>");
+
+        // Only option 2 receives votes — fewer than nWinners distinct non-zero options
+        bytes memory paramsSingle = _encodeSingleVote(nOptions, 2);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "", paramsSingle);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter2, AGAINST, "", paramsSingle);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter3, AGAINST, "", paramsSingle);
+        _waitForDeadline(proposalIdDelta);
+
+        assertEq(uint8(continuumDAO.state(proposalIdDelta)), uint8(IGovernor.ProposalState.Defeated));
+    }
+
+    function test_ProposalVotesDeltaIncludesNotaSlot() public {
+        uint256 nOptions = 4;
+        _proposeDelta(nOptions, 1, 1, "<proposal description>");
+
+        bytes memory params = _encodeSingleVote(nOptions, 0);
+        _castVoteWithReasonAndParams(proposalIdDelta, voter1, AGAINST, "", params);
+
+        (uint256[] memory optionVotes,) = _getProposalVotesDelta(proposalIdDelta);
+        assertEq(optionVotes.length, nOptions + 1); // + NOTA
+        assertEq(optionVotes[nOptions], 0);
+    }
 }

@@ -189,6 +189,9 @@ contract ContinuumDAO is
     }
 
     function updateProposalThresholdDenominator(uint256 _proposalThresholdDenominator) external onlyGovernance {
+        if (_proposalThresholdDenominator == 0 || proposalThresholdNumerator > _proposalThresholdDenominator) {
+            revert GovernorInvalidProposalThreshold(proposalThresholdNumerator, _proposalThresholdDenominator);
+        }
         proposalThresholdDenominator = _proposalThresholdDenominator;
     }
 }

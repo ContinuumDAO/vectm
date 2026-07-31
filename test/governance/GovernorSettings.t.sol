@@ -30,8 +30,9 @@ contract TestGovernorSettings is GovernorHelpers {
         uint256 initialProposalThreshold = continuumDAO.proposalThreshold();
 
         vm.startPrank(address(continuumDAO));
-        continuumDAO.updateProposalThresholdDenominator(100);
+        // Lower numerator first so denominator can be reduced without reverting
         continuumDAO.updateProposalThresholdNumerator(1);
+        continuumDAO.updateProposalThresholdDenominator(100);
         vm.stopPrank();
 
         uint256 updatedProposalThreshold = continuumDAO.proposalThreshold();
@@ -49,5 +50,26 @@ contract TestGovernorSettings is GovernorHelpers {
             )
         );
         continuumDAO.updateProposalThresholdNumerator(invalidDenominator);
+    }
+
+    function test_Settings_ProposalThresholdDenominatorZeroReverts() public {
+        uint256 numerator = continuumDAO.proposalThresholdNumerator();
+        vm.startPrank(address(continuumDAO));
+        vm.expectRevert(
+            abi.encodeWithSelector(ContinuumDAO.GovernorInvalidProposalThreshold.selector, numerator, uint256(0))
+        );
+        continuumDAO.updateProposalThresholdDenominator(0);
+        vm.stopPrank();
+    }
+
+    function test_Settings_ProposalThresholdDenominatorBelowNumeratorReverts() public {
+        uint256 numerator = continuumDAO.proposalThresholdNumerator();
+        uint256 tooSmall = numerator - 1;
+        vm.startPrank(address(continuumDAO));
+        vm.expectRevert(
+            abi.encodeWithSelector(ContinuumDAO.GovernorInvalidProposalThreshold.selector, numerator, tooSmall)
+        );
+        continuumDAO.updateProposalThresholdDenominator(tooSmall);
+        vm.stopPrank();
     }
 }

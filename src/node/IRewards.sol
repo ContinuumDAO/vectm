@@ -29,6 +29,7 @@ interface IRewards {
     error Rewards_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error Rewards_EmissionRateChangeTooHigh();
     error Rewards_InvalidToken(address _token);
+    error Rewards_ZeroAmount();
 
     function setBaseEmissionRate(uint256 _baseEmissionRate) external;
     function setNodeEmissionRate(uint256 _nodeEmissionRate) external;
