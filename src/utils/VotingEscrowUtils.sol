@@ -15,5 +15,6 @@ enum VotingEscrowErrorParam {
     Token,
     Rewards,
     NodeProperties,
-    MinLock
+    MinLock,
+    To
 }

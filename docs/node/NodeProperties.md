@@ -18,8 +18,8 @@ The NodeProperties contract manages the attachment of veCTM tokens to MPC node i
 struct NodeInfo {
     string forumHandle;
     string email;
-    bytes32 nodeId;
-    uint8[4] ip;
+    uint8[4] ipv4;
+    uint16[8] ipv6;
     string vpsProvider;
     uint256 ramInstalled;
     uint256 cpuCores;
@@ -29,11 +29,10 @@ struct NodeInfo {
 }
 ```
 
-Comprehensive node information structure containing:
+Off-chain node metadata (attachment identity is the KeyGen `msg.sender`, not a field here):
 - **forumHandle**: The forum handle/username of the node operator
 - **email**: The email address of the node operator
-- **nodeId**: The unique identifier for the node (bytes32)
-- **ip**: The IP address of the node as a 4-byte array [octet1, octet2, octet3, octet4]
+- **ipv4** / **ipv6**: Node network addresses
 - **vpsProvider**: The virtual private server provider name
 - **ramInstalled**: The amount of RAM installed on the node (in MB/GB)
 - **cpuCores**: The number of CPU cores available on the node
@@ -49,8 +48,8 @@ Comprehensive node information structure containing:
 - `ve` (address): Address of the voting escrow contract for token ownership verification
 
 ### Mappings
-- `_attachedNodeId` (mapping(uint256 => bytes32)): Mapping from token ID to attached node ID
-- `_attachedTokenId` (mapping(bytes32 => uint256)): Mapping from node ID to attached token ID
+- `_attachedKeyGen` (mapping(uint256 => address)): Mapping from token ID to attached KeyGen address
+- `_attachedTokenId` (mapping(address => uint256)): Mapping from KeyGen address to attached token ID
 - `_nodeQualitiesOf` (mapping(uint256 => Checkpoints.Trace208)): Mapping from token ID to checkpointed node quality scores over time
 - `_nodeValidated` (mapping(uint256 => bool)): Mapping from token ID to node validation status (dID verification)
 - `_nodeInfoOf` (mapping(uint256 => mapping(address => NodeInfo))): Mapping from token ID and address to node information
@@ -89,14 +88,13 @@ Attaches a veCTM token to a node for reward eligibility.
 - Stores node information and establishes attachment mapping
 
 **Requirements:**
-- Caller must be the owner of the token ID
-- Token ID must not already be attached to another node
-- Node ID must not already be attached to another token
+- Caller must be the owner of the token ID (KeyGen holds the NFT)
+- Token ID must not already be attached
+- KeyGen address must not already be attached to another token
 - Token's voting power must meet the node reward threshold
-- Node ID must not be empty
 
 **Events Emitted:**
-- `Attachment(uint256 _tokenId, bytes32 _nodeId)`: Emitted on successful attachment
+- `Attachment(uint256 _tokenId, address _keyGen)`: Emitted on successful attachment
 
 **Access Control:**
 - Requires caller to be the token owner
@@ -109,12 +107,14 @@ Detaches a veCTM token from its associated node (governance only).
 - `_tokenId` (uint256): The ID of the veCTM token to detach
 
 **Behavior:**
-- Allows governance to remove token-node attachments
-- Clears all associated data including node info, validation status, and removal flags
-- Removes attachment mappings
+- Allows governance to remove token-KeyGen attachments
+- Clears node info, validation status, and removal flags
+- Pushes a quality-0 checkpoint so node rewards stop accruing
+- There is no owner self-detach and no automatic release at lock expiry
 
 **Events Emitted:**
-- `Detachment(uint256 _tokenId, bytes32 _nodeId)`: Emitted on successful detachment
+- `Detachment(uint256 _tokenId, address _keyGen)`: Emitted on successful detachment
+- `NodeQualityUpdated` with quality 0
 
 **Access Control:**
 - Only governance can call this function
@@ -187,22 +187,22 @@ Retrieves node information for a specific token and account.
 **Returns:**
 - `NodeInfo`: The complete node information including technical specifications, operator details, and decentralized identifier information
 
-#### `attachedNodeId(uint256 _tokenId) external view returns (bytes32)`
+#### `attachedKeyGen(uint256 _tokenId) external view returns (address)`
 
-Gets the node ID attached to a specific token.
+Gets the KeyGen address attached to a specific token.
 
 **Parameters:**
 - `_tokenId` (uint256): The ID of the veCTM token
 
 **Returns:**
-- `bytes32`: The node ID, or empty bytes32 if not attached
+- `address`: The KeyGen address, or address(0) if not attached
 
-#### `attachedTokenId(bytes32 _nodeId) external view returns (uint256)`
+#### `attachedTokenId(address _keyGen) external view returns (uint256)`
 
-Gets the token ID attached to a specific node.
+Gets the token ID attached to a specific KeyGen address.
 
 **Parameters:**
-- `_nodeId` (bytes32): The node ID
+- `_keyGen` (address): The KeyGen Ethereum address
 
 **Returns:**
 - `uint256`: The token ID, or 0 if not attached
@@ -261,17 +261,16 @@ Restricts function access to governance only.
 
 ## Events
 
-- `Attachment(uint256 indexed _tokenId, bytes32 indexed _nodeId)`: Emitted when a token is attached to a node
-- `Detachment(uint256 indexed _tokenId, bytes32 indexed _nodeId)`: Emitted when a token is detached from a node
+- `Attachment(uint256 indexed _tokenId, address indexed _keyGen)`: Emitted when a token is attached to a KeyGen
+- `Detachment(uint256 indexed _tokenId, address indexed _keyGen)`: Emitted when a token is detached from a KeyGen
 
 ## Errors
 
 - `NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam)`: Unauthorized access
-- `NodeProperties_TokenIDAlreadyAttached(uint256 _tokenId)`: Token is already attached to a node
-- `NodeProperties_NodeIDAlreadyAttached(bytes32 _nodeId)`: Node is already attached to a token
+- `NodeProperties_TokenIDAlreadyAttached(uint256 _tokenId)`: Token is already attached
+- `NodeProperties_KeyGenAlreadyAttached(address _keyGen)`: KeyGen is already attached to a token
 - `NodeProperties_NodeRewardThresholdNotReached(uint256 _tokenId)`: Token voting power is insufficient
-- `NodeProperties_InvalidNodeId(bytes32 _nodeId)`: Node ID is empty
-- `NodeProperties_TokenIDNotAttached(uint256 _tokenId)`: Token is not attached to any node
+- `NodeProperties_TokenIDNotAttached(uint256 _tokenId)`: Token is not attached
 - `NodeProperties_InvalidNodeQualityOf(uint256 _nodeQualityOf)`: Quality score exceeds 10
 - `NodeProperties_InvalidInitialization()`: Rewards address is already set
 

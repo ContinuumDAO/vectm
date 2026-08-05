@@ -12,6 +12,7 @@ import {INodeProperties} from "../../src/node/INodeProperties.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
+import {CTMMintable} from "../../src/token/ctm/CTMMintable.sol";
 
 import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
 
@@ -40,8 +41,6 @@ contract TestRewards is Helpers {
                 "@myhandle",
                 // string email
                 "john.doe@mail.com",
-                // bytes32 nodeId
-                keccak256(abi.encode("Example Node ID")),
                 // uint8[4] ipv4
                 [0, 0, 0, 0],
                 // uint16[8] ipv6
@@ -166,5 +165,52 @@ contract TestRewards is Helpers {
         (int128 lockedAmountAfter,) = ve.locked(tokenId);
         uint256 lockedDifference = uint256(int256(lockedAmountAfter) - int256(lockedAmountBefore));
         assertEq(rewardsCompounded, lockedDifference);
+    }
+
+    function test_ForfeitUnclaimedRewards() public {
+        vm.prank(user1);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
+        skip(10 days);
+
+        uint256 unclaimed = rewards.unclaimedRewards(tokenId);
+        assertGt(unclaimed, 0);
+
+        // Drain pool so claim would fail
+        address rewardToken = rewards.rewardToken();
+        uint256 bal = CTMMintable(rewardToken).balanceOf(address(rewards));
+        vm.prank(address(continuumDAO));
+        rewards.withdrawToken(rewardToken, address(continuumDAO), bal);
+
+        vm.prank(user2);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRewards.Rewards_OnlyAuthorized.selector, VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner
+            )
+        );
+        rewards.forfeitUnclaimedRewards(tokenId);
+
+        vm.prank(user1);
+        rewards.forfeitUnclaimedRewards(tokenId);
+        assertEq(rewards.unclaimedRewards(tokenId), 0);
+    }
+
+    function test_ClaimCursorStopsAtLockEndNotLatestMidnight() public {
+        vm.prank(user1);
+        uint256 tokenId = ve.create_lock(10_000 ether, MAXTIME);
+        (, uint256 lockEnd) = ve.locked(tokenId);
+        uint48 lockEndMidnight = uint48(lockEnd - (lockEnd % 1 days));
+
+        // Accrue through expiry and well past it
+        skip(lockEnd - block.timestamp + 100 days);
+
+        vm.prank(user1);
+        rewards.claimRewards(tokenId, user1);
+
+        uint48 paidThrough = rewards.lastClaimOf(tokenId);
+        uint48 latest = uint48(block.timestamp - (block.timestamp % 1 days));
+        // Cursor must not skip past the lock-end midnight to the far-future latest midnight
+        assertLe(paidThrough, lockEndMidnight);
+        assertLt(paidThrough, latest);
+        assertEq(rewards.unclaimedRewards(tokenId), 0);
     }
 }

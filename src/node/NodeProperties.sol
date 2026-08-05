@@ -15,15 +15,14 @@ import {IRewards} from "./IRewards.sol";
 
 /**
  * @title NodeProperties
- * @notice Manages the attachment of veCTM tokens to node infrastructure for reward distribution
+ * @notice Manages the attachment of veCTM tokens to node KeyGen addresses for reward distribution
  * @author @patrickcure ContinuumDAO
- * @dev This contract allows veCTM token holders to attach their tokens to MPC node infrastructure,
- * enabling them to receive additional rewards based on node performance and quality metrics.
- * The contract maintains mappings between token IDs and node IDs, tracks node quality scores
- * over time using checkpoints, and manages node validation status.
+ * @dev Attachment identity is the KeyGen Ethereum address (`msg.sender`), which must own the veCTM NFT.
+ * Attachment freezes transfer/merge/split/withdraw/liquidate on VotingEscrow until governance `detachNode`.
+ * There is no owner-initiated detach and no automatic release at lock expiry; `setNodeRemovalStatus` is advisory only.
  *
  * Key features:
- * - Token-to-node attachment/detachment management
+ * - Token-to-KeyGen attachment/detachment management
  * - Node quality scoring with historical tracking
  * - Node information storage and retrieval
  * - Governance-controlled node removal
@@ -41,11 +40,11 @@ contract NodeProperties is INodeProperties {
     /// @notice Address of the voting escrow contract for token ownership verification
     address public ve;
 
-    /// @notice Mapping from token ID to attached node ID
-    mapping(uint256 => bytes32) internal _attachedNodeId;
+    /// @notice Mapping from token ID to attached KeyGen address
+    mapping(uint256 => address) internal _attachedKeyGen;
 
-    /// @notice Mapping from node ID to attached token ID
-    mapping(bytes32 => uint256) internal _attachedTokenId;
+    /// @notice Mapping from KeyGen address to attached token ID
+    mapping(address => uint256) internal _attachedTokenId;
 
     /// @notice Mapping from token ID to checkpointed node quality scores over time
     mapping(uint256 => Checkpoints.Trace208) internal _nodeQualitiesOf;
@@ -82,73 +81,68 @@ contract NodeProperties is INodeProperties {
     }
 
     /**
-     * @notice Attaches a veCTM token to a node for reward eligibility
+     * @notice Attaches a veCTM token to the caller's KeyGen address for reward eligibility
      * @param _tokenId The ID of the veCTM token to attach
-     * @param _nodeInfo The NodeInfo structure containing node details
-     * @dev This function allows token owners to attach their veCTM to a node.
-     * Requirements:
-     * - Caller must be the owner of the token ID
-     * - Token ID must not already be attached to another node
-     * - Node ID must not already be attached to another token
+     * @param _nodeInfo The NodeInfo structure containing off-chain node metadata
+     * @dev Requirements:
+     * - Caller must be the owner of the token ID (KeyGen holds the NFT)
+     * - Token ID must not already be attached
+     * - KeyGen address must not already be attached to another token
      * - Token's voting power must meet the node reward threshold
-     * - Node ID must not be empty
      */
     function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
         address _owner = IERC721(ve).ownerOf(_tokenId);
-        bytes32 _nodeId = _nodeInfo.nodeId;
         if (msg.sender != _owner) {
             revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
         }
-        if (_attachedNodeId[_tokenId] != bytes32("")) {
+        if (_attachedKeyGen[_tokenId] != address(0)) {
             revert NodeProperties_TokenIDAlreadyAttached(_tokenId);
         }
-        if (_attachedTokenId[_nodeId] != 0) {
-            revert NodeProperties_NodeIDAlreadyAttached(_nodeId);
+        if (_attachedTokenId[msg.sender] != 0) {
+            revert NodeProperties_KeyGenAlreadyAttached(msg.sender);
         }
         if (IVotingEscrow(ve).balanceOfNFT(_tokenId) < IRewards(rewards).nodeRewardThreshold()) {
             revert NodeProperties_NodeRewardThresholdNotReached(_tokenId);
         }
-        if (_nodeId == bytes32("")) {
-            revert NodeProperties_InvalidNodeId(_nodeId);
-        }
         _nodeInfoOf[_tokenId][_owner] = _nodeInfo;
-        _attachedNodeId[_tokenId] = _nodeId;
-        _attachedTokenId[_nodeId] = _tokenId;
+        _attachedKeyGen[_tokenId] = msg.sender;
+        _attachedTokenId[msg.sender] = _tokenId;
         _nodeValidated[_tokenId] = true;
-        emit Attachment(_tokenId, _nodeId);
+        emit Attachment(_tokenId, msg.sender);
     }
 
     /**
-     * @notice Detaches a veCTM token from its associated node (governance only)
+     * @notice Detaches a veCTM token from its KeyGen (governance only)
      * @param _tokenId The ID of the veCTM token to detach
-     * @dev This function allows governance to remove token-node attachments.
-     * Clears all associated data including node info, validation status, and removal flags.
-     * @dev Governance has unconditional authority over over node attachment status, due to the role's sensitive nature
-     * in the ecosystem. If a node is attached to a token lock, this prevents the token undergoing actions such as
-     * transfer, merge, split, withdraw and liquidate.
+     * @dev Clears attachment, node info, validation, and removal flags, and zeroes the quality checkpoint
+     * so rewards stop accruing node quality. Only governance can detach — owners cannot self-detach, and
+     * attachment does not expire with the lock.
      */
     function detachNode(uint256 _tokenId) external onlyGov {
-        bytes32 _nodeId = _attachedNodeId[_tokenId];
-        if (_nodeId == bytes32("")) {
+        address _keyGen = _attachedKeyGen[_tokenId];
+        if (_keyGen == address(0)) {
             revert NodeProperties_TokenIDNotAttached(_tokenId);
         }
         address _account = IERC721(ve).ownerOf(_tokenId);
         uint16 _0 = uint16(0);
         _nodeInfoOf[_tokenId][_account] =
-            NodeInfo("", "", bytes32(""), [0, 0, 0, 0], [_0, _0, _0, _0, _0, _0, _0, _0], "", 0, 0, "", "", "");
-        _attachedNodeId[_tokenId] = bytes32("");
-        _attachedTokenId[_nodeId] = 0;
+            NodeInfo("", "", [0, 0, 0, 0], [_0, _0, _0, _0, _0, _0, _0, _0], "", 0, 0, "", "", "");
+        _attachedKeyGen[_tokenId] = address(0);
+        _attachedTokenId[_keyGen] = 0;
         _nodeValidated[_tokenId] = false;
         _toBeRemoved[_tokenId] = false;
-        emit Detachment(_tokenId, _nodeId);
+
+        uint256 oldQuality = nodeQualityOf(_tokenId);
+        _nodeQualitiesOf[_tokenId].push(IERC6372(ve).clock(), uint208(0));
+        emit NodeQualityUpdated(_tokenId, _keyGen, oldQuality, 0);
+        emit Detachment(_tokenId, _keyGen);
     }
 
     /**
      * @notice Sets the node removal request status for a token
      * @param _tokenId The ID of the veCTM token
      * @param _status The removal request status (true = requesting removal, false = not requesting)
-     * @dev Allows token owners to flag their node for detachment by governance vote.
-     * This provides a mechanism for node operators to request removal from the network.
+     * @dev Advisory only — does not detach. Governance must call `detachNode` to clear attachment.
      */
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external {
         if (msg.sender != IERC721(ve).ownerOf(_tokenId)) {
@@ -171,13 +165,13 @@ contract NodeProperties is INodeProperties {
         if (_nodeQualityOf > 10) {
             revert NodeProperties_InvalidNodeQualityOf(_nodeQualityOf);
         }
-        bytes32 nodeId = _attachedNodeId[_tokenId];
-        if (_nodeQualityOf > 0 && _attachedNodeId[_tokenId] == bytes32("")) {
+        address keyGen = _attachedKeyGen[_tokenId];
+        if (_nodeQualityOf > 0 && keyGen == address(0)) {
             revert NodeProperties_TokenIDNotAttached(_tokenId);
         }
         uint256 oldQuality = nodeQualityOf(_tokenId);
         _nodeQualitiesOf[_tokenId].push(IERC6372(ve).clock(), uint208(_nodeQualityOf));
-        emit NodeQualityUpdated(_tokenId, nodeId, oldQuality, _nodeQualityOf);
+        emit NodeQualityUpdated(_tokenId, keyGen, oldQuality, _nodeQualityOf);
     }
 
     /**
@@ -199,39 +193,33 @@ contract NodeProperties is INodeProperties {
      * @param _tokenId The ID of the veCTM token
      * @param _account The address of the account to get node info for
      * @return The NodeInfo structure containing node details
-     * @dev Returns the complete node information including technical specifications,
-     * operator details, and decentralized identifier information.
      */
     function nodeInfo(uint256 _tokenId, address _account) external view returns (NodeInfo memory) {
         return _nodeInfoOf[_tokenId][_account];
     }
 
     /**
-     * @notice Gets the node ID attached to a specific token
+     * @notice Gets the KeyGen address attached to a specific token
      * @param _tokenId The ID of the veCTM token
-     * @return The bytes32 node ID, or empty bytes32 if not attached
-     * @dev Returns the unique node identifier associated with the given token ID.
+     * @return The KeyGen address, or address(0) if not attached
      */
-    function attachedNodeId(uint256 _tokenId) external view returns (bytes32) {
-        return _attachedNodeId[_tokenId];
+    function attachedKeyGen(uint256 _tokenId) external view returns (address) {
+        return _attachedKeyGen[_tokenId];
     }
 
     /**
-     * @notice Gets the token ID attached to a specific node
-     * @param _nodeId The bytes32 node ID
+     * @notice Gets the token ID attached to a specific KeyGen address
+     * @param _keyGen The KeyGen Ethereum address
      * @return The token ID, or 0 if not attached
-     * @dev Returns the veCTM token ID associated with the given node ID.
      */
-    function attachedTokenId(bytes32 _nodeId) external view returns (uint256) {
-        return _attachedTokenId[_nodeId];
+    function attachedTokenId(address _keyGen) external view returns (uint256) {
+        return _attachedTokenId[_keyGen];
     }
 
     /**
      * @notice Gets the current quality score for a node
      * @param _tokenId The ID of the veCTM token
      * @return The current node quality score (0-10 scale)
-     * @dev Returns the most recent quality score for the node associated with the token.
-     * Quality scores are used for reward calculations and performance evaluation.
      */
     function nodeQualityOf(uint256 _tokenId) public view returns (uint256) {
         return uint256(_nodeQualitiesOf[_tokenId].latest());
@@ -242,8 +230,6 @@ contract NodeProperties is INodeProperties {
      * @param _tokenId The ID of the veCTM token
      * @param _timestamp The timestamp to query the quality score for
      * @return The node quality score at the specified timestamp (0-10 scale)
-     * @dev Uses checkpointed data to retrieve historical quality scores.
-     * Useful for calculating rewards based on performance over time periods.
      */
     function nodeQualityOfAt(uint256 _tokenId, uint256 _timestamp) external view returns (uint256) {
         return _nodeQualitiesOf[_tokenId].upperLookupRecent(SafeCast.toUint48(_timestamp));
@@ -253,8 +239,6 @@ contract NodeProperties is INodeProperties {
      * @notice Checks if a node is requesting detachment
      * @param _tokenId The ID of the veCTM token
      * @return True if the node operator has requested removal, false otherwise
-     * @dev Returns whether the node operator has flagged their node for removal
-     * through the governance process.
      */
     function nodeRequestingDetachment(uint256 _tokenId) external view returns (bool) {
         return _toBeRemoved[_tokenId];

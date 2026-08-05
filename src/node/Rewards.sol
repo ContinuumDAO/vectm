@@ -353,7 +353,15 @@ contract Rewards is IRewards {
      */
     function unclaimedRewards(uint256 _tokenId) external view returns (uint256) {
         uint48 _latestMidnight = _getLatestMidnight();
-        return _calculateRewardsOf(_tokenId, _latestMidnight);
+        (uint256 _reward,) = _calculateRewardsOf(_tokenId, _latestMidnight);
+        return _reward;
+    }
+
+    /**
+     * @notice Last midnight through which rewards were claimed or forfeited for `_tokenId`
+     */
+    function lastClaimOf(uint256 _tokenId) external view returns (uint48) {
+        return _lastClaimOf[_tokenId];
     }
 
     /**
@@ -361,8 +369,8 @@ contract Rewards is IRewards {
      * @param _tokenId The ID of the veCTM token
      * @param _to The address to receive the rewards
      * @return The amount of rewards claimed
-     * @dev Claims all unclaimed rewards for the token and transfers them to the recipient.
-     * Updates the last claim timestamp to prevent double-claiming.
+     * @dev Advances `_lastClaimOf` only through the midnight actually paid (`paidThrough`), so a
+     * four-year per-tx cap does not silently forfeit the remaining claimable window.
      */
     function claimRewards(uint256 _tokenId, address _to) public returns (uint256) {
         if (msg.sender != IERC721(ve).ownerOf(_tokenId)) {
@@ -377,7 +385,7 @@ contract Rewards is IRewards {
 
         _updateLatestMidnight(_latestMidnight);
 
-        uint256 _reward = _calculateRewardsOf(_tokenId, _latestMidnight);
+        (uint256 _reward, uint48 paidThrough) = _calculateRewardsOf(_tokenId, _latestMidnight);
 
         address _rewardToken = rewardToken;
         uint256 _contractBalance = IERC20(_rewardToken).balanceOf(address(this));
@@ -386,11 +394,40 @@ contract Rewards is IRewards {
             revert Rewards_InsufficientContractBalance(_contractBalance, _reward);
         }
 
-        _lastClaimOf[_tokenId] = _latestMidnight;
+        _lastClaimOf[_tokenId] = paidThrough;
 
         IERC20(_rewardToken).safeTransfer(_to, _reward);
 
         emit Claim(_tokenId, _reward, _rewardToken);
+
+        return _reward;
+    }
+
+    /**
+     * @notice Forfeit unclaimed rewards without transferring (owner only)
+     * @param _tokenId The ID of the veCTM token
+     * @return The amount of rewards forfeited
+     * @dev Advances `_lastClaimOf` to `paidThrough` so exits gated by `checkNoRewards` can proceed
+     * when the rewards pool cannot pay. Does not transfer tokens.
+     */
+    function forfeitUnclaimedRewards(uint256 _tokenId) external returns (uint256) {
+        if (msg.sender != IERC721(ve).ownerOf(_tokenId)) {
+            revert Rewards_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
+        }
+
+        uint48 _latestMidnight = _getLatestMidnight();
+
+        if (_latestMidnight == _lastClaimOf[_tokenId]) {
+            revert Rewards_NoUnclaimedRewards();
+        }
+
+        _updateLatestMidnight(_latestMidnight);
+
+        (uint256 _reward, uint48 paidThrough) = _calculateRewardsOf(_tokenId, _latestMidnight);
+
+        _lastClaimOf[_tokenId] = paidThrough;
+
+        emit RewardsForfeited(_tokenId, _reward, paidThrough);
 
         return _reward;
     }
@@ -503,14 +540,19 @@ contract Rewards is IRewards {
      * @notice Calculates rewards for a token up to a specific midnight
      * @param _tokenId The ID of the veCTM token
      * @param _latestMidnight The midnight timestamp to calculate rewards up to
-     * @return The total rewards calculated
+     * @return _reward The total rewards calculated for the walked window
+     * @return paidThrough The last midnight included in the calculation (claim cursor)
      * @dev Walks contiguous daily-epoch ranges where emission rates and the node reward threshold are constant,
      * resolving those values once per range. The claim window is capped by lock expiry and four years.
      * Exits immediately when voting power is zero (expired / non-existent) to avoid gas DoS.
      *
      * Assumes _latestMidnight is up-to-date.
      */
-    function _calculateRewardsOf(uint256 _tokenId, uint48 _latestMidnight) internal view returns (uint256) {
+    function _calculateRewardsOf(uint256 _tokenId, uint48 _latestMidnight)
+        internal
+        view
+        returns (uint256 _reward, uint48 paidThrough)
+    {
         uint48 _lastClaimed = _lastClaimOf[_tokenId];
 
         // if they have never claimed, ensure their last claim is set to a midnight timestamp
@@ -519,11 +561,13 @@ contract Rewards is IRewards {
             // always greater than or equal to genesis
             uint256 _tokenCreationTime = IVotingEscrow(ve).user_point_history__ts(_tokenId, 1);
             if (_tokenCreationTime == 0) {
-                return 0;
+                return (0, 0);
             }
             uint256 _tokenCreationTimeMidnight = _tokenCreationTime - (_tokenCreationTime % ONE_DAY);
             _lastClaimed = SafeCast.toUint48(_tokenCreationTimeMidnight);
         }
+
+        paidThrough = _lastClaimed;
 
         uint48 start = _lastClaimed + ONE_DAY;
         uint48 end = _latestMidnight;
@@ -542,10 +586,10 @@ contract Rewards is IRewards {
         }
 
         if (start > end) {
-            return 0;
+            // Nothing accruable (e.g. past lock end); advance cursor so claims do not loop
+            return (0, _latestMidnight);
         }
 
-        uint256 _reward;
         uint48 rangeStart = start;
 
         while (rangeStart <= end) {
@@ -569,7 +613,10 @@ contract Rewards is IRewards {
 
                 // Immediate exit when power is zero (lock expired or token did not exist)
                 if (_vePower == 0) {
-                    return _reward;
+                    if (_reward == 0) {
+                        return (0, _latestMidnight);
+                    }
+                    return (_reward, paidThrough);
                 }
 
                 uint256 _nodeQuality;
@@ -578,12 +625,13 @@ contract Rewards is IRewards {
                 }
 
                 _reward += _calculateRewards(_vePower, _baseEmissionRate, _nodeEmissionRate, _nodeQuality);
+                paidThrough = t;
             }
 
             rangeStart = rangeEnd + ONE_DAY;
         }
 
-        return _reward;
+        return (_reward, paidThrough);
     }
 
     /**

@@ -363,7 +363,7 @@ contract VotingEscrowMarketplace is ReentrancyGuard {
 
     function _requireNotNodeAttached(uint256 tokenId) internal view {
         address nodeProperties = IVotingEscrow(veAddr).nodeProperties();
-        if (INodeProperties(nodeProperties).attachedNodeId(tokenId) != bytes32("")) {
+        if (INodeProperties(nodeProperties).attachedKeyGen(tokenId) != address(0)) {
             revert TokenAttachedToNode();
         }
     }

@@ -11,6 +11,7 @@ import {C3Caller} from "@c3caller/C3Caller.sol";
 import {IC3GovernDApp} from "@c3caller/gov/IC3GovernDApp.sol";
 import {C3ErrorParam} from "@c3caller/utils/C3CallerUtils.sol";
 import {ICTM} from "../../src/token/ctm/ICTM.sol";
+import {ICTMMintable} from "../../src/token/ctm/ICTMMintable.sol";
 import {CTMMintable} from "../../src/token/ctm/CTMMintable.sol";
 
 contract FeeToken is ERC20 {
@@ -137,5 +138,43 @@ contract CTMMintableTest is Test {
         vm.prank(user);
         vm.expectRevert();
         ctm.burn(1 ether);
+    }
+
+    function test_Burn_DoesNotChangeMaxSupply() public {
+        uint256 maxBefore = ctm.MAX_SUPPLY();
+        vm.prank(gov);
+        ctm.mint(user, 100 ether);
+        vm.prank(user);
+        ctm.burn(40 ether);
+        assertEq(ctm.MAX_SUPPLY(), maxBefore);
+    }
+
+    // ============================
+    // ======== TRUE BURN =========
+    // ============================
+
+    function test_TrueBurn_Success() public {
+        vm.prank(gov);
+        ctm.mint(user, 100 ether);
+        uint256 maxBefore = ctm.MAX_SUPPLY();
+        vm.prank(user);
+        vm.expectEmit(true, true, true, true);
+        emit ICTMMintable.CTMTrueBurn(user, 40 ether);
+        ctm.trueBurn(40 ether);
+        assertEq(ctm.balanceOf(user), 60 ether);
+        assertEq(ctm.globalSupply(), 60 ether);
+        assertEq(ctm.MAX_SUPPLY(), maxBefore - 40 ether);
+    }
+
+    function test_TrueBurn_ReducesMintCap() public {
+        uint256 maxSupply = ctm.MAX_SUPPLY();
+        vm.startPrank(gov);
+        ctm.mint(user, maxSupply);
+        vm.stopPrank();
+        vm.prank(user);
+        ctm.trueBurn(1 ether);
+        vm.prank(gov);
+        vm.expectRevert(abi.encodeWithSelector(ICTM.CTM_ExceedsMaxSupply.selector));
+        ctm.mint(user, 1);
     }
 }

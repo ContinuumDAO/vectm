@@ -13,7 +13,8 @@ contract CTM is ICTM, CTMERC20 {
     using Strings for address;
     using C3CallerUtils for *;
 
-    uint256 public constant MAX_SUPPLY = 100_000_000 ether;
+    /// @notice Mutable mint cap; reduced by `trueBurn` on CTMMintable
+    uint256 public MAX_SUPPLY = 100_000_000 ether;
     uint256 public constant FEE_DENOMINATOR = 10_000;
 
     address public dappManager;

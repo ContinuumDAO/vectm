@@ -50,9 +50,9 @@ error GovernorDeltaOutOfBounds(uint256 limit, uint256 index);
  *    the voter's total votes.
  * 2. Front-Running: In scenarios with high-value proposals, voters might observe others' votes and
  *    adjust their voting strategy accordingly, as votes are visible on-chain.
- * 3. Memory Usage: The contract assumes reasonable bounds for nOptions and nWinners (as well as the size of on-chain
- *    operations within each option) to prevent excessive memory usage. The upper bounds are not enforced in
- *    `_validateProposalConfiguration`.
+ * 3. Memory Usage: The contract enforces `nOptions <= 255` (and reasonable nWinners) in
+ *    `_validateProposalConfiguration` to prevent excessive memory usage. NOTA is a separate vote slot and does not
+ *    count toward this proposer-side cap.
  */
 abstract contract GovernorCountingMultiple is Governor {
     /// @dev Sentinel winning index for the baked-in "None of the above" option (non-executable).
@@ -139,7 +139,7 @@ abstract contract GovernorCountingMultiple is Governor {
             // Ensures the proposal configuration is valid
             _validateProposalConfiguration(nOptions, nWinners, calldatas[0]);
             // Ensures none of the indices reference an array location out of bounds
-            for (uint8 i = 0; i < metadata.nOptions; i++) {
+            for (uint256 i = 0; i < metadata.nOptions; i++) {
                 if (metadata.optionIndices[i] >= targets.length) {
                     revert GovernorDeltaOutOfBounds(targets.length, metadata.optionIndices[i]);
                 }
@@ -485,11 +485,11 @@ abstract contract GovernorCountingMultiple is Governor {
      * @param nOptions The number of options in the proposal.
      * @param nWinners The number of winners in the proposal.
      * @param metadata This is included here because it is useful for debugging.
-     * @dev The following cases must be true: nOptions > 1, nWinners > 0, nWinners < nOptions.
-     * @dev No upper limit is imposed on the number of options or winners.
+     * @dev Requires: nOptions in [2, 255], nWinners > 0, nWinners < nOptions.
+     * @dev Max 255 executable options; NOTA is a separate vote slot and does not count toward this cap.
      */
     function _validateProposalConfiguration(uint256 nOptions, uint256 nWinners, bytes memory metadata) internal pure {
-        if (nOptions < 2 || nWinners == 0 || nWinners >= nOptions) {
+        if (nOptions < 2 || nOptions > 255 || nWinners == 0 || nWinners >= nOptions) {
             revert GovernorDeltaInvalidProposal(nOptions, nWinners, metadata);
         }
     }
@@ -510,6 +510,9 @@ abstract contract GovernorCountingMultiple is Governor {
 
         metadata.nOptions = uint256(nOptionsBytes);
         metadata.nWinners = uint256(nWinnersBytes);
+
+        // Validate before allocating optionIndices — prevents propose-gas grief via huge nOptions
+        _validateProposalConfiguration(metadata.nOptions, metadata.nWinners, metadataBytes);
 
         // Initialize array for option indices
         metadata.optionIndices = new uint256[](metadata.nOptions);

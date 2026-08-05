@@ -14,6 +14,7 @@ interface IRewards {
     }
 
     event Claim(uint256 indexed _tokenId, uint256 _claimedReward, address indexed _rewardToken);
+    event RewardsForfeited(uint256 indexed _tokenId, uint256 _forfeitedReward, uint48 _paidThrough);
     event Withdrawal(address indexed _token, address indexed _recipient, uint256 _amount);
     event FeesReceived(address indexed _token, uint256 _amount, uint256 indexed _fromChainId);
 
@@ -46,6 +47,7 @@ interface IRewards {
     function nodeEmissionRate() external view returns (uint256);
     function nodeRewardThreshold() external view returns (uint256);
     function unclaimedRewards(uint256 _tokenId) external view returns (uint256);
+    function lastClaimOf(uint256 _tokenId) external view returns (uint48);
 
     function latestMidnight() external view returns (uint48);
     function genesis() external view returns (uint48);
@@ -58,6 +60,7 @@ interface IRewards {
     function ve() external view returns (address);
 
     function claimRewards(uint256 _tokenId, address _to) external returns (uint256);
+    function forfeitUnclaimedRewards(uint256 _tokenId) external returns (uint256);
     function baseEmissionRateAt(uint256 _timestamp) external view returns (uint256);
     function nodeEmissionRateAt(uint256 _timestamp) external view returns (uint256);
     function nodeRewardThresholdAt(uint256 _timestamp) external view returns (uint256);

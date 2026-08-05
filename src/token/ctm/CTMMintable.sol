@@ -23,6 +23,19 @@ contract CTMMintable is ICTMMintable, CTM {
         _burn(msg.sender, _amount);
     }
 
+    /**
+     * @notice Permanently burn tokens and reduce the mintable cap
+     * @param _amount Amount of caller's tokens to burn
+     * @dev Decrements `globalSupply` and `MAX_SUPPLY`. Unlike `burn`, minting cannot restore this supply.
+     */
+    function trueBurn(uint256 _amount) external {
+        if (_amount > MAX_SUPPLY) revert CTM_ExceedsMaxSupply();
+        MAX_SUPPLY -= _amount;
+        _decrementGlobalSupply(_amount);
+        _burn(msg.sender, _amount);
+        emit CTMTrueBurn(msg.sender, _amount);
+    }
+
     function mint(address _to, uint256 _amount) external onlyGov {
         // NOTE: global supply represents supply across all networks, not just this one where tokens are minted/burned
         if (globalSupply + _amount > MAX_SUPPLY) revert CTM_ExceedsMaxSupply();

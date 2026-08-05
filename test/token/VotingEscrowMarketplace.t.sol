@@ -19,7 +19,6 @@ contract VotingEscrowMarketplaceTest is Helpers {
     NodeProperties.NodeInfo submittedNodeInfo = INodeProperties.NodeInfo(
         "@myhandle",
         "john.doe@mail.com",
-        keccak256(abi.encode("Example Node ID")),
         [0, 0, 0, 0],
         [_0, _0, _0, _0, _0, _0, _0, _0],
         "Contabo",

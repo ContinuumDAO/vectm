@@ -286,9 +286,10 @@ Validates the proposal configuration for Delta proposals.
 - `metadata` (bytes): Proposal metadata
 
 **Behavior:**
-- Ensures nOptions >= 2
+- Ensures nOptions >= 2 and nOptions <= 255
 - Ensures nWinners > 0
 - Ensures nWinners < nOptions
+- NOTA is a separate vote slot and does not count toward the 255-option cap
 - Reverts if configuration is invalid
 
 ### `_extractMetadata(bytes memory metadataBytes) internal pure returns (Metadata memory metadata)`

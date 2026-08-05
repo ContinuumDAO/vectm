@@ -88,13 +88,26 @@ contract VotingEscrowTest is Helpers {
     function testFuzz_WithdrawExpiredLock(uint256 amount, uint256 endpoint, uint256 removalTime) public {
         amount = bound(amount, 1, CTM_TS);
         endpoint = bound(endpoint, block.timestamp + 1 weeks, block.timestamp + MAXTIME);
-        removalTime = bound(removalTime, endpoint, type(uint48).max);
+        // Cap dormancy so catch-up stays practical; >255 weeks needs permissionless checkpoint() calls
+        removalTime = bound(removalTime, endpoint, endpoint + 10 * 365 days);
 
         vm.startPrank(user1);
         tokenId = ve.create_lock(amount, endpoint);
         vm.warp(removalTime);
+        _catchUpGlobalCheckpoint();
         ve.withdraw(tokenId);
         vm.stopPrank();
+    }
+
+    /// @dev Advances global point_history to `block.timestamp` via permissionless `checkpoint()` (QA-L-018).
+    function _catchUpGlobalCheckpoint() internal {
+        uint256 maxAdvance = 255 * 1 weeks;
+        (,, uint256 lastTs,) = ve.point_history(ve.epoch());
+        if (lastTs >= block.timestamp) return;
+        uint256 calls = (block.timestamp - lastTs + maxAdvance - 1) / maxAdvance;
+        for (uint256 i = 0; i < calls; i++) {
+            ve.checkpoint();
+        }
     }
 
     function test_LockValueOverInt128() public {
@@ -117,12 +130,47 @@ contract VotingEscrowTest is Helpers {
     }
 
     // TESTS
-    function test_FailFlashProtection() public {
+    function test_SameTimestampCreateLockOverwritesDelegateCheckpoint() public {
+        // QA-M-011: same-timestamp delegate checkpoints overwrite (OZ semantics), not flash-revert
         vm.startPrank(user1);
         id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
-        vm.expectRevert(IVotingEscrow.VotingEscrow_FlashProtection.selector);
         id2 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
+        assertEq(ve.ownerOf(id1), user1);
+        assertEq(ve.ownerOf(id2), user1);
         vm.stopPrank();
+    }
+
+    function test_TransferToZeroAddressReverts() public {
+        vm.startPrank(user1);
+        id1 = ve.create_lock(1 ether, block.timestamp + MAXTIME);
+        skip(1);
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.To)
+        );
+        ve.transferFrom(user1, address(0), id1);
+        vm.stopPrank();
+    }
+
+    function test_TokenByIndexAfterBurn() public {
+        vm.startPrank(user1);
+        id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
+        skip(1);
+        id2 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
+        skip(1);
+        uint256 id3 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
+        vm.stopPrank();
+
+        vm.prank(user1);
+        ve.liquidate(id2);
+
+        assertEq(ve.totalSupply(), 2);
+        uint256 a = ve.tokenByIndex(0);
+        uint256 b = ve.tokenByIndex(1);
+        assertTrue((a == id1 && b == id3) || (a == id3 && b == id1));
+        vm.expectRevert(
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZero.selector, VotingEscrowErrorParam.Value)
+        );
+        ve.tokenByIndex(2);
     }
 
     function test_GetVePower() public {
@@ -726,8 +774,8 @@ contract VotingEscrowTest is Helpers {
         assertEq(ve.totalSupply(), 2);
         assertEq(ve.tokenOfOwnerByIndex(user1, 0), id1);
         assertEq(ve.tokenOfOwnerByIndex(user1, 1), id2);
-        assertEq(ve.tokenByIndex(0), 1);
-        assertEq(ve.tokenByIndex(1), 2);
+        assertEq(ve.tokenByIndex(0), id1);
+        assertEq(ve.tokenByIndex(1), id2);
     }
 
     function test_ERC721Approval() public {

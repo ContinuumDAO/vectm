@@ -150,6 +150,12 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     /// @notice Flag to enable/disable liquidations
     bool public liquidationsEnabled;
 
+    /// @notice Global enumeration of live token IDs (ERC721Enumerable)
+    /// @dev Appended after `liquidationsEnabled` to preserve UUPS storage layout on upgrade
+    uint256[] internal _allTokens;
+    /// @notice Mapping from token ID to its index in `_allTokens`
+    mapping(uint256 => uint256) internal _allTokensIndex;
+
     // ERC165 interface ID of ERC165
     bytes4 internal constant ERC165_INTERFACE_ID = 0x01ffc9a7;
     // ERC165 interface ID of ERC721
@@ -194,8 +200,13 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _;
     }
 
+    /**
+     * @dev Blocks transfer, merge, split, withdraw, and liquidate while the token is attached to a node.
+     * Attachment is a custodial commitment: there is no owner-initiated detach and no automatic release at
+     * lock expiry. Only governance `NodeProperties.detachNode` clears attachment and restores these actions.
+     */
     modifier checkNotAttached(uint256 _tokenId) {
-        if (INodeProperties(nodeProperties).attachedNodeId(_tokenId) != bytes32("")) {
+        if (INodeProperties(nodeProperties).attachedKeyGen(_tokenId) != address(0)) {
             revert VotingEscrow_NodeAttached(_tokenId);
         }
         _;
@@ -784,16 +795,15 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
-     * @notice Get token as a global index.
-     * @param _index The index as it is recorded across all balances and users.
+     * @notice Get token ID at a global enumeration index among currently minted (non-burned) tokens.
+     * @param _index The index in `[0, totalSupply())`.
      * @return The token ID corresponding to the given global index.
      */
     function tokenByIndex(uint256 _index) external view returns (uint256) {
-        if (_index < _totalSupply) {
-            return _index + 1;
-        } else {
-            return 0;
+        if (_index >= _allTokens.length) {
+            revert VotingEscrow_IsZero(VotingEscrowErrorParam.Value);
         }
+        return _allTokens[_index];
     }
 
     /**
@@ -1197,11 +1207,18 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
      * @dev Throws if `_from` is not the current owner.
      * @dev Throws if `_tokenId` is not a valid NFT.
      */
+    /**
+     * @dev Transfers are blocked while the token is node-attached (`checkNotAttached`): only governance can detach.
+     * This restriction applies even after lock expiry until `detachNode` is called.
+     */
     function _transferFrom(address _from, address _to, uint256 _tokenId, address _sender)
         internal
         checkNotAttached(_tokenId)
         nonflash(_tokenId)
     {
+        if (_to == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.To);
+        }
         // Check requirements
         _checkApprovedOrOwner(_sender, _tokenId);
 
@@ -1368,6 +1385,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         assert(_to != address(0));
         // Add NFT. Throws if `_tokenId` is owned by someone
         _addTokenTo(_to, _tokenId);
+        _addTokenToAllTokensEnumeration(_tokenId);
         _totalSupply++;
         emit Transfer(address(0), _to, _tokenId);
         return true;
@@ -1387,8 +1405,24 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _approve(address(0), _tokenId);
         // Remove token
         _removeTokenFrom(owner, _tokenId);
+        _removeTokenFromAllTokensEnumeration(_tokenId);
         _totalSupply--;
         emit Transfer(owner, address(0), _tokenId);
+    }
+
+    function _addTokenToAllTokensEnumeration(uint256 _tokenId) private {
+        _allTokensIndex[_tokenId] = _allTokens.length;
+        _allTokens.push(_tokenId);
+    }
+
+    function _removeTokenFromAllTokensEnumeration(uint256 _tokenId) private {
+        uint256 lastTokenIndex = _allTokens.length - 1;
+        uint256 tokenIndex = _allTokensIndex[_tokenId];
+        uint256 lastTokenId = _allTokens[lastTokenIndex];
+        _allTokens[tokenIndex] = lastTokenId;
+        _allTokensIndex[lastTokenId] = tokenIndex;
+        delete _allTokensIndex[_tokenId];
+        _allTokens.pop();
     }
 
     /**
@@ -1481,8 +1515,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         {
             uint256 t_i = (last_checkpoint / WEEK) * WEEK;
             for (uint256 i = 0; i < 255; ++i) {
-                // Hopefully it won't happen that this won't get used in 5 years!
-                // If it does, users will be able to withdraw but vote weight will be broken
+                // Advances at most 255 weeks per call. If the protocol was dormant longer, call
+                // `checkpoint()` repeatedly to catch up before lock-modifying operations.
                 t_i += WEEK;
                 int128 d_slope = 0;
                 if (t_i > block.timestamp) {
@@ -1514,6 +1548,15 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         }
 
         epoch = _epoch;
+
+        // Do not apply user deltas onto a stale global point after a partial catch-up
+        if (last_point.ts != block.timestamp) {
+            point_history[_epoch] = last_point;
+            if (_tokenId != 0) {
+                revert VotingEscrow_FutureLookup(last_point.ts, block.timestamp);
+            }
+            return;
+        }
         // Now point_history is filled until t=now
 
         if (_tokenId != 0) {
@@ -1546,11 +1589,12 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
             }
 
             if (new_locked.end > block.timestamp) {
-                if (new_locked.end > old_locked.end) {
-                    new_dslope -= u_new.slope; // old slope disappeared at this point
+                if (new_locked.end != old_locked.end) {
+                    // Schedule slope drop at the new end (including when merge shortens the end)
+                    new_dslope -= u_new.slope;
                     slope_changes[new_locked.end] = new_dslope;
                 }
-                // else: we recorded it already in old_dslope
+                // else: same end — already recorded in old_dslope
             }
             // Now handle user history
             uint256 user_epoch = user_point_epoch[_tokenId] + 1;
@@ -1866,10 +1910,9 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         function(uint256[] memory, uint256[] memory) view returns (uint256[] memory) op,
         uint256[] memory deltaTokenIDs
     ) private returns (uint256, uint256) {
-        (, uint256 _key,) = store.latestCheckpoint();
-        if (_key == block.timestamp) {
-            revert VotingEscrow_FlashProtection();
-        }
+        // Overwrite same-timestamp checkpoints (OZ Checkpoints semantics) so third parties cannot
+        // brick a delegatee via create_lock_for / flash-protection grief. Per-token flash protection
+        // remains via the `nonflash` modifier on transfers.
         (uint256 oldLength, uint256 newLength) = store.push(uint256(clock()), op(store.latest(), deltaTokenIDs));
         return (oldLength, newLength);
     }

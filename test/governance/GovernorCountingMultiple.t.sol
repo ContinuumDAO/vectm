@@ -779,6 +779,21 @@ contract TestGovernorCountingMultiple is GovernorHelpers {
         _propose(proposer, allOperations, "<proposal description>");
     }
 
+    function test_NOptionsGreaterThan255() public {
+        // Minimal ops array — validation rejects nOptions > 255 before option execution
+        bytes memory metadata = _buildMetadata(256, 1, 1);
+        Operation[] memory allOperations = new Operation[](2);
+        allOperations[0].target = address(0);
+        allOperations[0].val = 0;
+        allOperations[0].data = metadata;
+        allOperations[1].target = address(receiver);
+        allOperations[1].val = 0;
+        allOperations[1].data = abi.encodeWithSelector(CallReceiverMock.mockFunction.selector);
+
+        vm.expectRevert(abi.encodeWithSelector(GovernorDeltaInvalidProposal.selector, 256, 1, metadata));
+        _propose(proposer, allOperations, "<proposal description>");
+    }
+
     function test_NWinnersIsZero() public {
         bytes memory metadata = _buildMetadata(2, 0, 1);
         Operation[] memory options = _generateOptions(metadata);

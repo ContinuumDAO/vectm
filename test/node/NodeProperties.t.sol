@@ -18,8 +18,6 @@ contract TestNodeProperties is Helpers {
         "@myhandle",
         // string email
         "john.doe@mail.com",
-        // bytes32 nodeId
-        keccak256(abi.encode("Example Node ID")),
         // uint8[4] ipv4;
         [0, 0, 0, 0],
         // uint16[8] ipv6
@@ -52,6 +50,8 @@ contract TestNodeProperties is Helpers {
         vm.startPrank(user1);
         id1 = ve.create_lock(10_000 ether, MAXTIME);
         nodeProperties.attachNode(id1, submittedNodeInfo);
+        assertEq(nodeProperties.attachedKeyGen(id1), user1);
+        assertEq(nodeProperties.attachedTokenId(user1), id1);
         vm.stopPrank();
     }
 
@@ -73,11 +73,7 @@ contract TestNodeProperties is Helpers {
         nodeProperties.attachNode(id1, submittedNodeInfo);
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDAlreadyAttached.selector, id1));
         nodeProperties.attachNode(id1, submittedNodeInfo);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                INodeProperties.NodeProperties_NodeIDAlreadyAttached.selector, submittedNodeInfo.nodeId
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_KeyGenAlreadyAttached.selector, user1));
         nodeProperties.attachNode(id2, submittedNodeInfo);
     }
 
@@ -87,6 +83,21 @@ contract TestNodeProperties is Helpers {
         vm.prank(address(continuumDAO));
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDNotAttached.selector, id1));
         nodeProperties.detachNode(id1);
+    }
+
+    function test_DetachZeroesQuality() public {
+        vm.startPrank(user1);
+        id1 = ve.create_lock(5014 ether, MAXTIME);
+        nodeProperties.attachNode(id1, submittedNodeInfo);
+        vm.stopPrank();
+
+        vm.startPrank(address(continuumDAO));
+        nodeProperties.setNodeQualityOf(id1, 8);
+        assertEq(nodeProperties.nodeQualityOf(id1), 8);
+        nodeProperties.detachNode(id1);
+        assertEq(nodeProperties.nodeQualityOf(id1), 0);
+        assertEq(nodeProperties.attachedKeyGen(id1), address(0));
+        vm.stopPrank();
     }
 
     function test_AttachingDisablesInteractions() public {
