@@ -1937,9 +1937,7 @@ contract VotingEscrowTest is Helpers {
     function test_SetTreasuryZeroReverts() public {
         vm.prank(address(continuumDAO));
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Treasury
-            )
+            abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Treasury)
         );
         ve.setTreasury(address(0));
     }
@@ -1966,19 +1964,12 @@ contract VotingEscrowTest is Helpers {
             keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         bytes32 domainSeparator = keccak256(
             abi.encode(
-                typeHash,
-                keccak256(bytes(ve.name())),
-                keccak256(bytes(ve.version())),
-                block.chainid,
-                address(ve)
+                typeHash, keccak256(bytes(ve.name())), keccak256(bytes(ve.version())), block.chainid, address(ve)
             )
         );
         bytes32 structHash = keccak256(
             abi.encode(
-                keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)"),
-                delegatee,
-                nonce,
-                expiry
+                keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)"), delegatee, nonce, expiry
             )
         );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));

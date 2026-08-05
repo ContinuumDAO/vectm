@@ -8,9 +8,7 @@ build/
 # Other
 other/
 script/ReproduceGetPastTotalSupplyBug.s.sol
-OPTIONS.md
-DEPLOYMENT.md
-BUGS.md
+security/
 
 # Ignores development broadcast logs
 # broadcast/

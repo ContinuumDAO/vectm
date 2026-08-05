@@ -25,6 +25,7 @@ forge flatten src/token/ctm/CTM.sol --output build/token/ctm/CTM.sol
 forge flatten src/token/ctm/CTMMintable.sol --output build/token/ctm/CTMMintable.sol
 forge flatten src/token/VotingEscrow.sol --output build/token/VotingEscrow.sol
 forge flatten src/token/Distribution.sol --output build/token/Distribution.sol
+forge flatten src/token/VotingEscrowMarketplace.sol --output build/token/VotingEscrowMarketplace.sol
 
 # utils
 forge flatten src/utils/VotingEscrowProxy.sol --output build/utils/VotingEscrowProxy.sol
