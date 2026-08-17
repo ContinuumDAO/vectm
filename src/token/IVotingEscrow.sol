@@ -41,6 +41,7 @@ interface IVotingEscrow {
     event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
     event TreasuryUpdated(address indexed _oldTreasury, address indexed _newTreasury);
+    event TokenUpdated(address indexed _oldToken, address indexed _newToken, uint256 _amount);
 
     error VotingEscrow_Reentrant();
     error VotingEscrow_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
@@ -129,6 +130,7 @@ interface IVotingEscrow {
     function setLiquidationsEnabled(bool _liquidationsEnabled) external;
     function setMinimumLock(uint256 _min) external;
     function setTreasury(address _treasury) external;
+    function setToken(address _token) external;
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);

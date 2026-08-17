@@ -689,6 +689,27 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
+     * @notice Sets the underlying token address for the veCTM contract.
+     * @param _token The new token address.
+     * @dev Only governance. Reverts if `_token` is the zero address.
+     */
+    function setToken(address _token) external onlyGov {
+        if (_token == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Token);
+        }
+        uint256 totalEscrowed = IERC20(token).balanceOf(address(this));
+        if (totalEscrowed > 0) {
+            IERC20(_token).safeTransferFrom(msg.sender, address(this), totalEscrowed);
+            IERC20(token).safeTransfer(treasury, totalEscrowed);
+        }
+        address oldToken = token;
+        token = _token;
+        if (_token != oldToken) {
+            emit TokenUpdated(oldToken, _token, totalEscrowed);
+        }
+    }
+
+    /**
      * @notice Returns the number of NFTs owned by `_owner`.
      * @param _owner Address for whom to query the balance.
      * @dev Throws if `_owner` is the zero address. NFTs assigned to the zero address are considered invalid.
