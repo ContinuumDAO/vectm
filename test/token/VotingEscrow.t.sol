@@ -1218,6 +1218,22 @@ contract VotingEscrowTest is Helpers {
         assertApproxEqRel(end, block.timestamp + MAXTIME, 0.01e18);
     }
 
+    function test_migrateV2_runsOnce() public {
+        vm.startPrank(user1);
+        id1 = ve.create_lock(1000 ether, block.timestamp + MAXTIME);
+        vm.stopPrank();
+
+        vm.prank(address(continuumDAO));
+        ve.migrateV2();
+
+        assertTrue(ve.supportsInterface(0x780e9d63)); // ERC721Enumerable
+        assertEq(ve.tokenByIndex(0), id1);
+
+        vm.prank(address(continuumDAO));
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        ve.migrateV2();
+    }
+
     // Test supportsInterface
     function test_SupportsInterface() public view {
         assertTrue(ve.supportsInterface(0x01ffc9a7)); // ERC165

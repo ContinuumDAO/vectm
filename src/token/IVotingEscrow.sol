@@ -131,6 +131,7 @@ interface IVotingEscrow {
     function setMinimumLock(uint256 _min) external;
     function setTreasury(address _treasury) external;
     function setToken(address _token) external;
+    function migrateV2() external;
 
     function totalPower() external view returns (uint256);
     function totalPowerAtT(uint256 t) external view returns (uint256);

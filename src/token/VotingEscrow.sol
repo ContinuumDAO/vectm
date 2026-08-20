@@ -166,6 +166,8 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     bytes4 internal constant VOTES_INTERFACE_ID = 0xe90fb3f6;
     // ERC165 interface ID of ERC6372
     bytes4 internal constant ERC6372_INTERFACE_ID = 0xda287a1d;
+    // ERC165 interface ID of ERC721Enumerable
+    bytes4 internal constant ERC721_ENUMERABLE_INTERFACE_ID = 0x780e9d63;
 
     // reentrancy guard
     uint8 internal constant NOT_ENTERED = 1;
@@ -263,6 +265,25 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
 
         emit Transfer(address(0), address(this), tokenId);
         emit Transfer(address(this), address(0), tokenId);
+    }
+
+    /**
+     * @notice One-time v2 migration run at most once after upgrade.
+     * @dev Use `reinitializer(2)` so this cannot run again once the proxy is at init version 2.
+     * Call from governance via `upgradeToAndCall(newImpl, abi.encodeCall(VotingEscrow.migrateV2, ()))`.
+     */
+    function migrateV2() external reinitializer(2) onlyGov {
+        supportedInterfaces[ERC721_ENUMERABLE_INTERFACE_ID] = true;
+
+        if (_allTokens.length == 0 && _totalSupply != 0) {
+            uint256 maxId = tokenId;
+            for (uint256 id = 1; id <= maxId; ++id) {
+                if (idToOwner[id] != address(0)) {
+                    _addTokenToAllTokensEnumeration(id);
+                }
+            }
+            assert(_allTokens.length == _totalSupply);
+        }
     }
 
     /**
