@@ -40,9 +40,7 @@ interface IVotingEscrow {
     event Merge(uint256 indexed _fromId, uint256 indexed _toId);
     event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
-    event ProtocolContractsUpdated(
-        address governor, address nodeProperties, address rewards, address treasury
-    );
+    event ProtocolContractsUpdated(address governor, address nodeProperties, address rewards, address treasury);
     event TokenUpdated(address indexed _oldToken, address indexed _newToken, uint256 _amount);
 
     error VotingEscrow_Reentrant();

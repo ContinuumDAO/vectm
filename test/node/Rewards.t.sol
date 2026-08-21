@@ -32,9 +32,11 @@ contract TestRewards is Helpers {
         vm.stopPrank();
     }
 
-    function _attachTokenId(uint256 _tokenId, address _sender) internal prank(_sender) {
+    function _attachTokenId(uint256 _tokenId, address _keyGen) internal {
         uint16 _0 = uint16(0);
-        nodeProperties.attachNode(
+        vm.prank(msaw);
+        nodeProperties.attachNodeFor(
+            _keyGen,
             _tokenId,
             INodeProperties.NodeInfo(
                 // string forumHandle;

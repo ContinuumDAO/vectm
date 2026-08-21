@@ -151,23 +151,23 @@ contract VotingEscrowMarketplaceTest is Helpers {
         uint256 tokenId = _createLockForNode(user1);
         _approveMarketplace(user1, tokenId);
 
-        vm.startPrank(user1);
-        nodeProperties.attachNode(tokenId, submittedNodeInfo);
+        vm.prank(msaw);
+        nodeProperties.attachNodeFor(user1, tokenId, submittedNodeInfo);
         skip(1);
+        vm.prank(user1);
         vm.expectRevert(VotingEscrowMarketplace.TokenAttachedToNode.selector);
         marketplace.listItem(tokenId, LIST_PRICE);
-        vm.stopPrank();
     }
 
     function test_BuyRevertsWhenNodeAttachedAfterListing() public {
         uint256 tokenId = _createLockForNode(user1);
         _approveMarketplace(user1, tokenId);
 
-        vm.startPrank(user1);
+        vm.prank(user1);
         marketplace.listItem(tokenId, LIST_PRICE);
-        nodeProperties.attachNode(tokenId, submittedNodeInfo);
+        vm.prank(msaw);
+        nodeProperties.attachNodeFor(user1, tokenId, submittedNodeInfo);
         skip(1);
-        vm.stopPrank();
 
         vm.deal(user2, LIST_PRICE);
         vm.prank(user2);

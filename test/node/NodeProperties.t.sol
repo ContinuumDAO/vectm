@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 import {INodeProperties} from "../../src/node/INodeProperties.sol";
 import {NodeProperties} from "../../src/node/NodeProperties.sol";
 import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
+import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
 import {Helpers} from "../helpers/Helpers.sol";
 
 contract TestNodeProperties is Helpers {
@@ -46,35 +47,70 @@ contract TestNodeProperties is Helpers {
         vm.stopPrank();
     }
 
-    function test_AttachNode() public {
-        vm.startPrank(user1);
-        id1 = ve.create_lock(10_000 ether, MAXTIME);
-        nodeProperties.attachNode(id1, submittedNodeInfo);
-        assertEq(nodeProperties.attachedKeyGen(id1), user1);
-        assertEq(nodeProperties.attachedTokenId(user1), id1);
-        vm.stopPrank();
+    function _attachNodeFor(address _keyGen, uint256 _tokenId) internal {
+        vm.prank(msaw);
+        nodeProperties.attachNodeFor(_keyGen, _tokenId, submittedNodeInfo);
     }
 
-    function test_AttachNodeSufficientVePower() public prank(user1) {
+    function test_AttachNode() public {
+        vm.prank(user1);
+        id1 = ve.create_lock(10_000 ether, MAXTIME);
+        _attachNodeFor(user1, id1);
+        assertEq(nodeProperties.attachedKeyGen(id1), user1);
+        assertEq(nodeProperties.attachedTokenId(user1), id1);
+    }
+
+    function test_AttachNodeOnlyMSAW() public {
+        vm.prank(user1);
+        id1 = ve.create_lock(10_000 ether, MAXTIME);
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                INodeProperties.NodeProperties_OnlyAuthorized.selector,
+                VotingEscrowErrorParam.Sender,
+                VotingEscrowErrorParam.MSAW
+            )
+        );
+        nodeProperties.attachNodeFor(user1, id1, submittedNodeInfo);
+    }
+
+    function test_AttachNodeKeyGenMustOwnToken() public {
+        vm.prank(user1);
+        id1 = ve.create_lock(10_000 ether, MAXTIME);
+        vm.prank(msaw);
+        vm.expectRevert(
+            abi.encodeWithSelector(NodeProperties.NodeProperties_KeyGenMustOwnToken.selector, user2, user1)
+        );
+        nodeProperties.attachNodeFor(user2, id1, submittedNodeInfo);
+    }
+
+    function test_AttachNodeSufficientVePower() public {
+        vm.prank(user1);
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
+        vm.prank(msaw);
         vm.expectRevert(
             abi.encodeWithSelector(INodeProperties.NodeProperties_NodeRewardThresholdNotReached.selector, id1)
         );
-        nodeProperties.attachNode(id1, submittedNodeInfo);
+        nodeProperties.attachNodeFor(user1, id1, submittedNodeInfo);
+        vm.prank(user1);
         ve.increase_amount(id1, 14 ether);
-        nodeProperties.attachNode(id1, submittedNodeInfo);
+        _attachNodeFor(user1, id1);
     }
 
-    function test_OnlyAttachOneTokenID() public prank(user1) {
+    function test_OnlyAttachOneTokenID() public {
+        vm.startPrank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        nodeProperties.attachNode(id1, submittedNodeInfo);
+        vm.stopPrank();
+        _attachNodeFor(user1, id1);
+        vm.prank(msaw);
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_TokenIDAlreadyAttached.selector, id1));
-        nodeProperties.attachNode(id1, submittedNodeInfo);
+        nodeProperties.attachNodeFor(user1, id1, submittedNodeInfo);
+        vm.prank(msaw);
         vm.expectRevert(abi.encodeWithSelector(INodeProperties.NodeProperties_KeyGenAlreadyAttached.selector, user1));
-        nodeProperties.attachNode(id2, submittedNodeInfo);
+        nodeProperties.attachNodeFor(user1, id2, submittedNodeInfo);
     }
 
     function test_NodeDetachment() public {
@@ -86,10 +122,9 @@ contract TestNodeProperties is Helpers {
     }
 
     function test_DetachZeroesQuality() public {
-        vm.startPrank(user1);
+        vm.prank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);
-        nodeProperties.attachNode(id1, submittedNodeInfo);
-        vm.stopPrank();
+        _attachNodeFor(user1, id1);
 
         vm.startPrank(address(continuumDAO));
         nodeProperties.setNodeQualityOf(id1, 8);
@@ -105,11 +140,12 @@ contract TestNodeProperties is Helpers {
         id1 = ve.create_lock(5014 ether, MAXTIME);
         skip(1);
         id2 = ve.create_lock(5014 ether, MAXTIME);
-        nodeProperties.attachNode(id1, submittedNodeInfo);
+        vm.stopPrank();
+        _attachNodeFor(user1, id1);
         skip(1);
+        vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(IVotingEscrow.VotingEscrow_NodeAttached.selector, id1));
         ve.liquidate(id1);
-        vm.stopPrank();
         vm.prank(address(continuumDAO));
         nodeProperties.detachNode(id1);
         vm.prank(user1);
