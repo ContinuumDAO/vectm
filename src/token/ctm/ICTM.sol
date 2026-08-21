@@ -12,11 +12,9 @@ interface ICTM {
     event DepositDAppRefund(address indexed _from, uint256 indexed _dappID, uint256 _amount, bytes _reason);
 
     error CTM_FeeNumeratorTooHigh();
-    error CTM_ExceedsMaxSupply();
     error CTM_FeeMinGreaterThanFeeMax(uint256 _feeMin, uint256 _feeMax);
     error CTM_C3TransferAmountTooLow(uint256 _amount, uint256 _minAmount);
 
-    function MAX_SUPPLY() external view returns (uint256);
     function FEE_DENOMINATOR() external view returns (uint256);
     function c3TransferFee() external view returns (uint256);
     function setC3TransferFee(uint256 _fee, uint256 _minFee, uint256 _maxFee) external;

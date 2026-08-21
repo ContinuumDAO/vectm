@@ -69,7 +69,7 @@ contract CTMMintableTest is Test {
 
     function test_Deployment() public view {
         assertEq(ctm.globalSupply(), 0);
-        assertEq(ctm.MAX_SUPPLY(), 100_000_000 ether);
+        assertEq(ctm.maxSupply(), 100_000_000 ether);
     }
 
     // ============================
@@ -95,10 +95,10 @@ contract CTMMintableTest is Test {
     }
 
     function test_Mint_RevertWhen_ExceedsMaxSupply() public {
-        uint256 maxSupply = ctm.MAX_SUPPLY();
+        uint256 maxSupply = ctm.maxSupply();
         vm.startPrank(gov);
         ctm.mint(user, maxSupply);
-        vm.expectRevert(abi.encodeWithSelector(ICTM.CTM_ExceedsMaxSupply.selector));
+        vm.expectRevert(abi.encodeWithSelector(ICTMMintable.CTM_ExceedsMaxSupply.selector));
         ctm.mint(user, 1);
         vm.stopPrank();
     }
@@ -114,7 +114,7 @@ contract CTMMintableTest is Test {
     }
 
     function testFuzz_Mint_UpdatesGlobalSupply(uint256 amount) public {
-        amount = bound(amount, 1, ctm.MAX_SUPPLY());
+        amount = bound(amount, 1, ctm.maxSupply());
         vm.prank(gov);
         ctm.mint(user, amount);
         assertEq(ctm.balanceOf(user), amount);
@@ -141,12 +141,12 @@ contract CTMMintableTest is Test {
     }
 
     function test_Burn_DoesNotChangeMaxSupply() public {
-        uint256 maxBefore = ctm.MAX_SUPPLY();
+        uint256 maxBefore = ctm.maxSupply();
         vm.prank(gov);
         ctm.mint(user, 100 ether);
         vm.prank(user);
         ctm.burn(40 ether);
-        assertEq(ctm.MAX_SUPPLY(), maxBefore);
+        assertEq(ctm.maxSupply(), maxBefore);
     }
 
     // ============================
@@ -156,25 +156,25 @@ contract CTMMintableTest is Test {
     function test_TrueBurn_Success() public {
         vm.prank(gov);
         ctm.mint(user, 100 ether);
-        uint256 maxBefore = ctm.MAX_SUPPLY();
+        uint256 maxBefore = ctm.maxSupply();
         vm.prank(user);
         vm.expectEmit(true, true, true, true);
         emit ICTMMintable.CTMTrueBurn(user, 40 ether);
         ctm.trueBurn(40 ether);
         assertEq(ctm.balanceOf(user), 60 ether);
         assertEq(ctm.globalSupply(), 60 ether);
-        assertEq(ctm.MAX_SUPPLY(), maxBefore - 40 ether);
+        assertEq(ctm.maxSupply(), maxBefore - 40 ether);
     }
 
     function test_TrueBurn_ReducesMintCap() public {
-        uint256 maxSupply = ctm.MAX_SUPPLY();
+        uint256 maxSupply = ctm.maxSupply();
         vm.startPrank(gov);
         ctm.mint(user, maxSupply);
         vm.stopPrank();
         vm.prank(user);
         ctm.trueBurn(1 ether);
         vm.prank(gov);
-        vm.expectRevert(abi.encodeWithSelector(ICTM.CTM_ExceedsMaxSupply.selector));
+        vm.expectRevert(abi.encodeWithSelector(ICTMMintable.CTM_ExceedsMaxSupply.selector));
         ctm.mint(user, 1);
     }
 }
