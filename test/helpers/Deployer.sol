@@ -29,6 +29,7 @@ contract Deployer is Utils {
     ContinuumDAO continuumDAO;
     NodeProperties nodeProperties;
     Rewards rewards;
+    address msaw;
 
     function _deployCTM(address _gov, address _c3caller, uint256 _dappID, address _dappManager) internal {
         ctm = new CTMMintable(_gov, _c3caller, _dappManager, _dappID);
@@ -67,7 +68,8 @@ contract Deployer is Utils {
         ve = VotingEscrow(_deployProxy(address(veImpl), initData));
         address _ve = address(ve);
         continuumDAO = new ContinuumDAO(_ve, _admin);
-        nodeProperties = new NodeProperties(_continuumDAO, _ve);
+        msaw = makeAddr("msaw");
+        nodeProperties = new NodeProperties(_continuumDAO, _ve, msaw);
         rewards = new Rewards(
             0, // _firstMidnight,
             _ve, // _ve
@@ -88,7 +90,7 @@ contract Deployer is Utils {
 
     function _initializeDAO() internal {
         vm.startPrank(address(continuumDAO));
-        nodeProperties.setRewards(address(rewards));
+        nodeProperties.setProtocolContracts(address(continuumDAO), address(ve), address(rewards), msaw);
         ve.setLiquidationsEnabled(true);
         vm.stopPrank();
     }

@@ -23,6 +23,7 @@ interface IRewards {
     event NodeRewardThresholdUpdated(uint256 _oldNodeRewardThreshold, uint256 _newNodeRewardThreshold);
     event TokenUpdated(Token indexed _tokenType, address _oldToken, address _newToken);
     event FeeUpdated(Token indexed _tokenType, uint256 oldFee, uint256 _fee);
+    event ProtocolContractsUpdated(address _gov, address _ve, address _nodeProperties);
 
     error Rewards_NoUnclaimedRewards();
     error Rewards_InsufficientContractBalance(uint256 _balance, uint256 _required);
@@ -31,6 +32,7 @@ interface IRewards {
     error Rewards_EmissionRateChangeTooHigh();
     error Rewards_InvalidToken(address _token);
     error Rewards_ZeroAmount();
+    error Rewards_IsZeroAddress(VotingEscrowErrorParam);
 
     function setBaseEmissionRate(uint256 _baseEmissionRate) external;
     function setNodeEmissionRate(uint256 _nodeEmissionRate) external;
@@ -39,7 +41,7 @@ interface IRewards {
     function setFeeToken(address _feeToken, address _recipient) external;
     function setFeePerByteRewardToken(uint256 _fee) external;
     function setFeePerByteFeeToken(uint256 _fee) external;
-    function setNodeProperties(address _nodeProperties) external;
+    function setProtocolContracts(address _gov, address _ve, address _nodeProperties) external;
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external;
     function updateLatestMidnight() external;
     function compoundLockRewards(uint256 _tokenId) external returns (uint256);

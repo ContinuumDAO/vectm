@@ -31,6 +31,7 @@ contract DeployDAO is Script, Config, Utils {
         address dappManager = config.get("dappManager").toAddress();
         address c3caller = config.get("c3caller").toAddress();
         address c3governor = config.get("c3governor").toAddress();
+        address msaw = config.get("msaw").toAddress();
         uint256 totalClaimable = config.get("totalClaimable").toUint256();
 
         vm.startBroadcast();
@@ -72,7 +73,7 @@ contract DeployDAO is Script, Config, Utils {
         }
 
         // nonce == 3
-        NodeProperties nodeProperties = new NodeProperties(_dao, _ve);
+        NodeProperties nodeProperties = new NodeProperties(_dao, _ve, msaw);
 
         if (address(nodeProperties) != _nodeProperties) {
             revert PredictedAddressMismatch("Node Properties", address(nodeProperties), _nodeProperties);

@@ -1989,21 +1989,23 @@ contract VotingEscrowTest is Helpers {
         vm.stopPrank();
     }
 
-    function test_SetTreasury() public {
+    function test_SetProtocolContracts() public {
         address newTreasury = makeAddr("newTreasury");
         vm.prank(address(continuumDAO));
-        vm.expectEmit(true, true, false, true);
-        emit IVotingEscrow.TreasuryUpdated(address(continuumDAO), newTreasury);
-        ve.setTreasury(newTreasury);
+        vm.expectEmit(true, true, true, true);
+        emit IVotingEscrow.ProtocolContractsUpdated(
+            address(continuumDAO), address(nodeProperties), address(rewards), newTreasury
+        );
+        ve.setProtocolContracts(address(continuumDAO), newTreasury, address(nodeProperties), address(rewards));
         assertEq(ve.treasury(), newTreasury);
     }
 
-    function test_SetTreasuryZeroReverts() public {
+    function test_SetProtocolContractsZeroTreasuryReverts() public {
         vm.prank(address(continuumDAO));
         vm.expectRevert(
             abi.encodeWithSelector(IVotingEscrow.VotingEscrow_IsZeroAddress.selector, VotingEscrowErrorParam.Treasury)
         );
-        ve.setTreasury(address(0));
+        ve.setProtocolContracts(address(continuumDAO), address(0), address(nodeProperties), address(rewards));
     }
 
     function test_DelegateBySig_StandardEIP712Domain() public {

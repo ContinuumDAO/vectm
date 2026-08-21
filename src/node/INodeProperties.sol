@@ -43,7 +43,7 @@ interface INodeProperties {
     event NodeQualityUpdated(
         uint256 indexed _tokenId, address indexed _keyGen, uint256 _oldQuality, uint256 _newQuality
     );
-    event RewardsUpdated(address _oldRewards, address _newRewards);
+    event ProtocolContractsUpdated(address _gov, address _ve, address _rewards, address _msaw);
 
     error NodeProperties_TokenIDNotAttached(uint256 _tokenId);
     error NodeProperties_KeyGenAlreadyAttached(address _keyGen);
@@ -52,16 +52,18 @@ interface INodeProperties {
     error NodeProperties_InvalidNodeQualityOf(uint256 _nodeQualityOf);
     error NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error NodeProperties_InvalidInitialization();
+    error NodeProperties_IsZeroAddress(VotingEscrowErrorParam);
 
     function gov() external view returns (address);
     function rewards() external view returns (address);
     function ve() external view returns (address);
+    function msaw() external view returns (address);
 
-    function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external;
+    function attachNodeFor(address _keyGen, uint256 _tokenId, NodeInfo memory _nodeInfo) external;
     function detachNode(uint256 _tokenId) external;
     function setNodeRemovalStatus(uint256 _tokenId, bool _status) external;
     function setNodeQualityOf(uint256 _tokenId, uint8 _nodeQualityOf) external;
-    function setRewards(address _rewards) external;
+    function setProtocolContracts(address _gov, address _ve, address _rewards, address _msaw) external;
     function nodeInfo(uint256 _tokenId, address _account) external view returns (NodeInfo memory);
     function attachedKeyGen(uint256 _tokenId) external view returns (address);
     function attachedTokenId(address _keyGen) external view returns (uint256);

@@ -15,9 +15,11 @@ import {IRewards} from "./IRewards.sol";
 
 /**
  * @title NodeProperties
- * @notice Manages the attachment of veCTM tokens to node KeyGen addresses for reward distribution
+ * @notice Manages the attachment of veCTM tokens to node operator addresses for reward distribution
  * @author @patrickcure ContinuumDAO
- * @dev Attachment identity is the KeyGen Ethereum address (`msg.sender`), which must own the veCTM NFT.
+ * @dev Attachment is relayed by MultiSignAgentWallet: only `msaw` may call `attachNodeFor`, passing the
+ * withdraw-authority address that must own the veCTM NFT. That address is stored as the attach key and
+ * indexed by `attachedTokenId` for fee-waiver lookups on the wallet.
  * Attachment freezes transfer/merge/split/withdraw/liquidate on VotingEscrow until governance `detachNode`.
  * There is no owner-initiated detach and no automatic release at lock expiry; `setNodeRemovalStatus` is advisory only.
  *
@@ -31,6 +33,9 @@ import {IRewards} from "./IRewards.sol";
 contract NodeProperties is INodeProperties {
     using Checkpoints for Checkpoints.Trace208;
 
+    /// @dev Reverts when `attachNodeFor` is called with a key that does not own the veCTM NFT.
+    error NodeProperties_KeyGenMustOwnToken(address _keyGen, address _owner);
+
     /// @notice Address of the governance contract with administrative privileges
     address public gov;
 
@@ -39,6 +44,9 @@ contract NodeProperties is INodeProperties {
 
     /// @notice Address of the voting escrow contract for token ownership verification
     address public ve;
+
+    /// @notice Address of the MultiSignAgentWallet fee contract
+    address public msaw;
 
     /// @notice Mapping from token ID to attached KeyGen address
     mapping(uint256 => address) internal _attachedKeyGen;
@@ -70,45 +78,72 @@ contract NodeProperties is INodeProperties {
     }
 
     /**
-     * @notice Initializes the NodeProperties contract
-     * @param _gov The address of the governance contract
-     * @param _ve The address of the voting escrow contract
-     * @dev Sets up the initial governance and voting escrow addresses
+     * @notice Modifier to restrict function access to multi-sign agent wallet only
+     * @dev Reverts with NodeProperties_OnlyAuthorized error if caller is not the msaw
      */
-    constructor(address _gov, address _ve) {
-        gov = _gov;
-        ve = _ve;
+    modifier onlyMSAW() {
+        if (msg.sender != msaw) {
+            revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.MSAW);
+        }
+        _;
     }
 
     /**
-     * @notice Attaches a veCTM token to the caller's KeyGen address for reward eligibility
-     * @param _tokenId The ID of the veCTM token to attach
-     * @param _nodeInfo The NodeInfo structure containing off-chain node metadata
-     * @dev Requirements:
-     * - Caller must be the owner of the token ID (KeyGen holds the NFT)
-     * - Token ID must not already be attached
-     * - KeyGen address must not already be attached to another token
-     * - Token's voting power must meet the node reward threshold
+     * @notice Initializes the NodeProperties contract
+     * @param _gov The address of the governance contract
+     * @param _ve The address of the voting escrow contract
+     * @param _msaw The MultiSignAgentWallet proxy allowed to call `attachNodeFor`
+     * @dev `rewards` is wired separately via `setProtocolContracts` before attach is enabled.
      */
-    function attachNode(uint256 _tokenId, NodeInfo memory _nodeInfo) external {
+    constructor(address _gov, address _ve, address _msaw) {
+        if (_gov == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.Gov);
+        }
+        if (_ve == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.VotingEscrow);
+        }
+        if (_msaw == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.MSAW);
+        }
+        gov = _gov;
+        ve = _ve;
+        msaw = _msaw;
+    }
+
+    /**
+     * @notice Attaches a veCTM token to a node operator address for reward eligibility
+     * @param _keyGen The withdraw-authority address that owns the veCTM NFT (passed through by `msaw`)
+     * @param _tokenId The ID of the veCTM token to attach
+     * @param _nodeInfo Off-chain node metadata forwarded from MultiSignAgentWallet
+     * @dev Only MultiSignAgentWallet may call. Requirements:
+     * - `rewards` must be configured
+     * - `_keyGen` must own `_tokenId`
+     * - Token ID must not already be attached
+     * - `_keyGen` must not already be attached to another token
+     * - Current voting power must meet `rewards.nodeRewardThreshold()`
+     */
+    function attachNodeFor(address _keyGen, uint256 _tokenId, NodeInfo memory _nodeInfo) external onlyMSAW {
+        if (rewards == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.Rewards);
+        }
         address _owner = IERC721(ve).ownerOf(_tokenId);
-        if (msg.sender != _owner) {
-            revert NodeProperties_OnlyAuthorized(VotingEscrowErrorParam.Sender, VotingEscrowErrorParam.Owner);
+        if (_keyGen != _owner) {
+            revert NodeProperties_KeyGenMustOwnToken(_keyGen, _owner);
         }
         if (_attachedKeyGen[_tokenId] != address(0)) {
             revert NodeProperties_TokenIDAlreadyAttached(_tokenId);
         }
-        if (_attachedTokenId[msg.sender] != 0) {
-            revert NodeProperties_KeyGenAlreadyAttached(msg.sender);
+        if (_attachedTokenId[_keyGen] != 0) {
+            revert NodeProperties_KeyGenAlreadyAttached(_keyGen);
         }
         if (IVotingEscrow(ve).balanceOfNFT(_tokenId) < IRewards(rewards).nodeRewardThreshold()) {
             revert NodeProperties_NodeRewardThresholdNotReached(_tokenId);
         }
         _nodeInfoOf[_tokenId][_owner] = _nodeInfo;
-        _attachedKeyGen[_tokenId] = msg.sender;
-        _attachedTokenId[msg.sender] = _tokenId;
+        _attachedKeyGen[_tokenId] = _keyGen;
+        _attachedTokenId[_keyGen] = _tokenId;
         _nodeValidated[_tokenId] = true;
-        emit Attachment(_tokenId, msg.sender);
+        emit Attachment(_tokenId, _keyGen);
     }
 
     /**
@@ -175,17 +210,31 @@ contract NodeProperties is INodeProperties {
     }
 
     /**
-     * @notice Initializes the rewards contract address
-     * @param _rewards The address of the rewards contract
-     * The rewards contract is used for checking node reward thresholds.
+     * @notice Sets the protocol contract addresses.
+     * @param _gov The new gov address.
+     * @param _ve The new voting escrow address.
+     * @param _rewards The new rewards address.
+     * @param _msaw The new MultiSignAgentWallet proxy address.
+     * @dev Only governance. Required before `attachNodeFor` can succeed.
      */
-    function setRewards(address _rewards) external onlyGov {
-        if (_rewards == address(0)) {
-            revert NodeProperties_InvalidInitialization();
+    function setProtocolContracts(address _gov, address _ve, address _rewards, address _msaw) external onlyGov {
+        if (_gov == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.Gov);
         }
-        address oldRewards = rewards;
+        if (_ve == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.VotingEscrow);
+        }
+        if (_rewards == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.Rewards);
+        }
+        if (_msaw == address(0)) {
+            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.MSAW);
+        }
+        gov = _gov;
+        ve = _ve;
         rewards = _rewards;
-        emit RewardsUpdated(oldRewards, _rewards);
+        msaw = _msaw;
+        emit ProtocolContractsUpdated(_gov, _ve, _rewards, _msaw);
     }
 
     /**

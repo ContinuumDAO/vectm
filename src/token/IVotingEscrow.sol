@@ -40,7 +40,9 @@ interface IVotingEscrow {
     event Merge(uint256 indexed _fromId, uint256 indexed _toId);
     event Split(uint256 indexed _tokenId, uint256 indexed _extractionId, uint256 _extractionValue);
     event Liquidate(uint256 indexed _tokenId, uint256 _value, uint256 _penalty);
-    event TreasuryUpdated(address indexed _oldTreasury, address indexed _newTreasury);
+    event ProtocolContractsUpdated(
+        address governor, address nodeProperties, address rewards, address treasury
+    );
     event TokenUpdated(address indexed _oldToken, address indexed _newToken, uint256 _amount);
 
     error VotingEscrow_Reentrant();
@@ -129,7 +131,8 @@ interface IVotingEscrow {
     function setBaseURI(string memory _baseURI) external;
     function setLiquidationsEnabled(bool _liquidationsEnabled) external;
     function setMinimumLock(uint256 _min) external;
-    function setTreasury(address _treasury) external;
+    function setProtocolContracts(address _governor, address _treasury, address _nodeProperties, address _rewards)
+        external;
     function setToken(address _token) external;
     function migrateV2() external;
 

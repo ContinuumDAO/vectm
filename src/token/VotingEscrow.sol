@@ -276,13 +276,11 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         supportedInterfaces[ERC721_ENUMERABLE_INTERFACE_ID] = true;
 
         if (_allTokens.length == 0 && _totalSupply != 0) {
-            uint256 maxId = tokenId;
-            for (uint256 id = 1; id <= maxId; ++id) {
-                if (idToOwner[id] != address(0)) {
-                    _addTokenToAllTokensEnumeration(id);
-                }
+            assert(tokenId == _totalSupply);
+            for (uint256 id = 1; id <= _totalSupply; ++id) {
+                assert(idToOwner[id] != address(0));
+                _addTokenToAllTokensEnumeration(id);
             }
-            assert(_allTokens.length == _totalSupply);
         }
     }
 
@@ -696,17 +694,34 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     }
 
     /**
-     * @notice Sets the treasury address that receives liquidation penalties.
+     * @notice Sets the protocol contract addresses.
+     * @param _governor The new governor address.
      * @param _treasury The new treasury address.
-     * @dev Only governance. Reverts if `_treasury` is the zero address.
+     * @param _nodeProperties The new nodeProperties address.
+     * @param _rewards The new rewards address.
+     * @dev Only governance.
      */
-    function setTreasury(address _treasury) external onlyGov {
+    function setProtocolContracts(address _governor, address _treasury, address _nodeProperties, address _rewards)
+        external
+        onlyGov
+    {
+        if (_governor == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Gov);
+        }
         if (_treasury == address(0)) {
             revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Treasury);
         }
-        address oldTreasury = treasury;
+        if (_nodeProperties == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.NodeProperties);
+        }
+        if (_rewards == address(0)) {
+            revert VotingEscrow_IsZeroAddress(VotingEscrowErrorParam.Rewards);
+        }
+        governor = _governor;
         treasury = _treasury;
-        emit TreasuryUpdated(oldTreasury, _treasury);
+        nodeProperties = _nodeProperties;
+        rewards = _rewards;
+        emit ProtocolContractsUpdated(_governor, _nodeProperties, _rewards, _treasury);
     }
 
     /**

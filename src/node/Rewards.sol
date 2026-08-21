@@ -256,12 +256,30 @@ contract Rewards is IRewards {
     }
 
     /**
-     * @notice Sets the node properties contract address (governance only)
-     * @param _nodeProperties The new node properties contract address
-     * @dev Updates the reference to the node properties contract for quality score queries.
+     * @notice Sets the protocol contract addresses.
+     * @param _gov The new gov address.
+     * @param _ve The new voting escrow address.
+     * @param _nodeProperties The new nodeProperties address.
+     * @dev Only governance.
      */
-    function setNodeProperties(address _nodeProperties) external onlyGov {
+    function setProtocolContracts(address _gov, address _ve, address _nodeProperties) external onlyGov {
+        if (_gov == address(0)) {
+            revert Rewards_IsZeroAddress(VotingEscrowErrorParam.Gov);
+        }
+        if (_ve == address(0)) {
+            revert Rewards_IsZeroAddress(VotingEscrowErrorParam.VotingEscrow);
+        }
+        if (_nodeProperties == address(0)) {
+            revert Rewards_IsZeroAddress(VotingEscrowErrorParam.NodeProperties);
+        }
+        address oldVe = ve;
+        gov = _gov;
+        ve = _ve;
         nodeProperties = _nodeProperties;
+        if (_ve != oldVe) {
+            IERC20(rewardToken).forceApprove(_ve, type(uint256).max);
+        }
+        emit ProtocolContractsUpdated(_gov, _ve, _nodeProperties);
     }
 
     /**
