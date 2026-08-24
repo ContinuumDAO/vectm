@@ -16,18 +16,18 @@ import {ICTMERC20} from "@c3caller/token/ICTMERC20.sol";
 contract ExecuteCTM is Script {
     function run() public {
         address c3caller = 0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7;
-        address ctm = 0x2026027054F5beBCEB650aBD62dC623e327658e7;
+        address ctm = 0x7581696b0ED142f6534E5797baaABBb9a1b27086;
         uint256 ctm_id = 26243786160252405427302909576549313777876500874080323496247859302443561356480;
         string memory fromStr = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F";
-        string memory toStr = "0xD836F55ecc0EE45a852460b4243001e642eCca86";
-        uint256 amount = 20168947499999000000000000;
+        string memory toStr = "0x4800F9f1dC1b6daCA841B71E0531F547D374168E";
+        uint256 amount = 25000000000000000000000;
 
         bytes memory c3receiveData = abi.encodeWithSelector(ICTMERC20.c3receive.selector, fromStr, toStr, amount);
 
-        bytes32 uuid = 0x60AB784B5306BB188AFC131052ECEC8F3FE77DF5C68D196D76E14E9174214DA6;
+        bytes32 uuid = 0x03E7108146D1E55D87CF0F334C4FB0F5CE4155FC109C5BE87514BD99A23C865D;
         string memory fromChainID = "1";
-        string memory sourceTxHash = "0x635b8dacba0fd85afdbd5f9a45045006e856f6f73bbbe67901a6844a97233d3a";
-        string memory fallbackTo = "0x2026027054F5beBCEB650aBD62dC623e327658e7";
+        string memory sourceTxHash = "0x6ec89fad63c70f0d5691f38e46eddc1228ea5cfcce20ba4ea5c556dfbfa97c77";
+        string memory fallbackTo = "0x7581696b0ED142f6534E5797baaABBb9a1b27086";
         IC3Caller.C3EvmMessage memory message =
             IC3Caller.C3EvmMessage(uuid, ctm, fromChainID, sourceTxHash, fallbackTo, c3receiveData);
 

@@ -6,7 +6,7 @@ endpoint_url = "mainnet-rpc-url"
 dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
 dappKey_ctm = "v1.continuumdao.ctm"
 metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
-metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":2,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
 dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
 targetChainID = "59144"
 
@@ -18,12 +18,16 @@ uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
 dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
 c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
 c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
-ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+ctm = "0x7581696b0ED142f6534E5797baaABBb9a1b27086"
 
 uuidKeeperImpl = "0x849a78D9e70D2428c9531981f6F3fcEcB378A78f"
 dappManagerImpl = "0x7A43576Da6A2f738F724747697Cd2fD2424F0C7D"
 c3callerImpl = "0x0C746CF1cadd15f800b7D64c3c023D690d6a271a"
 c3governorImpl = "0x430e19F6BdeeC59093AaE877aF874EEf6D7d943e"
+
+[mainnet.uint]
+dappId_ctm = "26243786160252405427302909576549313777876500874080323496247859302443561356480"
+dappId_c3gov_u = "54841553903020218527075297192242923310195705512185382121058570035346596394010"
 
 
 # 2. Linea
@@ -33,8 +37,8 @@ endpoint_url ="linea-rpc-url"
 [linea.string]
 dappKey_c3gov_u = "v1.continuumdao.c3governor_u"
 dappKey_ctm = "v1.continuumdao.ctm"
-metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
-metadata_ctm = '{"version":1,"name":"CTM","description":"CTM on Ethereum","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_c3gov = '{"version":1,"name":"C3Governor","description":"C3Governor on Linea","email":"continuumdao@proton.me","url":"continuumdao.org"}'
+metadata_ctm = '{"version":2,"name":"CTM","description":"CTM on Linea","email":"continuumdao@proton.me","url":"continuumdao.org"}'
 
 [linea.address]
 admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
@@ -44,12 +48,12 @@ uuidKeeper = "0xE605C920c942EA4E807a688c554bf83C59D4DB41"
 dappManager = "0x9e0625366F7d85A174a59b1a5D2e44F1492a9cBB"
 c3caller = "0x2f925D6512b2BbB00f5a36d8B18E01fcf35F7Dc7"
 c3governor = "0x58B610a359c870E0fc941139821a51F5aa23f14E"
-ctm = "0x2026027054F5beBCEB650aBD62dC623e327658e7"
+ctm = "0x7581696b0ED142f6534E5797baaABBb9a1b27086"
 
 ve = "0x221EC90B3B083A8501A37bdeb7035CeaedF3C31f"
 dao = "0x4800F9f1dC1b6daCA841B71E0531F547D374168E"
-nodeProperties = "0xE942e22204487b9CDB50b79cDdD729593C9EE5C3"
-rewards = "0xA9889410537d2e6510f5294A311Aad1504EfDB19"
+nodeProperties = "0x0000000000000000000000000000000000000000"
+rewards = "0x0000000000000000000000000000000000000000"
 dist = "0xD836F55ecc0EE45a852460b4243001e642eCca86"
 
 uuidKeeperImpl = "0x849a78D9e70D2428c9531981f6F3fcEcB378A78f"
@@ -57,11 +61,12 @@ dappManagerImpl = "0x7A43576Da6A2f738F724747697Cd2fD2424F0C7D"
 c3callerImpl = "0x0C746CF1cadd15f800b7D64c3c023D690d6a271a"
 c3governorImpl = "0x430e19F6BdeeC59093AaE877aF874EEf6D7d943e"
 
-veImpl = "0x403B6f7511E8E2e3BC624bc881eEce60210DD2FB"
-
+veImpl = "0x0000000000000000000000000000000000000000"
 
 [linea.uint]
 totalClaimable = "20168947499999000000000000" # 20_168_947.499_999_000_000_000_000 CTM
+dappId_ctm = "26243786160252405427302909576549313777876500874080323496247859302443561356480"
+dappId_c3gov_u = "54841553903020218527075297192242923310195705512185382121058570035346596394010"
 
 
 # 3. Sepolia

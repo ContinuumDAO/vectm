@@ -15,13 +15,18 @@ contract MintCTM is Script, Config {
 
         address ctm = config.get("ctm").toAddress();
         address admin = config.get("admin").toAddress();
-        string memory distribution = config.get("dist").toString();
+
         string memory targetChainID = config.get("targetChainID").toString();
-        uint256 initialMint = config.get("initialMint").toUint256();
+        string memory dao = config.get("dao").toString();
+        string memory ve = config.get("ve").toString();
+
+        uint256 veLock = config.get("veLock").toUint256();
+        uint256 daoFloat = config.get("daoFloat").toUint256();
 
         vm.startBroadcast();
-        ICTMMintable(ctm).mint(admin, initialMint);
-        ICTM(ctm).c3transfer(distribution, initialMint, targetChainID);
+        ICTMMintable(ctm).mint(admin, veLock + daoFloat);
+        ICTM(ctm).c3transfer(ve, veLock, targetChainID);
+        ICTM(ctm).c3transfer(dao, daoFloat, targetChainID);
         vm.stopBroadcast();
     }
 }

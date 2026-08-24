@@ -1239,8 +1239,7 @@ contract VotingEscrowTest is Helpers {
         assertTrue(ve.supportsInterface(0x01ffc9a7)); // ERC165
         assertTrue(ve.supportsInterface(0x80ac58cd)); // ERC721
         assertTrue(ve.supportsInterface(0x5b5e139f)); // ERC721Metadata
-        // TODO: add support for ERC721Enumerable
-        // TODO: add support for ERC5805 (Votes & Clock)
+        assertFalse(ve.supportsInterface(0x780e9d63)); // ERC721Enumerable — enabled by migrateV2
         assertTrue(ve.supportsInterface(0xe90fb3f6)); // Votes
         assertTrue(ve.supportsInterface(0xda287a1d)); // ERC6372
         assertFalse(ve.supportsInterface(0x12345678)); // Invalid interface

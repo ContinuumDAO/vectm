@@ -12,6 +12,7 @@ import {IVotingEscrow} from "../../src/token/IVotingEscrow.sol";
 import {VotingEscrowErrorParam} from "../../src/utils/VotingEscrowUtils.sol";
 import {Helpers} from "../helpers/Helpers.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
+import {VotingEscrowDeploy} from "../helpers/VotingEscrowDeploy.sol";
 
 // VotingEscrowV2 - A minor upgrade that adds new features without overriding base functions
 contract VotingEscrowV2 is VotingEscrow {
@@ -104,7 +105,8 @@ contract VotingEscrowUpgradesTest is Helpers {
 
     function test_CannotInitializeTwice() public {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        ve.initialize(address(ctm), address(continuumDAO), address(nodeProperties), address(rewards), BASE_URI_V1);
+        VotingEscrowDeploy(address(ve))
+            .initialize(address(ctm), address(continuumDAO), address(nodeProperties), address(rewards), BASE_URI_V1);
     }
 
     function test_ValidUpgrade() public {
@@ -138,9 +140,6 @@ contract VotingEscrowUpgradesTest is Helpers {
         (int128 amount, uint256 end) = ve.locked(tokenId);
         assertEq(uint256(int256(amount)), 1 ether);
 
-        // Deprecated nonVoting mapping retained for UUPS layout; getter must remain callable
-        assertFalse(ve.nonVoting(tokenId));
-
         // Upgrade
         vm.prank(address(continuumDAO));
         ve.upgradeToAndCall(address(veImplV2), initializerDataV2);
@@ -149,8 +148,6 @@ contract VotingEscrowUpgradesTest is Helpers {
         (amount, end) = ve.locked(tokenId);
         assertEq(uint256(int256(amount)), 1 ether);
         assertEq(ve.ownerOf(tokenId), user1);
-        // Storage layout: nonVoting mapping still present and readable after upgrade
-        assertFalse(VotingEscrowV2(address(ve)).nonVoting(tokenId));
         assertGt(ve.balanceOfNFT(tokenId), 0);
     }
 

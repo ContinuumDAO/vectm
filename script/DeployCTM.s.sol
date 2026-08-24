@@ -13,16 +13,17 @@ import {CTM} from "../build/token/ctm/CTM.sol";
 
 contract DeployCTM is Script, Config {
     function run() public {
-        _loadConfig("./config/deploy-ctm.toml", false);
+        _loadConfig("./config/deployments.toml", false);
 
         bool mintable = vm.envOr("MINTABLE", false);
 
         address admin = config.get("admin").toAddress();
         address c3caller = config.get("c3caller").toAddress();
         address dappManager = config.get("dappManager").toAddress();
-        string memory dappKey_ctm = config.get("dappKey_ctm").toString();
+        // string memory dappKey_ctm = config.get("dappKey_ctm").toString();
+        uint256 dappID_ctm = config.get("dappId_ctm").toUint256();
 
-        uint256 dappID_ctm = IC3DAppManager(dappManager).deriveDAppID(admin, dappKey_ctm);
+        // uint256 dappID_ctm = IC3DAppManager(dappManager).deriveDAppID(admin, dappKey_ctm);
 
         address _ctm;
 

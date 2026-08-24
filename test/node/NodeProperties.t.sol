@@ -78,9 +78,7 @@ contract TestNodeProperties is Helpers {
         vm.prank(user1);
         id1 = ve.create_lock(10_000 ether, MAXTIME);
         vm.prank(msaw);
-        vm.expectRevert(
-            abi.encodeWithSelector(NodeProperties.NodeProperties_KeyGenMustOwnToken.selector, user2, user1)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NodeProperties.NodeProperties_KeyGenMustOwnToken.selector, user2, user1));
         nodeProperties.attachNodeFor(user2, id1, submittedNodeInfo);
     }
 

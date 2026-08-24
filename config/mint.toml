@@ -1,0 +1,16 @@
+#1. Ethereum
+[mainnet]
+endpoint_url = "mainnet-rpc-url"
+
+[mainnet.address]
+ctm = "0x7581696b0ED142f6534E5797baaABBb9a1b27086"
+admin = "0xccc435AaBc481D4Af9da51E51Eb2a383Bce6791F"
+
+[mainnet.string]
+targetChainID = "59144"
+dao = "0x4800F9f1dC1b6daCA841B71E0531F547D374168E"
+ve = "0x221EC90B3B083A8501A37bdeb7035CeaedF3C31f"
+
+[mainnet.uint]
+veLock = "16770423139961000000000000"
+daoFloat = "25000000000000000000000"

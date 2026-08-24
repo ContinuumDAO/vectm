@@ -4,12 +4,13 @@
  libs = ["dependencies"]
  solc = "0.8.27"
  via_ir = true
- optimizer_runs = 25
+ optimizer_runs = 1
  evm_version = "cancun"
  no_match_coverage = "^(build/|script/|test/|dependencies/)"
  fs_permissions = [
   { access = "read", path = "config/deployments.toml" },
-  { access = "read", path = "config/distribution.toml" }
+  { access = "read", path = "config/distribution.toml" },
+  { access = "read", path = "config/mint.toml" }
  ]
 
  remappings = [

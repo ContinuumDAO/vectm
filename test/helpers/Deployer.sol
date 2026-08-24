@@ -15,6 +15,7 @@ import {Rewards} from "../../src/node/Rewards.sol";
 import {CTMMintable} from "../../src/token/ctm/CTMMintable.sol";
 import {VotingEscrow} from "../../src/token/VotingEscrow.sol";
 import {TestERC20} from "./mocks/TestERC20.sol";
+import {VotingEscrowDeploy} from "./VotingEscrowDeploy.sol";
 import {VotingEscrowProxy} from "../../src/utils/VotingEscrowProxy.sol";
 
 import {Utils} from "./Utils.sol";
@@ -61,9 +62,9 @@ contract Deployer is Utils {
         address _continuumDAO = vm.computeCreateAddress(address(this), 52);
         address _nodeProperties = vm.computeCreateAddress(address(this), 53);
         address _rewards = vm.computeCreateAddress(address(this), 54);
-        VotingEscrow veImpl = new VotingEscrow();
+        VotingEscrowDeploy veImpl = new VotingEscrowDeploy();
         bytes memory initData = abi.encodeCall(
-            VotingEscrow.initialize, (address(ctm), _continuumDAO, _nodeProperties, _rewards, "Base URI")
+            VotingEscrowDeploy.initialize, (address(ctm), _continuumDAO, _nodeProperties, _rewards, "Base URI")
         );
         ve = VotingEscrow(_deployProxy(address(veImpl), initData));
         address _ve = address(ve);

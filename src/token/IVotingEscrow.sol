@@ -95,14 +95,14 @@ interface IVotingEscrow {
     function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256);
     function tokenByIndex(uint256 _index) external view returns (uint256);
 
-    /// @notice UUPSUpgradeable
-    function initialize(
-        address _token_addr,
-        address _governor,
-        address _nodeProperties,
-        address _rewards,
-        string memory _base_uri
-    ) external;
+    // /// @notice UUPSUpgradeable
+    // function initialize(
+    //     address _token_addr,
+    //     address _governor,
+    //     address _nodeProperties,
+    //     address _rewards,
+    //     string memory _base_uri
+    // ) external;
 
     /// @notice VotingEscrow Core
     function create_lock(uint256 _value, uint256 _lock_duration) external returns (uint256);

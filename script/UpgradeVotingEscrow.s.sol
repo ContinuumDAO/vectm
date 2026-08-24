@@ -12,16 +12,15 @@ interface IUpgrade {
 }
 
 contract UpgradeVotingEscrow is Script {
-    address constant VE = 0xFA4DE6AF7EbaF304a20078115e75032Bc530B7dd;
-    address constant GOV = 0x2be79060a0103F3c862f728e8ddc8bb198872D35;
+    address constant VE = 0x221EC90B3B083A8501A37bdeb7035CeaedF3C31f;
+    address constant GOV = 0x4800F9f1dC1b6daCA841B71E0531F547D374168E;
 
     function run() public {
-        // vm.startBroadcast();
-        vm.createSelectFork(vm.rpcUrl("linea-rpc-url"));
+        vm.startBroadcast();
+        // vm.createSelectFork(vm.rpcUrl("linea-rpc-url"));
         VotingEscrow ve_2 = new VotingEscrow();
-        vm.prank(GOV);
         IUpgrade(VE).upgradeToAndCall(address(ve_2), "");
-        // vm.stopBroadcast();
+        vm.stopBroadcast();
         console.log("VotingEscrow V2: ", address(ve_2));
     }
 }
