@@ -115,7 +115,7 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
     mapping(bytes4 => bool) internal supportedInterfaces;
     /// @notice Deprecated storage slot retained for UUPS upgrade layout compatibility.
     /// @dev Previously marked non-voting locks; unused by logic — all tokens count as voting.
-    mapping(uint256 => bool) public nonVoting;
+    mapping(uint256 => bool) internal nonVoting;
 
     /// @notice Mapping from account address to delegatee address
     mapping(address => address) internal _delegatee;
@@ -226,46 +226,47 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the VotingEscrow contract
-     * @param token_addr The address of the underlying CTM token
-     * @param base_uri Base URI for NFT metadata
-     * @param _governor The DAO address
-     * @param _nodeProperties The address of the node management contract
-     * @param _rewards The address of the contract that distributes rewards for node runners
-     * @dev Sets up the initial state including protocol addresses, base URI, and supported interfaces.
-     * This function can only be called once during contract deployment.
-     */
-    function initialize(
-        address token_addr,
-        address _governor,
-        address _nodeProperties,
-        address _rewards,
-        string memory base_uri
-    ) external initializer {
-        __UUPSUpgradeable_init();
-        token = token_addr;
-        baseURI = base_uri;
-        point_history[0].blk = block.number;
-        point_history[0].ts = block.timestamp;
-        minimumLock = 1 ether;
+    // INFO: No longer required after version 1, removed to save code size
+    // /**
+    //  * @notice Initializes the VotingEscrow contract
+    //  * @param token_addr The address of the underlying CTM token
+    //  * @param base_uri Base URI for NFT metadata
+    //  * @param _governor The DAO address
+    //  * @param _nodeProperties The address of the node management contract
+    //  * @param _rewards The address of the contract that distributes rewards for node runners
+    //  * @dev Sets up the initial state including protocol addresses, base URI, and supported interfaces.
+    //  * This function can only be called once during contract deployment.
+    //  */
+    // function initialize(
+    //     address token_addr,
+    //     address _governor,
+    //     address _nodeProperties,
+    //     address _rewards,
+    //     string memory base_uri
+    // ) external initializer {
+    //     __UUPSUpgradeable_init();
+    //     token = token_addr;
+    //     baseURI = base_uri;
+    //     point_history[0].blk = block.number;
+    //     point_history[0].ts = block.timestamp;
+    //     minimumLock = 1 ether;
 
-        governor = _governor;
-        nodeProperties = _nodeProperties;
-        rewards = _rewards;
-        treasury = _governor;
+    //     governor = _governor;
+    //     nodeProperties = _nodeProperties;
+    //     rewards = _rewards;
+    //     treasury = _governor;
 
-        supportedInterfaces[ERC165_INTERFACE_ID] = true;
-        supportedInterfaces[ERC721_INTERFACE_ID] = true;
-        supportedInterfaces[ERC721_METADATA_INTERFACE_ID] = true;
-        supportedInterfaces[VOTES_INTERFACE_ID] = true;
-        supportedInterfaces[ERC6372_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC165_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC721_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC721_METADATA_INTERFACE_ID] = true;
+    //     supportedInterfaces[VOTES_INTERFACE_ID] = true;
+    //     supportedInterfaces[ERC6372_INTERFACE_ID] = true;
 
-        _entered_state = 1;
+    //     _entered_state = 1;
 
-        emit Transfer(address(0), address(this), tokenId);
-        emit Transfer(address(this), address(0), tokenId);
-    }
+    //     emit Transfer(address(0), address(this), tokenId);
+    //     emit Transfer(address(this), address(0), tokenId);
+    // }
 
     /**
      * @notice One-time v2 migration run at most once after upgrade.
@@ -1835,30 +1836,31 @@ contract VotingEscrow is IVotingEscrow, IERC721, IERC5805, IERC721Receiver, UUPS
         }
     }
 
-    /**
-     * @notice Binary search to estimate timestamp for block number
-     * @param _block Block to find
-     * @param max_epoch Don't go beyond this epoch
-     * @return Approximate timestamp for block
-     */
-    function _find_block_epoch(uint256 _block, uint256 max_epoch) internal view returns (uint256) {
-        // Binary search
-        uint256 _min = 0;
-        uint256 _max = max_epoch;
-        for (uint256 i = 0; i < 128; ++i) {
-            // Will be always enough for 128-bit numbers
-            if (_min >= _max) {
-                break;
-            }
-            uint256 _mid = (_min + _max + 1) / 2;
-            if (point_history[_mid].blk <= _block) {
-                _min = _mid;
-            } else {
-                _max = _mid - 1;
-            }
-        }
-        return _min;
-    }
+    // INFO: Not used; removed from version 2 for code size cost reduction
+    // /**
+    //  * @notice Binary search to estimate timestamp for block number
+    //  * @param _block Block to find
+    //  * @param max_epoch Don't go beyond this epoch
+    //  * @return Approximate timestamp for block
+    //  */
+    // function _find_block_epoch(uint256 _block, uint256 max_epoch) internal view returns (uint256) {
+    //     // Binary search
+    //     uint256 _min = 0;
+    //     uint256 _max = max_epoch;
+    //     for (uint256 i = 0; i < 128; ++i) {
+    //         // Will be always enough for 128-bit numbers
+    //         if (_min >= _max) {
+    //             break;
+    //         }
+    //         uint256 _mid = (_min + _max + 1) / 2;
+    //         if (point_history[_mid].blk <= _block) {
+    //             _min = _mid;
+    //         } else {
+    //             _max = _mid - 1;
+    //         }
+    //     }
+    //     return _min;
+    // }
 
     /**
      * @notice The number of NFT delegation checkpoints there are for address `account`.
