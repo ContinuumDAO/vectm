@@ -38,7 +38,7 @@ contract TestGovernorVotesSuperQuorumFraction is GovernorHelpers {
 
         // INFO: Asserting with 0.1% wiggle room to account for voting escrow decay
         assertApproxEqRel(quorum, totalPower * 20 / 100, 0.001 ether);
-        assertApproxEqRel(superQuorum, totalPower * 80 / 100, 0.001 ether);
+        assertApproxEqRel(superQuorum, totalPower * 50 / 100, 0.001 ether);
     }
 
     function test_GovernorVotesSuperQuorumFraction_MultipleOptionQuorum() public {

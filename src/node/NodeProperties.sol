@@ -91,23 +91,13 @@ contract NodeProperties is INodeProperties {
     /**
      * @notice Initializes the NodeProperties contract
      * @param _gov The address of the governance contract
-     * @param _ve The address of the voting escrow contract
-     * @param _msaw The MultiSignAgentWallet proxy allowed to call `attachNodeFor`
      * @dev `rewards` is wired separately via `setProtocolContracts` before attach is enabled.
      */
-    constructor(address _gov, address _ve, address _msaw) {
+    constructor(address _gov) {
         if (_gov == address(0)) {
             revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.Gov);
         }
-        if (_ve == address(0)) {
-            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.VotingEscrow);
-        }
-        if (_msaw == address(0)) {
-            revert NodeProperties_IsZeroAddress(VotingEscrowErrorParam.MSAW);
-        }
         gov = _gov;
-        ve = _ve;
-        msaw = _msaw;
     }
 
     /**

@@ -5,7 +5,7 @@ pragma solidity 0.8.27;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
-import {VotingEscrow} from "../src/token/VotingEscrow.sol";
+import {VotingEscrow} from "../build/token/VotingEscrow.sol";
 
 contract DeployVotingEscrowImplementation is Script {
     function run() public {

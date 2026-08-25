@@ -39,8 +39,6 @@ interface IRewards {
     function setNodeRewardThreshold(uint256 _nodeRewardThreshold) external;
     function withdrawToken(address _token, address _recipient, uint256 _amount) external;
     function setFeeToken(address _feeToken, address _recipient) external;
-    function setFeePerByteRewardToken(uint256 _fee) external;
-    function setFeePerByteFeeToken(uint256 _fee) external;
     function setProtocolContracts(address _gov, address _ve, address _nodeProperties) external;
     function receiveFees(address _token, uint256 _amount, uint256 _fromChainId) external;
     function updateLatestMidnight() external;
@@ -53,8 +51,6 @@ interface IRewards {
 
     function latestMidnight() external view returns (uint48);
     function genesis() external view returns (uint48);
-    function feePerByteRewardToken() external view returns (uint256);
-    function feePerByteFeeToken() external view returns (uint256);
     function gov() external view returns (address);
     function rewardToken() external view returns (address);
     function feeToken() external view returns (address);

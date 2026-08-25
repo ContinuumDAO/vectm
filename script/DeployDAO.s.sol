@@ -22,19 +22,16 @@ contract DeployDAO is Script, Config, Utils {
     error PredictedAddressMismatch(string name, address predicted, address actual);
 
     function run() public {
-        _loadConfig("./config/deploy-dao.toml", false);
+        _loadConfig("./config/deployments.toml", false);
 
-        // address admin = config.get("admin").toAddress();
-        // address ctm = config.get("ctm").toAddress();
-        // address usdc = config.get("usdc").toAddress();
-        // address uuidKeeper = config.get("uuidKeeper").toAddress();
-        // address dappManager = config.get("dappManager").toAddress();
-        // address c3caller = config.get("c3caller").toAddress();
-        // address c3governor = config.get("c3governor").toAddress();
+        address admin = config.get("admin").toAddress();
+        address ctm = config.get("ctm").toAddress();
+        address usdc = config.get("usdc").toAddress();
         // address msaw = config.get("msaw").toAddress();
+        address ve = config.get("ve").toAddress();
         // uint256 totalClaimable = config.get("totalClaimable").toUint256();
 
-        // vm.startBroadcast();
+        vm.startBroadcast();
 
         // // Forge deploys this script contract first (CREATE from admin), then runs run(). The CREATEs
         // // below (new VotingEscrow(), etc.) are therefore from the script contract with nonce 0, 1, 2, 3.
@@ -65,33 +62,30 @@ contract DeployDAO is Script, Config, Utils {
         // VotingEscrowProxy ve = new VotingEscrowProxy(_veImpl, veInitData);
         // address _ve = address(ve);
 
-        // // nonce == 2
-        // ContinuumDAO dao = new ContinuumDAO(_ve, admin);
+        // nonce == 2
+        ContinuumDAO dao = new ContinuumDAO(ve, admin);
 
         // if (address(dao) != _dao) {
         //     revert PredictedAddressMismatch("DAO", address(dao), _dao);
         // }
 
-        // // nonce == 3
-        // NodeProperties nodeProperties = new NodeProperties(_dao, _ve, msaw);
+        // nonce == 3
+        // NodeProperties nodeProperties = new NodeProperties(admin);
 
         // if (address(nodeProperties) != _nodeProperties) {
         //     revert PredictedAddressMismatch("Node Properties", address(nodeProperties), _nodeProperties);
         // }
 
-        // // nonce == 4
+        // nonce == 4
         // Rewards rewards = new Rewards(
         //     1772064000, // _firstMidnight (26th Feb 2026 00:00:00 GMT)
-        //     _ve, // _ve
+        //     ve, // _ve
         //     admin, // _gov
         //     address(ctm), // _rewardToken
         //     usdc, // _usdc
-        //     _nodeProperties, // _nodeProperties
         //     0, // _baseEmissionRate
         //     1 ether / 1000, // _nodeEmissionRate
-        //     5000 ether, // _nodeRewardThreshold
-        //     0, // _feePerByteRewardToken (deprecated)
-        //     0 // _feePerByteFeeToken    (deprecated)
+        //     5000 ether // _nodeRewardThreshold
         // );
 
         // if (address(rewards) != _rewards) {
@@ -120,22 +114,22 @@ contract DeployDAO is Script, Config, Utils {
         //     revert PredictedAddressMismatch("ve.treasury() != _treasury", _treasury_ve, _dao);
         // }
 
-        // // IC3GovClient(uuidKeeper).changeGov(_dao);
-        // // IC3GovClient(dappManager).changeGov(_dao);
-        // // IC3GovClient(c3caller).changeGov(_dao);
+        // IC3GovClient(uuidKeeper).changeGov(_dao);
+        // IC3GovClient(dappManager).changeGov(_dao);
+        // IC3GovClient(c3caller).changeGov(_dao);
 
-        // // DAO must now pass a proposal to applyGov itself on these 3 contracts, and set rewards in NodeProperties
+        // DAO must now pass a proposal to applyGov itself on these 3 contracts, and set rewards in NodeProperties
 
-        // // IC3GovernDApp(c3governor).changeGov(_dao);
-        // // IC3GovernDApp(ctm).changeGov(_dao);
+        // IC3GovernDApp(c3governor).changeGov(_dao);
+        // IC3GovernDApp(ctm).changeGov(_dao);
 
-        // vm.stopBroadcast();
+        vm.stopBroadcast();
 
         // console.log("VotingEscrowImplementation deployed to:", _veImpl);
         // console.log("VotingEscrow deployed to:", _ve);
-        // console.log("ContinuumDAO deployed to:", _dao);
-        // console.log("NodeProperties deployed to:", _nodeProperties);
-        // console.log("Rewards deployed to:", _rewards);
+        console.log("ContinuumDAO deployed to:", address(dao));
+        // console.log("NodeProperties deployed to:", address(nodeProperties));
+        // console.log("Rewards deployed to:", address(rewards));
         // console.log("Distributor deployed to: ", address(dist));
     }
 }

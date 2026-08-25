@@ -70,19 +70,16 @@ contract Deployer is Utils {
         address _ve = address(ve);
         continuumDAO = new ContinuumDAO(_ve, _admin);
         msaw = makeAddr("msaw");
-        nodeProperties = new NodeProperties(_continuumDAO, _ve, msaw);
+        nodeProperties = new NodeProperties(_continuumDAO);
         rewards = new Rewards(
-            0, // _firstMidnight,
+            0, // _firstMidnight
             _ve, // _ve
             address(continuumDAO), // _gov
             address(ctm), // _rewardToken
             address(usdc), // _feeToken
-            address(nodeProperties), // _nodeProperties
             1 ether / 2000, // _baseEmissionRate
             1 ether / 1000, // _nodeEmissionRate
-            5000 ether, // _nodeRewardThreshold
-            7_812_500 gwei, // _feePerByteRewardToken
-            3125 // _feePerByteFeeToken
+            5000 ether // _nodeRewardThreshold
         );
         assert(address(continuumDAO) == _continuumDAO);
         assert(address(nodeProperties) == _nodeProperties);
@@ -92,6 +89,7 @@ contract Deployer is Utils {
     function _initializeDAO() internal {
         vm.startPrank(address(continuumDAO));
         nodeProperties.setProtocolContracts(address(continuumDAO), address(ve), address(rewards), msaw);
+        rewards.setProtocolContracts(address(continuumDAO), address(ve), address(nodeProperties));
         ve.setLiquidationsEnabled(true);
         vm.stopPrank();
     }

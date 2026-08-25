@@ -67,6 +67,22 @@ contract TestRewards is Helpers {
         nodeProperties.setNodeQualityOf(_tokenId, _quality);
     }
 
+    function test_SetProtocolContracts() public {
+        vm.prank(address(continuumDAO));
+        vm.expectEmit(true, true, true, true);
+        emit IRewards.ProtocolContractsUpdated(address(continuumDAO), address(ve), address(nodeProperties));
+        rewards.setProtocolContracts(address(continuumDAO), address(ve), address(nodeProperties));
+        assertEq(rewards.nodeProperties(), address(nodeProperties));
+    }
+
+    function test_SetProtocolContractsZeroNodePropertiesReverts() public {
+        vm.prank(address(continuumDAO));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRewards.Rewards_IsZeroAddress.selector, VotingEscrowErrorParam.NodeProperties)
+        );
+        rewards.setProtocolContracts(address(continuumDAO), address(ve), address(0));
+    }
+
     function test_SetRewardsTooHigh() public prank(address(continuumDAO)) {
         vm.expectRevert(abi.encodeWithSelector(IRewards.Rewards_EmissionRateChangeTooHigh.selector));
         rewards.setBaseEmissionRate(1 ether / uint256(99));

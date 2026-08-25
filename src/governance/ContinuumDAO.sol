@@ -25,7 +25,7 @@ import {GovernorProposalGuardian} from "./oz/GovernorProposalGuardian.sol";
 
 /**
  * @title ContinuumDAO
- * @author OpenZeppelin, modified by @patrickcure for ContinuumDAO
+ * @author OpenZeppelin, modified by @pamacure for ContinuumDAO
  * @notice Governance contract for the Continuum DAO using veCTM voting power
  * @dev This contract implements a comprehensive governance system that combines multiple
  * OpenZeppelin Governor extensions to provide robust DAO governance capabilities.
@@ -69,7 +69,7 @@ contract ContinuumDAO is
      * - Name: ContinuumDAO
      * - Voting delay: 5 days
      * - Voting period: 10 days
-     * - Proposal threshold: 1% of total voting power (with a minimum of 1000 CTM @ 4 years)
+     * - Proposal threshold: 0.1% of total voting power (with a minimum of 1000 CTM @ 4 years)
      * - Quorum: 20% of total voting power
      * - Super Quorum: 80% of total voting power
      * - Late quorum extension: 2 days
@@ -80,12 +80,12 @@ contract ContinuumDAO is
         GovernorSettings(5 days, 10 days, 1000 ether) // voting delay / voting period / minimum voting power threshold
         GovernorVotes(IVotes(_token))
         GovernorVotesQuorumFraction(20)
-        GovernorVotesSuperQuorumFraction(80)
+        GovernorVotesSuperQuorumFraction(50)
         GovernorPreventLateQuorum(2 days) // 2 days
         GovernorProposalGuardian()
     {
         _setProposalGuardian(_proposalGuardian);
-        proposalThresholdNumerator = 1000;
+        proposalThresholdNumerator = 100;
         proposalThresholdDenominator = 100_000;
     }
 

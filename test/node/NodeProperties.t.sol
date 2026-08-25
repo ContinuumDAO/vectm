@@ -133,6 +133,41 @@ contract TestNodeProperties is Helpers {
         vm.stopPrank();
     }
 
+    function test_SetProtocolContracts() public {
+        NodeProperties np = new NodeProperties(address(continuumDAO));
+        vm.prank(address(continuumDAO));
+        vm.expectEmit(true, true, true, true);
+        emit INodeProperties.ProtocolContractsUpdated(address(continuumDAO), address(ve), address(rewards), msaw);
+        np.setProtocolContracts(address(continuumDAO), address(ve), address(rewards), msaw);
+        assertEq(np.ve(), address(ve));
+        assertEq(np.rewards(), address(rewards));
+        assertEq(np.msaw(), msaw);
+    }
+
+    function test_SetProtocolContractsZeroMsawReverts() public {
+        NodeProperties np = new NodeProperties(address(continuumDAO));
+        vm.prank(address(continuumDAO));
+        vm.expectRevert(
+            abi.encodeWithSelector(INodeProperties.NodeProperties_IsZeroAddress.selector, VotingEscrowErrorParam.MSAW)
+        );
+        np.setProtocolContracts(address(continuumDAO), address(ve), address(rewards), address(0));
+    }
+
+    function test_AttachBeforeSetProtocolContracts() public {
+        NodeProperties np = new NodeProperties(address(continuumDAO));
+        vm.prank(user1);
+        id1 = ve.create_lock(10_000 ether, MAXTIME);
+        vm.prank(msaw);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                INodeProperties.NodeProperties_OnlyAuthorized.selector,
+                VotingEscrowErrorParam.Sender,
+                VotingEscrowErrorParam.MSAW
+            )
+        );
+        np.attachNodeFor(user1, id1, submittedNodeInfo);
+    }
+
     function test_AttachingDisablesInteractions() public {
         vm.startPrank(user1);
         id1 = ve.create_lock(5014 ether, MAXTIME);

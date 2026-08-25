@@ -21,9 +21,9 @@ contract TestGovernorSettings is GovernorHelpers {
         uint256 proposalThreshold = continuumDAO.proposalThreshold();
         assertEq(votingDelay, 5 days);
         assertEq(votingPeriod, 10 days);
-        assertEq(proposalThresholdNumerator, 1000);
+        assertEq(proposalThresholdNumerator, 100);
         assertEq(proposalThresholdDenominator, 100_000);
-        assertApproxEqRel(proposalThreshold, ve.totalPower() / 100, 0.01 ether); // 1% wiggle room
+        assertApproxEqRel(proposalThreshold, ve.totalPower() / 1000, 0.01 ether); // 0.1% of total power
     }
 
     function test_Settings_UpdateProposalThreshold() public {

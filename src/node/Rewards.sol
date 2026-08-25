@@ -64,12 +64,6 @@ contract Rewards is IRewards {
     /// @notice The genesis timestamp when rewards started
     uint48 public genesis;
 
-    /// @notice Fee per byte for reward token (CTM)
-    uint256 public feePerByteRewardToken;
-
-    /// @notice Fee per byte for fee token (USDC)
-    uint256 public feePerByteFeeToken;
-
     /// @notice Address of the governance contract with administrative privileges
     address public gov;
 
@@ -118,12 +112,9 @@ contract Rewards is IRewards {
      * @param _gov The address of the governance contract
      * @param _rewardToken The address of the reward token (CTM)
      * @param _feeToken The address of the fee token (e.g., USDC)
-     * @param _nodeProperties The address of the node properties contract
      * @param _baseEmissionRate The initial base emission rate
      * @param _nodeEmissionRate The initial node emission rate
      * @param _nodeRewardThreshold The initial minimum voting power threshold for node rewards
-     * @param _feePerByteRewardToken The fee per byte for reward token
-     * @param _feePerByteFeeToken The fee per byte for fee token
      * @dev Sets up all initial parameters and approves the voting escrow contract to spend reward tokens
      */
     constructor(
@@ -132,12 +123,9 @@ contract Rewards is IRewards {
         address _gov,
         address _rewardToken,
         address _feeToken,
-        address _nodeProperties,
         uint256 _baseEmissionRate,
         uint256 _nodeEmissionRate,
-        uint256 _nodeRewardThreshold,
-        uint256 _feePerByteRewardToken,
-        uint256 _feePerByteFeeToken
+        uint256 _nodeRewardThreshold
     ) {
         _firstMidnight = _firstMidnight - (_firstMidnight % 1 days);
         genesis = _firstMidnight;
@@ -145,12 +133,9 @@ contract Rewards is IRewards {
         gov = _gov;
         rewardToken = _rewardToken;
         feeToken = _feeToken;
-        nodeProperties = _nodeProperties;
         _setBaseEmissionRate(_baseEmissionRate);
         _setNodeEmissionRate(_nodeEmissionRate);
         _setNodeRewardThreshold(_nodeRewardThreshold);
-        _setFeePerByteRewardToken(_feePerByteRewardToken);
-        _setFeePerByteFeeToken(_feePerByteFeeToken);
         IERC20(_rewardToken).forceApprove(_ve, type(uint256).max);
     }
 
@@ -211,48 +196,6 @@ contract Rewards is IRewards {
         }
 
         emit TokenUpdated(Token.Fee, _oldFeeToken, _feeToken);
-    }
-
-    /**
-     * @notice Sets the fee per byte for reward token
-     * @param _fee The new fee per byte for reward token
-     * @dev Updates the fee rate for reward token calculations.
-     * @dev Only callable by governance
-     */
-    function setFeePerByteRewardToken(uint256 _fee) external onlyGov {
-        _setFeePerByteRewardToken(_fee);
-    }
-
-    /**
-     * @notice Sets the fee per byte for reward token
-     * @param _fee The new fee per byte for reward token
-     * @dev Updates the fee rate for reward token calculations.
-     */
-    function _setFeePerByteRewardToken(uint256 _fee) internal {
-        uint256 oldFee = feePerByteRewardToken;
-        feePerByteRewardToken = _fee;
-        emit FeeUpdated(Token.Reward, oldFee, _fee);
-    }
-
-    /**
-     * @notice Sets the fee per byte for fee token
-     * @param _fee The new fee per byte for fee token
-     * @dev Updates the fee rate for fee token calculations.
-     * @dev Only callable by governance
-     */
-    function setFeePerByteFeeToken(uint256 _fee) external onlyGov {
-        _setFeePerByteFeeToken(_fee);
-    }
-
-    /**
-     * @notice Sets the fee per byte for fee token
-     * @param _fee The new fee per byte for fee token
-     * @dev Updates the fee rate for fee token calculations.
-     */
-    function _setFeePerByteFeeToken(uint256 _fee) internal {
-        uint256 oldFee = feePerByteFeeToken;
-        feePerByteFeeToken = _fee;
-        emit FeeUpdated(Token.Fee, oldFee, _fee);
     }
 
     /**
