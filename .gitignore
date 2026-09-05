@@ -2,6 +2,11 @@
 cache/
 out/
 
+# Vim swap files
+*.swp
+*.swo
+*~
+
 # Agent
 .cursor/
 
