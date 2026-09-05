@@ -44,7 +44,7 @@ Off-chain node metadata (attachment identity is the KeyGen `msg.sender`, not a f
 
 ### Core Addresses
 - `governor` (address): Address of the governance contract with administrative privileges
-- `rewards` (address): Address of the rewards contract for threshold checking
+- `rewards` (address): Address of the rewards contract
 - `ve` (address): Address of the voting escrow contract for token ownership verification
 
 ### Mappings
@@ -84,14 +84,13 @@ Attaches a veCTM token to a node for reward eligibility.
 **Behavior:**
 - Allows token owners to attach their veCTM to a node
 - Validates token ownership and attachment status
-- Checks node reward threshold requirements
 - Stores node information and establishes attachment mapping
+- Locked-CTM / month-start VP bars are enforced by MultiSignAgentWallet, not here
 
 **Requirements:**
 - Caller must be the owner of the token ID (KeyGen holds the NFT)
 - Token ID must not already be attached
 - KeyGen address must not already be attached to another token
-- Token's voting power must meet the node reward threshold
 
 **Events Emitted:**
 - `Attachment(uint256 _tokenId, address _keyGen)`: Emitted on successful attachment
@@ -269,7 +268,6 @@ Restricts function access to governance only.
 - `NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam)`: Unauthorized access
 - `NodeProperties_TokenIDAlreadyAttached(uint256 _tokenId)`: Token is already attached
 - `NodeProperties_KeyGenAlreadyAttached(address _keyGen)`: KeyGen is already attached to a token
-- `NodeProperties_NodeRewardThresholdNotReached(uint256 _tokenId)`: Token voting power is insufficient
 - `NodeProperties_TokenIDNotAttached(uint256 _tokenId)`: Token is not attached
 - `NodeProperties_InvalidNodeQualityOf(uint256 _nodeQualityOf)`: Quality score exceeds 10
 - `NodeProperties_InvalidInitialization()`: Rewards address is already set
@@ -289,7 +287,7 @@ The NodeProperties contract enables node infrastructure integration:
 The NodeProperties contract integrates with:
 
 - **VotingEscrow**: For token ownership verification and voting power checks
-- **Rewards**: For node reward threshold validation and reward distribution
+- **Rewards**: For node reward distribution (`nodeRewardThreshold` is emission-only; attach bars live on MultiSignAgentWallet)
 - **Governance**: For administrative functions and node quality management
 - **Checkpoints**: For historical quality score tracking
 

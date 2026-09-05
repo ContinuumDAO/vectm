@@ -48,7 +48,6 @@ interface INodeProperties {
     error NodeProperties_TokenIDNotAttached(uint256 _tokenId);
     error NodeProperties_KeyGenAlreadyAttached(address _keyGen);
     error NodeProperties_TokenIDAlreadyAttached(uint256 _tokenId);
-    error NodeProperties_NodeRewardThresholdNotReached(uint256 _tokenId);
     error NodeProperties_InvalidNodeQualityOf(uint256 _nodeQualityOf);
     error NodeProperties_OnlyAuthorized(VotingEscrowErrorParam, VotingEscrowErrorParam);
     error NodeProperties_InvalidInitialization();

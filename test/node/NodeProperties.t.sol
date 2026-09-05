@@ -82,18 +82,13 @@ contract TestNodeProperties is Helpers {
         nodeProperties.attachNodeFor(user2, id1, submittedNodeInfo);
     }
 
-    function test_AttachNodeSufficientVePower() public {
+    function test_AttachNodeDoesNotRequireRewardThreshold() public {
         vm.prank(user1);
         id1 = ve.create_lock(5000 ether, MAXTIME);
         skip(1);
-        vm.prank(msaw);
-        vm.expectRevert(
-            abi.encodeWithSelector(INodeProperties.NodeProperties_NodeRewardThresholdNotReached.selector, id1)
-        );
-        nodeProperties.attachNodeFor(user1, id1, submittedNodeInfo);
-        vm.prank(user1);
-        ve.increase_amount(id1, 14 ether);
         _attachNodeFor(user1, id1);
+        assertEq(nodeProperties.attachedKeyGen(id1), user1);
+        assertEq(nodeProperties.attachedTokenId(user1), id1);
     }
 
     function test_OnlyAttachOneTokenID() public {

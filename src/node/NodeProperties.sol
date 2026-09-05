@@ -7,11 +7,8 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-import {IVotingEscrow} from "../token/IVotingEscrow.sol";
-
 import {VotingEscrowErrorParam} from "../utils/VotingEscrowUtils.sol";
 import {INodeProperties} from "./INodeProperties.sol";
-import {IRewards} from "./IRewards.sol";
 
 /**
  * @title NodeProperties
@@ -39,7 +36,7 @@ contract NodeProperties is INodeProperties {
     /// @notice Address of the governance contract with administrative privileges
     address public gov;
 
-    /// @notice Address of the rewards contract for threshold checking
+    /// @notice Address of the rewards contract
     address public rewards;
 
     /// @notice Address of the voting escrow contract for token ownership verification
@@ -110,7 +107,8 @@ contract NodeProperties is INodeProperties {
      * - `_keyGen` must own `_tokenId`
      * - Token ID must not already be attached
      * - `_keyGen` must not already be attached to another token
-     * - Current voting power must meet `rewards.nodeRewardThreshold()`
+     * Locked-CTM / month-start VP bars live on MultiSignAgentWallet (`veCtmThresholdPower`),
+     * not here — `rewards.nodeRewardThreshold()` is for Rewards emission only.
      */
     function attachNodeFor(address _keyGen, uint256 _tokenId, NodeInfo memory _nodeInfo) external onlyMSAW {
         if (rewards == address(0)) {
@@ -125,9 +123,6 @@ contract NodeProperties is INodeProperties {
         }
         if (_attachedTokenId[_keyGen] != 0) {
             revert NodeProperties_KeyGenAlreadyAttached(_keyGen);
-        }
-        if (IVotingEscrow(ve).balanceOfNFT(_tokenId) < IRewards(rewards).nodeRewardThreshold()) {
-            revert NodeProperties_NodeRewardThresholdNotReached(_tokenId);
         }
         _nodeInfoOf[_tokenId][_owner] = _nodeInfo;
         _attachedKeyGen[_tokenId] = _keyGen;
